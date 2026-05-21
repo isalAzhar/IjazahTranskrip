@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { FiSearch, FiChevronDown } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import DashboardLayout from "../components/ui/DashboardLayout";
+import DashboardLayout from "../../components/ui/DashboardLayout";
 
 const DataMahasiswa = () => {
   const navigate = useNavigate();

@@ -1,7 +1,7 @@
 // src/pages/DaftarPengguna.jsx
 import React, { useState } from "react";
 import { FiPlus, FiEdit2, FiTrash2, FiChevronDown } from "react-icons/fi";
-import DashboardLayout from "../components/ui/DashboardLayout";
+import DashboardLayout from "../../components/ui/DashboardLayout";
 
 const DaftarPengguna = () => {
   const [openTambah, setOpenTambah] = useState(false);
@@ -132,7 +132,7 @@ const DaftarPengguna = () => {
       {/* ==================== MODAL TAMBAH ==================== */}
       {openTambah && (
         <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
-          <div className="bg-white w-[1000px] rounded-2xl shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto">
+          <div className="bg-white w-250 rounded-2xl shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto">
             <AddUserForm onSave={handleAddUser} onClose={() => setOpenTambah(false)} users={users} />
           </div>
         </div>
@@ -141,7 +141,7 @@ const DaftarPengguna = () => {
       {/* ==================== MODAL EDIT ==================== */}
       {openEdit && selectedUser && (
         <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
-          <div className="bg-white w-[600px] rounded-2xl shadow-xl overflow-hidden">
+          <div className="bg-white w-150 rounded-2xl shadow-xl overflow-hidden">
             <EditUserForm userData={selectedUser} onSave={handleEditUser} onClose={() => setOpenEdit(false)} />
           </div>
         </div>
@@ -150,7 +150,7 @@ const DaftarPengguna = () => {
       {/* ==================== MODAL HAPUS ==================== */}
       {openHapus && selectedUser && (
         <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
-          <div className="bg-white w-[450px] rounded-2xl shadow-xl overflow-hidden">
+          <div className="bg-white w-112.5 rounded-2xl shadow-xl overflow-hidden">
             <DeleteUserForm userData={selectedUser} onDelete={handleHapusUser} onClose={() => setOpenHapus(false)} />
           </div>
         </div>

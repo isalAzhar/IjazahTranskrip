@@ -1,40 +1,48 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // ============================================================
-// IMPORT PAGES (Sudah disesuaikan dengan struktur folder baru)
+// IMPORT CONTEXT & LOGIN (Masuk ke dalam folder pages)
 // ============================================================
-import Login from "./pages/login";
-import Template from "./pages/Template";
-import DataMahasiswa from "./pages/DataMahasiswa";
-import DetailBatch from "./pages/DetailBatch";
-import DetailMahasiswa from "./pages/DetailMahasiswa"; // Berada di luar karena re-usable
-import DaftarUnit from "./pages/DaftarUnit";
-import DaftarPengguna from "./pages/DaftarPengguna";
-import Profile from "./pages/Profile";
+import { AuthProvider, useAuth } from "./pages/context/AuthContext";
+import Login from "./pages/context/login";
 
-// FOLDER: ijazah
-import IjazahTerbit from "./pages/ijazah/IjazahTerbit";
-import IjazahProses from "./pages/ijazah/IjazahProses";
-import IjazahReject from "./pages/ijazah/IjazahReject";
-import IjazahRevoke from "./pages/ijazah/IjazahRevoke";
+// ============================================================
+// IMPORT PAGES DARI FOLDER ADMIN (Sesuai screenshot)
+// ============================================================
+import AdminDashboard from "./pages/admin/Dashboard";
+import Template from "./pages/admin/Template";
+import DataMahasiswa from "./pages/admin/DataMahasiswa";
+import DetailBatch from "./pages/admin/DetailBatch";
+import DetailMahasiswa from "./pages/admin/DetailMahasiswa"; 
+import DaftarUnit from "./pages/admin/DaftarUnit";
+import DaftarPengguna from "./pages/admin/DaftarPengguna";
+import Profile from "./pages/admin/Profile";
 
-// FOLDER: batch
-import BatchTerbit from "./pages/batch/BatchTerbit";
-import BatchProses from "./pages/batch/BatchProses";
-import BatchReject from "./pages/batch/BatchReject";
-import BatchRevoke from "./pages/batch/BatchRevoke";
+// ============================================================
+// IMPORT DARI FOLDER IJAZAH (Ternyata ada di dalam components)
+// ============================================================
+import IjazahTerbit from "./components/ijazah/IjazahTerbit";
+import IjazahProses from "./components/ijazah/IjazahProses";
+import IjazahReject from "./components/ijazah/IjazahReject";
+import IjazahRevoke from "./components/ijazah/IjazahRevoke";
 
-// DASHBOARD PAGES
-import AdminDashboard from "./pages/Dashboard";
+// ============================================================
+// IMPORT DARI FOLDER BATCH (Ternyata ada di dalam components)
+// ============================================================
+import BatchTerbit from "./components/batch/BatchTerbit";
+import BatchProses from "./components/batch/BatchProses";
+import BatchReject from "./components/batch/BatchReject";
+import BatchRevoke from "./components/batch/BatchRevoke";
+
+// ============================================================
+// IMPORT DASHBOARD ROLE LAIN
+// ============================================================
 import OperatorDashboard from "./pages/operator/OperatorDashboard";
-import VerifikatorDashboard from "./pages/verifikator/VerifikatorDashboard";
-import RektorDashboard from "./pages/rektor/RektorDashboard";
+// import VerifikatorDashboard from "./pages/verifikator/VerifikatorDashboard"; // Pastikan file ini ada
+// import RektorDashboard from "./pages/rektor/RektorDashboard"; // Pastikan file ini ada
 
-// ============================================================
 // SEMUA ROLE YANG ADA DI SISTEM
-// ============================================================
 const ALL_ROLES = [
   "admin", "operator", "operator_data", "verifikator",
   "rektor", "wakil_rektor", "dekan", "wakil_dekan",
@@ -80,7 +88,6 @@ const RoleBasedRedirect = () => {
 };
 
 function App() {
-  // Role yang bisa akses admin-dashboard (sementara semua role non-khusus)
   const adminDashboardRoles = [
     "admin", "dekan", "wakil_rektor", "wakil_dekan",
     "tu_fakultas", "tu_rektorat", "rektor"
@@ -104,16 +111,17 @@ function App() {
               <OperatorDashboard />
             </ProtectedRoute>
           } />
-          <Route path="/verifikator-dashboard" element={
+          {/* Hapus komentar jika file sudah ada */}
+          {/* <Route path="/verifikator-dashboard" element={
             <ProtectedRoute allowedRoles={["verifikator"]}>
               <VerifikatorDashboard />
             </ProtectedRoute>
-          } />
-          <Route path="/rektor-dashboard" element={
+          } /> */}
+          {/* <Route path="/rektor-dashboard" element={
             <ProtectedRoute allowedRoles={["rektor"]}>
               <RektorDashboard />
             </ProtectedRoute>
-          } />
+          } /> */}
 
           {/* FITUR IJAZAH (DAFTAR BATCH) */}
           <Route path="/ijazah-terbit" element={<ProtectedRoute allowedRoles={ALL_ROLES}><IjazahTerbit /></ProtectedRoute>} />
@@ -131,8 +139,6 @@ function App() {
           <Route path="/template" element={<ProtectedRoute allowedRoles={ALL_ROLES}><Template /></ProtectedRoute>} />
           <Route path="/data-mahasiswa" element={<ProtectedRoute allowedRoles={ALL_ROLES}><DataMahasiswa /></ProtectedRoute>} />
           <Route path="/detail-batch/:id" element={<ProtectedRoute allowedRoles={ALL_ROLES}><DetailBatch /></ProtectedRoute>} />
-          
-          {/* Route Detail Mahasiswa sudah ditambahkan parameter :nim */}
           <Route path="/detail-mahasiswa/:nim" element={<ProtectedRoute allowedRoles={ALL_ROLES}><DetailMahasiswa /></ProtectedRoute>} />
           
           <Route path="/daftar-unit" element={<ProtectedRoute allowedRoles={ALL_ROLES}><DaftarUnit /></ProtectedRoute>} />

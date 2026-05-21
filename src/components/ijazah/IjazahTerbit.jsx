@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import DashboardLayout from "../../components/ui/DashboardLayout";
+import DashboardLayout from "../ui/DashboardLayout";
 import { FiSearch, FiChevronDown } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
@@ -158,7 +158,7 @@ const IjazahTerbit = () => {
           onClick={() => !isEllipsis && handlePageChange(page)}
           disabled={isEllipsis}
           // UI Styling persis Figma (Rounded 12px, warna spesifik)
-          className={`w-[46px] h-[46px] flex items-center justify-center rounded-[12px] font-bold text-[18px] transition-all ${
+          className={`w-11.5 h-11.5 flex items-center justify-center rounded-xl font-bold text-[18px] transition-all ${
             isActive
               ? "bg-[#115E59] text-white shadow-sm" 
               : "bg-[#CBD5E1] text-white hover:bg-[#b0bcc9]" 
@@ -185,7 +185,7 @@ const IjazahTerbit = () => {
 
         {/* FILTER BOX */}
         <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-wrap items-center gap-4 border border-gray-100">
-          <div className="flex items-center bg-[#E5E5E5] rounded-lg px-4 h-11 flex-1 min-w-[250px] max-w-md">
+          <div className="flex items-center bg-[#E5E5E5] rounded-lg px-4 h-11 flex-1 min-w-62.5 max-w-md">
             <FiSearch className="text-gray-500 text-lg mr-3" />
             <input
               type="text"
@@ -200,7 +200,7 @@ const IjazahTerbit = () => {
             <select
               value={fakultas}
               onChange={(e) => setFakultas(e.target.value)}
-              className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 min-w-[220px] outline-none cursor-pointer"
+              className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 min-w-55 outline-none cursor-pointer"
             >
               <option value="">Semua Fakultas</option>
               {fakultasList.map((f, i) => (
@@ -214,7 +214,7 @@ const IjazahTerbit = () => {
             <select
               value={tahun}
               onChange={(e) => setTahun(e.target.value)}
-              className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 min-w-[150px] outline-none cursor-pointer"
+              className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 min-w-37.5 outline-none cursor-pointer"
             >
               <option value="">Tahun Lulus</option>
               <option value="2024">2024</option>

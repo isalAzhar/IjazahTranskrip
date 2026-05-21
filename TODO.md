@@ -1,10 +1,17 @@
-# Fix Tailwind CSS Warnings in Dashboard.jsx
+# TODO
 
-## Progress
-- [ ] 1. Create TODO.md (current)
-- [ ] 2. Replace rounded-[8px] → rounded-lg (3 occurrences)
-- [ ] 3. Replace flex-shrink-0 → shrink-0 (2 occurrences)  
-- [ ] 4. Replace rounded-[4px] → rounded-sm (1 occurrence)
-- [ ] 5. Update TODO.md with completion status
-- [ ] 6. Verify no errors and complete task
+## Step 1
+- [x] Cari error di source code dengan search_files (pattern error/TypeError/Uncaught/route).
+
+## Step 2
+- [x] Baca file yang kemungkinan memicu error: `Dashboard.jsx`, `Template.jsx`, `BatchTerbit.jsx`, `Navbar.jsx`, `DashboardLayout.jsx`, `App.jsx`, `AuthContext.jsx`.
+
+## Step 3
+- [ ] Perbaiki error build: `Navbar.jsx` import `../../context/AuthContext` tidak ada.
+
+## Step 4
+- [ ] Jalankan ulang `npm run build` untuk memastikan build sukses.
+
+## Step 5
+- [ ] Kalau build sukses, jalankan `npm run dev` dan verifikasi route/login runtime.
 

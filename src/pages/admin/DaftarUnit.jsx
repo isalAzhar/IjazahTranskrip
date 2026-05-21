@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import DashboardLayout from "../components/ui/DashboardLayout";
+import DashboardLayout from "../../components/ui/DashboardLayout";
 import { FiChevronDown, FiEdit2, FiTrash2, FiPlus } from "react-icons/fi";
 import { HiOutlineTrash } from "react-icons/hi";
 import { HiOutlineExclamationTriangle } from "react-icons/hi2";

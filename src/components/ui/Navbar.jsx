@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { FiBell, FiUser, FiMenu, FiX } from "react-icons/fi";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../pages/context/AuthContext";
 import logo from "../../assets/img/Logo.jpg";
 
 const unitMap = {
@@ -16,6 +16,7 @@ const unitMap = {
 const roleLabels = {
   admin:         { name: "Admin",        subtitle: "Sistem" },
   operator_data: { name: "Operator",     subtitle: "Data" },
+  operator:      { name: "Operator",     subtitle: "Data" }, // 🔥 DITAMBAHKAN AGAR AMAN
   rektor:        { name: "Rektor",       subtitle: "Universitas" },
   wakil_rektor:  { name: "Wakil Rektor", subtitle: "Universitas" },
   dekan:         { name: "Dekan",        subtitle: null },
@@ -52,7 +53,13 @@ const Navbar = () => {
       { name: "Daftar Unit",     path: "/daftar-unit" },
       { name: "Daftar Pengguna", path: "/daftar-pengguna" },
     ],
-    operator_data: [
+    operator: [
+      { name: "Dashboard",      path: "/operator-dashboard" },
+      { name: "Manajemen Data", path: "/manajemen-data" },
+      { name: "Pelaporan",      path: "/pelaporan" },
+      { name: "Dokumen Valid",  path: "/dokumen-valid" },
+    ],
+    operator_data: [ // 🔥 DITAMBAHKAN AGAR MENU JUGA AMAN
       { name: "Dashboard",      path: "/operator-dashboard" },
       { name: "Manajemen Data", path: "/manajemen-data" },
       { name: "Pelaporan",      path: "/pelaporan" },
@@ -161,7 +168,6 @@ const Navbar = () => {
                 className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
               >
                 <FiBell size={20} className="text-gray-500" />
-                {/* TODO: ganti dengan kondisi unreadCount > 0 */}
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
               </button>
               {showNotif && (
@@ -169,7 +175,6 @@ const Navbar = () => {
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
                     Notifikasi
                   </h3>
-                  {/* TODO: map notifList dari API */}
                   <p className="text-xs text-gray-500 italic text-center py-2">
                     Tidak ada notifikasi baru.
                   </p>

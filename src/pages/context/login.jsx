@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "./AuthContext";
 import { FiEye, FiEyeOff, FiLoader } from "react-icons/fi";
-import bgLogin from "../assets/img/background.jpg";
-import logoUika from "../assets/img/Logo.jpg";
+import bgLogin from "../../assets/img/background.jpg";
+import logoUika from "../../assets/img/Logo.jpg";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -127,7 +127,7 @@ const Login = () => {
           >
             {loading ? <FiLoader className="animate-spin" size={18} /> : "Masuk"}
           </button>
-        </form>``
+        </form>
       </div>
     </div>
   );

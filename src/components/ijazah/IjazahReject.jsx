@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import DashboardLayout from "../../components/ui/DashboardLayout";
+import DashboardLayout from "../ui/DashboardLayout";
 import { FiSearch, FiChevronDown } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
@@ -120,7 +120,7 @@ const IjazahReject = () => {
           key={index}
           onClick={() => !isEllipsis && handlePageChange(page)}
           disabled={isEllipsis}
-          className={`w-[46px] h-[46px] flex items-center justify-center rounded-[12px] font-bold text-[18px] transition-all ${
+          className={`w-11.5 h-11.5 flex items-center justify-center rounded-xl font-bold text-[18px] transition-all ${
             isActive ? "bg-[#115E59] text-white shadow-sm" : "bg-[#CBD5E1] text-white hover:bg-[#b0bcc9]" 
           } ${isEllipsis ? "cursor-default hover:bg-[#CBD5E1]" : ""}`}
         >
@@ -145,19 +145,19 @@ const IjazahReject = () => {
 
         {/* FILTER BOX */}
         <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-wrap items-center gap-4 border border-gray-100">
-          <div className="flex items-center bg-[#E5E5E5] rounded-lg px-4 h-11 flex-1 min-w-[250px] max-w-md">
+          <div className="flex items-center bg-[#E5E5E5] rounded-lg px-4 h-11 flex-1 min-w-62.5 max-w-md">
             <FiSearch className="text-gray-500 text-lg mr-3" />
             <input type="text" placeholder="Cari: Batch, Prodi" value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent outline-none text-sm w-full font-medium text-gray-700 placeholder-gray-500" />
           </div>
           <div className="relative">
-            <select value={fakultas} onChange={(e) => setFakultas(e.target.value)} className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 min-w-[220px] outline-none cursor-pointer">
+            <select value={fakultas} onChange={(e) => setFakultas(e.target.value)} className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 min-w-55 outline-none cursor-pointer">
               <option value="">Semua Fakultas</option>
               {fakultasList.map((f, i) => (<option key={i} value={f.nama}>{f.nama}</option>))}
             </select>
             <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none" />
           </div>
           <div className="relative">
-            <select value={tahun} onChange={(e) => setTahun(e.target.value)} className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 min-w-[150px] outline-none cursor-pointer">
+            <select value={tahun} onChange={(e) => setTahun(e.target.value)} className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 min-w-37.5 outline-none cursor-pointer">
               <option value="">Tahun Lulus</option>
               <option value="2024">2024</option>
               <option value="2025">2025</option>

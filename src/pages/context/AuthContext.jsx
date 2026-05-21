@@ -8,18 +8,27 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
-    const userData = localStorage.getItem("user");
+    const userDataRaw = localStorage.getItem("user");
+
+    // Debug biar ketahuan kenapa loading tidak kunjung berhenti
+    // (bisa dihapus nanti)
+    // console.log("[AuthContext] restore", { token: !!token, userDataRaw });
 
     try {
-      if (token && userData && userData !== "undefined") {
-        setUser(JSON.parse(userData));
+      if (token && userDataRaw && userDataRaw !== "undefined") {
+        setUser(JSON.parse(userDataRaw));
+      } else {
+        setUser(null);
       }
     } catch (error) {
       console.error("Gagal memulihkan sesi:", error);
       localStorage.clear();
+      setUser(null);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
+
 
   const login = (userData, token) => {
     return new Promise((resolve) => {

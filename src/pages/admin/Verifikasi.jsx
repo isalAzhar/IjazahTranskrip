@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import DashboardLayout from "../components/ui/DashboardLayout";
-import StatCard from "../components/ui/StatCard";
-import VerificationStatusChart from "../components/ui/VerificationStatusChart";
-import { getStatistics, getVerificationStatus, getIjazahList, verifyIjazah, searchIjazah } from "../../services/api";
+import DashboardLayout from "../../components/ui/DashboardLayout";
+import StatCard from "../../components/ui/StatCard";
+import VerificationStatusChart from "../../components/ui/VerificationStatusChart";
+import { getStatistics, getVerificationStatus, getIjazahList, verifyIjazah, searchIjazah } from "../../../services/api";
 
 const Verifikasi = () => {
   const [stats, setStats] = useState(null);

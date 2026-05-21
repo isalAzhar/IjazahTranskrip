@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import DashboardLayout from "../components/ui/DashboardLayout";
+import DashboardLayout from "../../components/ui/DashboardLayout";
 import { FiUser, FiLock, FiCheckCircle, FiEye, FiEyeOff } from "react-icons/fi";
 
 const Profile = () => {

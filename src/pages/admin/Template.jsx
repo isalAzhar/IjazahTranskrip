@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import DashboardLayout from "../components/ui/DashboardLayout";
-import ijazahBg from "../assets/img/ijazah.jpeg";
-import transkipBg from "../assets/img/tamplate transkip.jpg";
+import DashboardLayout from "../../components/ui/DashboardLayout";
+import ijazahBg from "../../assets/img/Tamplate Ijazah.jpg";
+import transkipBg from "../../assets/img/Tamplate Transkip.jpg";
 
 const Template = () => {
   const [editMode, setEditMode] = useState(true);

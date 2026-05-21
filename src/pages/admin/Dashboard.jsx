@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiSearch } from "react-icons/fi";
-import DashboardLayout from "../components/ui/DashboardLayout";
-import StatCard from "../components/ui/StatCard";
-import IssuanceChart from "../components/ui/IssuanceChart";
-import VerificationStatusChart from "../components/ui/VerificationStatusChart";
-import { Icons } from "../icon/DashboardIcons";
+import DashboardLayout from "../../components/ui/DashboardLayout";
+import StatCard from "../../components/ui/StatCard";
+import IssuanceChart from "../../components/ui/IssuanceChart";
+import VerificationStatusChart from "../../components/ui/VerificationStatusChart";
+import { Icons } from "../../components/icon/DashboardIcons";
 
 const generateDummyData = () => {
   const data = [];

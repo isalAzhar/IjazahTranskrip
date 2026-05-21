@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
-import DashboardLayout from "../components/ui/DashboardLayout";
+import DashboardLayout from "../../components/ui/DashboardLayout";
 import { FiUser, FiBook, FiFileText, FiArrowLeft } from "react-icons/fi";
 
 const DetailMahasiswa = () => {
@@ -135,7 +135,7 @@ const DetailMahasiswa = () => {
         {/* PROFILE CARD DINAMIS */}
         <div className="bg-white rounded-xl px-8 py-6 flex justify-between items-center mb-6 shadow-sm border border-gray-200">
           <div className="flex items-center gap-6">
-            <div className="w-[88px] h-[88px] rounded-full bg-[#E5F3EB] overflow-hidden flex items-center justify-center border-4 border-[#E5F3EB]">
+            <div className="w-22 h-22 rounded-full bg-[#E5F3EB] overflow-hidden flex items-center justify-center border-4 border-[#E5F3EB]">
                <svg viewBox="0 0 36 36" fill="none" width="88" height="88"><rect width="36" height="36" fill="#84cc16"></rect><rect x="0" y="0" width="36" height="36" transform="translate(6 6) rotate(194 18 18)" fill="#fde047" rx="36"></rect><g transform="translate(0 2) rotate(-4 18 18)"><path d="M13,21 a1,1 0 0,0 10,0" fill="#000000"></path><rect x="11" y="14" width="1.5" height="2" rx="1" fill="#000000"></rect><rect x="23" y="14" width="1.5" height="2" rx="1" fill="#000000"></rect></g></svg>
             </div>
             
@@ -200,7 +200,7 @@ const DetailMahasiswa = () => {
             <h3 className="text-[15px] font-bold text-gray-800">Transkrip Nilai</h3>
           </div>
           
-          <div className="max-h-[500px] overflow-y-auto">
+          <div className="max-h-125 overflow-y-auto">
             <table className="w-full text-[14px] text-gray-800">
               <thead className="sticky top-0 bg-[#F9FAFB] border-b border-gray-200 text-gray-500">
                 <tr>
