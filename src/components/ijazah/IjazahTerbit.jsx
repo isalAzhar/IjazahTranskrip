@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import DashboardLayout from "../ui/DashboardLayout";
+import DashboardLayout from "../../components/ui/DashboardLayout";
 import { FiSearch, FiChevronDown } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
@@ -17,7 +17,6 @@ const IjazahTerbit = () => {
 
   // ==========================================================================
   // 🟢 TODO [API]: 2. BUKA KOMENTAR STATE INI SAAT API BACKEND READY
-  // State ini akan jadi wadah untuk menampung data dari database.
   // ==========================================================================
   // const [dataBatch, setDataBatch] = useState([]);
   // const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +24,6 @@ const IjazahTerbit = () => {
 
   // ==========================================================================
   // 🟢 TODO [API]: 3. HAPUS SEMUA DATA DUMMY INI
-  // (Mulai dari sini sampai pembuatan const dummyData)
   // ==========================================================================
   const fakultasList = [
     { nama: "Fakultas Teknik dan Sains", kode: "FTS", prodi: ["Teknik Informatika", "Teknik Mesin", "Teknik Sipil", "Sistem informasi", "Ilmu Lingkungan", "Rekayasa Pertanian dan Biosistem", "Teknik Elektro "] },
@@ -41,7 +39,6 @@ const IjazahTerbit = () => {
   
   const getRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-  // Sengaja dibuat 285 iterasi per fakultas (total 570 data) agar menghasilkan persis 57 halaman (570 / 10)
   const dummyData = useMemo(() => {
     let result = [];
     fakultasList.forEach((fak) => {
@@ -67,7 +64,6 @@ const IjazahTerbit = () => {
 
   // ==========================================================================
   // 🟢 TODO [API]: 4. HAPUS LOGIKA FILTER & SLICE LOKAL INI
-  // Nanti filter (search, dsb) dan pemotongan data akan diurus oleh Backend.
   // ==========================================================================
   const filtered = dummyData.filter((item) => {
     const keyword = search.toLowerCase();
@@ -85,41 +81,6 @@ const IjazahTerbit = () => {
   );
 
   // ==========================================================================
-  // 🟢 TODO [API]: 5. BUKA KOMENTAR USE-EFFECT INI UNTUK HIT API
-  // Letakkan URL API asli dari anak Back-End di sini.
-  // ==========================================================================
-  /*
-  useEffect(() => {
-    const fetchAPI = async () => {
-      setIsLoading(true);
-      try {
-        const url = new URL("https://API_DARI_BACKEND/api/batch-terbit");
-        url.searchParams.append("page", currentPage);
-        url.searchParams.append("limit", itemsPerPage);
-        if (search) url.searchParams.append("search", search);
-        if (fakultas) url.searchParams.append("fakultas", fakultas);
-        if (tahun) url.searchParams.append("tahun", tahun);
-
-        const response = await fetch(url, {
-          headers: { "Authorization": `Bearer ${localStorage.getItem("authToken")}` }
-        });
-        const result = await response.json();
-        
-        if (result.status === "success") {
-          setDataBatch(result.data); // Data tabel
-          setTotalPagesFromAPI(result.meta.total_pages); // Total halaman dari BE
-        }
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchAPI();
-  }, [currentPage, search, fakultas, tahun]);
-  */
-
-  // ==========================================================================
   // 6. LOGIKA UI (TETAP DIPERTAHANKAN)
   // ==========================================================================
   useEffect(() => {
@@ -127,47 +88,50 @@ const IjazahTerbit = () => {
   }, [search, fakultas, tahun]);
 
   const handlePageChange = (pageNumber) => {
-    // 🟢 TODO [API]: Ganti 'totalPages' menjadi 'totalPagesFromAPI'
     if (pageNumber >= 1 && pageNumber <= totalPages) {
       setCurrentPage(pageNumber);
     }
   };
 
+  // ==========================================================================
+  // PAGINATION MENGIKUTI GAYA DARI DASHBOARD
+  // ==========================================================================
   const renderPaginationButtons = () => {
-    let pages = [];
-    // 🟢 TODO [API]: Ganti 'totalPages' di blok ini jadi 'totalPagesFromAPI'
-    if (totalPages <= 4) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      if (currentPage <= 2) {
-        pages = [1, 2, '...', totalPages];
-      } else if (currentPage >= totalPages - 1) {
-        pages = [1, '...', totalPages - 1, totalPages];
-      } else {
-        pages = [1, '...', currentPage, '...', totalPages];
-      }
+    const pages = [];
+
+    pages.push(1);
+
+    if (currentPage > 2 && totalPages > 3) pages.push("...");
+
+    if (currentPage === 1 && totalPages > 1) {
+      pages.push(2);
+    } else if (currentPage === totalPages && totalPages > 2) {
+      pages.push(totalPages - 1);
+    } else if (currentPage > 1 && currentPage < totalPages) {
+      pages.push(currentPage);
     }
 
-    return pages.map((page, index) => {
-      const isActive = currentPage === page;
-      const isEllipsis = page === '...';
+    if (currentPage < totalPages - 1 && totalPages > 3) pages.push("...");
 
-      return (
-        <button
-          key={index}
-          onClick={() => !isEllipsis && handlePageChange(page)}
-          disabled={isEllipsis}
-          // UI Styling persis Figma (Rounded 12px, warna spesifik)
-          className={`w-11.5 h-11.5 flex items-center justify-center rounded-xl font-bold text-[18px] transition-all ${
-            isActive
-              ? "bg-[#115E59] text-white shadow-sm" 
-              : "bg-[#CBD5E1] text-white hover:bg-[#b0bcc9]" 
-          } ${isEllipsis ? "cursor-default hover:bg-[#CBD5E1]" : ""}`}
-        >
-          {page}
-        </button>
-      );
-    });
+    if (totalPages > 1 && !pages.includes(totalPages)) pages.push(totalPages);
+
+    return pages.map((page, index) => (
+      <button
+        key={index}
+        type="button"
+        onClick={() => typeof page === "number" && handlePageChange(page)}
+        disabled={page === "..."}
+        className={`w-8 h-8 flex items-center justify-center rounded text-xs font-bold shadow-sm transition-colors ${
+          page === currentPage
+            ? "bg-[#00897B] text-white"
+            : page === "..."
+            ? "bg-transparent text-gray-400 cursor-default shadow-none"
+            : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"
+        }`}
+      >
+        {page}
+      </button>
+    ));
   };
 
   return (
@@ -185,7 +149,7 @@ const IjazahTerbit = () => {
 
         {/* FILTER BOX */}
         <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-wrap items-center gap-4 border border-gray-100">
-          <div className="flex items-center bg-[#E5E5E5] rounded-lg px-4 h-11 flex-1 min-w-62.5 max-w-md">
+          <div className="flex items-center bg-[#E5E5E5] rounded-lg px-4 h-11 flex-1 min-w-[250px] max-w-md">
             <FiSearch className="text-gray-500 text-lg mr-3" />
             <input
               type="text"
@@ -200,7 +164,7 @@ const IjazahTerbit = () => {
             <select
               value={fakultas}
               onChange={(e) => setFakultas(e.target.value)}
-              className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 min-w-55 outline-none cursor-pointer"
+              className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 min-w-[220px] outline-none cursor-pointer"
             >
               <option value="">Semua Fakultas</option>
               {fakultasList.map((f, i) => (
@@ -214,7 +178,7 @@ const IjazahTerbit = () => {
             <select
               value={tahun}
               onChange={(e) => setTahun(e.target.value)}
-              className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 min-w-37.5 outline-none cursor-pointer"
+              className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 min-w-[150px] outline-none cursor-pointer"
             >
               <option value="">Tahun Lulus</option>
               <option value="2024">2024</option>
@@ -241,7 +205,6 @@ const IjazahTerbit = () => {
             </thead>
 
             <tbody>
-              {/* 🟢 TODO [API]: Nanti ganti 'paginatedData' menjadi 'dataBatch' */}
               {paginatedData.map((item, i) => {
                 const actualIndex = (currentPage - 1) * itemsPerPage + i + 1;
                 return (
@@ -254,7 +217,7 @@ const IjazahTerbit = () => {
                     <td className="py-4 px-6 text-center font-bold text-gray-900">{item.total}</td>
                     <td className="py-4 px-6 text-center">
                       <div
-                        onClick={() => navigate(`/batch-terbit/${actualIndex}`, { state: item })}
+                        onClick={() => navigate(`/batch/terbit/${actualIndex}`, { state: item })}
                         className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition"
                       >
                         <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>
@@ -266,41 +229,42 @@ const IjazahTerbit = () => {
             </tbody>
           </table>
 
-          {/* 🟢 TODO [API]: Nanti ganti 'paginatedData' menjadi 'dataBatch' */}
           {paginatedData.length === 0 && (
             <div className="py-8 text-center text-gray-500 font-medium">
               Data tidak ditemukan.
             </div>
           )}
 
-          {/* PAGINATION SESUAI FIGMA */}
-          {/* 🟢 TODO [API]: Nanti ganti 'totalPages' menjadi 'totalPagesFromAPI' */}
-          {totalPages > 0 && (
-            <div className="flex justify-end items-center px-6 py-6 gap-3 border-t border-gray-100">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className={`flex items-center justify-center px-2 text-[28px] font-bold transition-colors ${
-                  currentPage === 1 ? "text-[#CBD5E1] cursor-not-allowed" : "text-[#94a3b8] hover:text-[#64748b]"
-                }`}
-              >
-                &lt;
-              </button>
-              
-              {renderPaginationButtons()}
+          {/* PAGINATION - MENGGUNAKAN GAYA DARI DASHBOARD */}
+          <div className="p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-gray-100">
+            <p className="text-xs text-gray-400">
+              Menampilkan {paginatedData.length} dari {filtered.length} Data
+            </p>
 
-              <button
-                // 🟢 TODO [API]: Ganti 'totalPages' jadi 'totalPagesFromAPI'
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className={`flex items-center justify-center px-2 text-[28px] font-bold transition-colors ${
-                  currentPage === totalPages ? "text-[#CBD5E1] cursor-not-allowed" : "text-[#115E59] hover:text-[#0B4B48]"
-                }`}
-              >
-                &gt;
-              </button>
-            </div>
-          )}
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50"
+                >
+                  {"<"}
+                </button>
+
+                {renderPaginationButtons()}
+
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50"
+                >
+                  {">"}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </DashboardLayout>

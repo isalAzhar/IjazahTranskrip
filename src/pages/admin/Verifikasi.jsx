@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import DashboardLayout from "../../components/ui/DashboardLayout";
-import StatCard from "../../components/ui/StatCard";
-import VerificationStatusChart from "../../components/ui/VerificationStatusChart";
-import { getStatistics, getVerificationStatus, getIjazahList, verifyIjazah, searchIjazah } from "../../../services/api";
+import DashboardLayout from "../components/ui/DashboardLayout";
+import StatCard from "../components/ui/StatCard";
+import VerificationStatusChart from "../components/ui/VerificationStatusChart";
+import { getStatistics, getVerificationStatus, getIjazahList, verifyIjazah, searchIjazah } from "../../services/api";
 
 const Verifikasi = () => {
   const [stats, setStats] = useState(null);
@@ -126,7 +126,7 @@ const Verifikasi = () => {
               placeholder="Masukkan NPM atau Nama Mahasiswa..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 bg-[#F8F9FA] rounded-xl text-sm text-gray-700 outline-none border-2 border-transparent focus:border-teal-500 transition-all"
+              className="w-full pl-12 pr-4 py-4 bg-[#F8F9FA] rounded-[12px] text-sm text-gray-700 outline-none border-2 border-transparent focus:border-teal-500 transition-all"
             />
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -138,7 +138,7 @@ const Verifikasi = () => {
           <button
             type="submit"
             disabled={loading}
-            className="px-8 py-4 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition-all disabled:opacity-50"
+            className="px-8 py-4 bg-teal-600 text-white font-bold rounded-[12px] hover:bg-teal-700 transition-all disabled:opacity-50"
           >
             {loading ? "Mencari..." : "Cari"}
           </button>
@@ -146,7 +146,7 @@ const Verifikasi = () => {
             <button
               type="button"
               onClick={clearSearch}
-              className="px-6 py-4 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 transition-all"
+              className="px-6 py-4 bg-gray-100 text-gray-600 font-bold rounded-[12px] hover:bg-gray-200 transition-all"
             >
               Clear
             </button>
@@ -155,7 +155,7 @@ const Verifikasi = () => {
 
         {/* Search Result */}
         {searchResult && (
-          <div className="mt-6 p-6 bg-[#F8F9FA] rounded-xl">
+          <div className="mt-6 p-6 bg-[#F8F9FA] rounded-[12px]">
             {searchResult.error ? (
               <div className="text-center py-8">
                 <span className="text-4xl mb-4 block">😕</span>
@@ -226,7 +226,7 @@ const Verifikasi = () => {
         </div>
         
         {/* Recent Verification Table */}
-        <div className="lg:col-span-2 bg-white rounded-xl  shadow-[0_4px_20px_rgba(0,0,0,0.06)] border border-gray-100 p-6">
+        <div className="lg:col-span-2 bg-white rounded-[20px] shadow-[0_4px_20px_rgba(0,0,0,0.06)] border border-gray-100 p-6">
           <h3 className="text-[16px] font-bold text-[#2D2D2D] mb-4">
             Permintaan Verifikasi Terbaru
           </h3>

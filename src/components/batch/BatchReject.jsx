@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import DashboardLayout from "../ui/DashboardLayout";
+import DashboardLayout from "../../components/ui/DashboardLayout";
 import { FiSearch } from "react-icons/fi";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 
@@ -136,7 +136,7 @@ const BatchReject = () => {
         {/* FILTER BOX */}
         <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-100">
 
-          <div className="flex items-center bg-[#F3F4F6] rounded-lg px-4 h-11 w-full">
+          <div className="flex items-center bg-[#F3F4F6] rounded-lg px-4 h-[44px] w-full">
 
             <FiSearch className="text-gray-500 text-lg mr-3" />
 
@@ -156,7 +156,7 @@ const BatchReject = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden relative">
 
           {/* Awal tampil hanya 10 data */}
-          <div className="max-h-163.75 overflow-y-auto relative">
+          <div className="max-h-[655px] overflow-y-auto relative">
 
             <table className="w-full text-sm text-left whitespace-nowrap border-collapse">
 

@@ -11,8 +11,11 @@ const DashboardLayout = ({ children, title, allowedRoles = [] }) => {
 
   // Cek autentikasi
   useEffect(() => {
-    if (!loading && !user && !token) {
-      navigate("/login", { replace: true });
+    if (!loading) {
+      if (!user && !token) {
+        console.log("[DashboardLayout] No user/token, redirecting to login");
+        navigate("/login", { replace: true });
+      }
     }
   }, [user, loading, token, navigate]);
 
@@ -20,9 +23,9 @@ const DashboardLayout = ({ children, title, allowedRoles = [] }) => {
   useEffect(() => {
     if (!loading && user && allowedRoles.length > 0) {
       if (!allowedRoles.includes(user.role)) {
-        // Jika role tidak diizinkan, redirect ke dashboard sesuai role
+        console.log(`[DashboardLayout] Role ${user.role} not allowed, redirecting`);
         const role = user.role;
-        let target = "/";
+        let target = "/login";
         
         if (role === "admin_sistem") {
           target = "/admin/dashboard";
@@ -32,8 +35,6 @@ const DashboardLayout = ({ children, title, allowedRoles = [] }) => {
           target = "/verifikator/dashboard";
         } else if (role === "rektor") {
           target = "/rektor/dashboard";
-        } else {
-          target = "/login";
         }
         
         navigate(target, { replace: true });
@@ -48,6 +49,7 @@ const DashboardLayout = ({ children, title, allowedRoles = [] }) => {
     }
   }, [title]);
 
+  // Show loading spinner
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -56,6 +58,7 @@ const DashboardLayout = ({ children, title, allowedRoles = [] }) => {
     );
   }
 
+  // Jika tidak ada user dan token, return null (redirect akan terjadi di useEffect)
   if (!user && !token) {
     return null;
   }
@@ -65,7 +68,7 @@ const DashboardLayout = ({ children, title, allowedRoles = [] }) => {
       <Navbar />
       
       <main className="w-full px-4 md:px-8 py-6">
-        <div className="w-full max-w-400 mx-auto">
+        <div className="w-full max-w-[1400px] mx-auto">
           {children}
         </div>
       </main>

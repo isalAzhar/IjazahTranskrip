@@ -1,12 +1,14 @@
+// src/pages/operator/OperatorProfile.jsx
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext"
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { FiUser, FiLock, FiCheckCircle, FiEye, FiEyeOff } from "react-icons/fi";
 
-const Profile = () => {
+const OperatorProfile = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -18,8 +20,17 @@ const Profile = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const userData = {
+    nama: user?.name || "Operator Data",
+    nidn: user?.nidn || "98765432109876",
+    email: user?.email || "operator@gmail.com",
+    role: user?.role === "operator_data" ? "Operator Data" : "Operator",
+    tanggalBergabung: user?.created_at || "1 Januari 2025",
+  };
+
   const handleLogout = () => {
     logout();
+    navigate("/login");
   };
 
   const handlePasswordSubmit = (e) => {
@@ -44,8 +55,8 @@ const Profile = () => {
   };
 
   return (
-    <DashboardLayout>
-      <div className="max-w-5xl mx-auto mt-10 relative">
+    <DashboardLayout title="Profile Operator">
+      <div className="max-w-5xl mx-auto mt-6 relative">
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-10 relative z-10">
 
           <div className="flex items-center gap-3 mb-12">
@@ -58,23 +69,23 @@ const Profile = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-y-10 gap-x-6 mb-12">
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Nama Lengkap</p>
-              <p className="text-lg font-bold text-gray-800">Cecep Suherto</p>
+              <p className="text-lg font-bold text-gray-800">{userData.nama}</p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">NIDN</p>
-              <p className="text-lg font-bold text-gray-800 tracking-wider">12345678912345</p>
+              <p className="text-lg font-bold text-gray-800 tracking-wider">{userData.nidn}</p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Email</p>
-              <p className="text-lg font-bold text-gray-800">operator@gmail.com</p>
+              <p className="text-lg font-bold text-gray-800">{userData.email}</p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Role</p>
-              <p className="text-lg font-bold text-gray-800">Operator</p>
+              <p className="text-lg font-bold text-gray-800">{userData.role}</p>
             </div>
             <div className="col-span-2">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tanggal Bergabung</p>
-              <p className="text-lg font-bold text-gray-800">15 Desember 2015</p>
+              <p className="text-lg font-bold text-gray-800">{userData.tanggalBergabung}</p>
             </div>
           </div>
 
@@ -106,9 +117,10 @@ const Profile = () => {
         </div>
       </div>
 
+      {/* Modal Ubah Kata Sandi */}
       {isPasswordModalOpen && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl w-full max-w-125 overflow-hidden shadow-2xl">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
             <div className="p-8 pb-6 border-b border-gray-100">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Ubah Kata Sandi</h2>
               <p className="text-sm text-gray-600">Demi keamanan akun Anda, harap lakukan pembaruan kata sandi secara berkala.</p>
@@ -179,9 +191,10 @@ const Profile = () => {
         </div>
       )}
 
+      {/* Modal Logout */}
       {isLogoutModalOpen && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-4xl p-8 w-full max-w-105 shadow-2xl text-center">
+          <div className="bg-white rounded-4xl p-8 w-full max-w-md shadow-2xl text-center">
             <div className="mx-auto w-24 h-24 bg-[#FFEAEA] rounded-[28px] flex items-center justify-center mb-6">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-[#D32F2F] ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -203,6 +216,7 @@ const Profile = () => {
         </div>
       )}
 
+      {/* Toast Sukses */}
       {showSuccessToast && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-70">
           <div className="bg-[#0B4B48] text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-3">
@@ -216,4 +230,4 @@ const Profile = () => {
   );
 };
 
-export default Profile;
+export default OperatorProfile;

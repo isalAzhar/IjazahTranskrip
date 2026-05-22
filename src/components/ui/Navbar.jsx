@@ -1,11 +1,36 @@
 // src/components/ui/Navbar.jsx
+
 import React, { useState, useEffect, useRef } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { FiBell, FiUser, FiMenu, FiX } from "react-icons/fi";
 import { useAuth } from "../../pages/context/AuthContext";
 import logo from "../../assets/img/Logo.jpg";
 
-// Mapping untuk verifikator berdasarkan role asli
+// Unit/Fakultas Mapping
+const unitMap = {
+  1: { name: "FAI",     label: "Fakultas Agama Islam" },
+  2: { name: "FKIP",    label: "Fakultas Keguruan & Ilmu Pendidikan" },
+  3: { name: "FH",      label: "Fakultas Hukum" },
+  4: { name: "FEB",     label: "Fakultas Ekonomi & Bisnis" },
+  5: { name: "FIKES",   label: "Fakultas Ilmu Kesehatan" },
+  6: { name: "FTS",     label: "Fakultas Teknik & Sains" },
+};
+
+// Role Labels dengan dukungan unit/fakultas
+const roleLabels = {
+  admin_sistem:  { name: "Admin Sistem", subtitle: "Administrator", hasUnit: false },
+  operator:      { name: "Operator",     subtitle: "Data Entry", hasUnit: false },
+  verifikator:   { name: "Verifikator",  subtitle: "Verifikator", hasUnit: false },
+  rektor:        { name: "Rektor",       subtitle: "Universitas", hasUnit: false },
+  // Role tambahan untuk fakultas
+  dekan:         { name: "Dekan",        subtitle: null, hasUnit: true },
+  wakil_dekan:   { name: "Wakil Dekan",  subtitle: null, hasUnit: true },
+  tu_fakultas:   { name: "Tata Usaha",   subtitle: "Fakultas", hasUnit: true },
+  wakil_rektor:  { name: "Wakil Rektor", subtitle: "Universitas", hasUnit: false },
+  tu_rektorat:   { name: "Tata Usaha",   subtitle: "Rektorat", hasUnit: false },
+};
+
+// Mapping verifikator berdasarkan role asli
 const verifikatorPositionMap = {
   tu_fakultas:   { name: "Verifikator", subtitle: "TU Fakultas" },
   wakil_dekan:   { name: "Verifikator", subtitle: "Wakil Dekan 1" },
@@ -13,14 +38,6 @@ const verifikatorPositionMap = {
   tu_rektorat:   { name: "Verifikator", subtitle: "TU Rektorat" },
   wakil_rektor:  { name: "Verifikator", subtitle: "Wakil Rektor 1" },
   rektor:        { name: "Verifikator", subtitle: "Rektor" },
-};
-
-// ROLE LABELS
-const roleLabels = {
-  admin_sistem:  { name: "Admin Sistem", subtitle: "Administrator" },
-  operator:      { name: "Operator",     subtitle: "Data Entry" },
-  verifikator:   { name: "Verifikator",  subtitle: "Verifikator" },
-  rektor:        { name: "Rektor",       subtitle: "Universitas" },
 };
 
 // Role yang tidak menampilkan notifikasi
@@ -39,6 +56,15 @@ const Navbar = () => {
   const userRole = user?.role?.toLowerCase().trim() || "";
   const userOriginalRole = user?.original_role || user?.role || userRole;
   const userName = user?.name || user?.fullname || user?.username || "User";
+  const idUnit = user?.id_unit;
+
+  // Fungsi untuk mendapatkan nama unit/fakultas
+  const getUnitName = () => {
+    if (idUnit && unitMap[idUnit]) {
+      return unitMap[idUnit].name;
+    }
+    return null;
+  };
 
   // Fungsi untuk mendapatkan label verifikator berdasarkan role asli
   const getVerifikatorLabel = () => {
@@ -62,49 +88,126 @@ const Navbar = () => {
   if (userRole === "verifikator") {
     currentRoleInfo = getVerifikatorLabel();
   } else {
-    currentRoleInfo = roleLabels[userRole] || { name: "User", subtitle: "Sistem" };
+    const roleConfig = roleLabels[userRole] || { name: "User", subtitle: "Sistem", hasUnit: false };
+    currentRoleInfo = { ...roleConfig };
+    
+    // Jika role memiliki unit (dekan, wakil_dekan, tu_fakultas), tambahkan nama unit
+    if (roleConfig.hasUnit && getUnitName()) {
+      currentRoleInfo.subtitle = getUnitName();
+    }
   }
 
   const showNotifIcon = !ROLES_WITHOUT_NOTIF.includes(userRole);
 
-  // MENU PER ROLE
+  // MENU PER ROLE - Disesuaikan dengan route yang diminta
   const menuConfig = {
     admin_sistem: [
       { name: "Dashboard",       path: "/admin/dashboard" },
-      { name: "Template",        path: "/template" },
-      { name: "Data Mahasiswa",  path: "/data-mahasiswa" },
-      { name: "Daftar Unit",     path: "/daftar-unit" },
-      { name: "Daftar Pengguna", path: "/daftar-pengguna" },
+      { name: "Template",        path: "/admin/template" },
+      { name: "Daftar Batch",    path: "/admin/data-mahasiswa" },
+      { name: "Daftar Unit",     path: "/admin/daftar-unit" },
+      { name: "Daftar Pengguna", path: "/admin/daftar-pengguna" },
     ],
     operator: [
-      { name: "Dashboard",       path: "/operator/dashboard" },
-      { name: "Manajemen Data",  path: "/manajemen-data" },
-      { name: "Pelaporan",       path: "/pelaporan" },
-      { name: "Dokumen Valid",   path: "/dokumen-valid" },
+      { name: "Dashboard",      path: "/operator/dashboard" },
+      { name: "Manajemen Data", path: "/operator/manajemen-data" },
+      { name: "Pelaporan",      path: "/operator/pelaporan" },
+      { name: "Dokumen Valid",  path: "/operator/dokumen-valid" },
     ],
     verifikator: [
-      { name: "Dashboard",       path: "/verifikator/dashboard" },
-      { name: "Manajemen Data",  path: "/manajemen-data" },
-      { name: "Pelaporan",       path: "/pelaporan" },
+      { name: "Dashboard",      path: "/verifikator/dashboard" },
+      { name: "Manajemen Data", path: "/verifikator/manajemen-data" },
+      { name: "Pelaporan",      path: "/verifikator/pelaporan" },
     ],
     rektor: [
-      { name: "Dashboard",       path: "/rektor/dashboard" },
-      { name: "Manajemen Data",  path: "/manajemen-data" },
+      { name: "Dashboard",      path: "/rektor/dashboard" },
+      { name: "Manajemen Data", path: "/rektor/manajemen-data" },
+      { name: "Pelaporan",      path: "/rektor/pelaporan" },
+      { name: "Dokumen Valid",  path: "/rektor/dokumen-valid" },
+    ],
+    // Role fakultas (dekan, wakil_dekan, tu_fakultas) - akses ke admin routes
+    dekan: [
+      { name: "Dashboard",       path: "/admin/dashboard" },
+      { name: "Daftar Batch",    path: "/admin/data-mahasiswa" },
       { name: "Pelaporan",       path: "/pelaporan" },
-      { name: "Dokumen Valid",   path: "/dokumen-valid" },
+    ],
+    wakil_dekan: [
+      { name: "Dashboard",       path: "/admin/dashboard" },
+      { name: "Daftar Batch",    path: "/admin/data-mahasiswa" },
+      { name: "Pelaporan",       path: "/pelaporan" },
+    ],
+    tu_fakultas: [
+      { name: "Dashboard",       path: "/admin/dashboard" },
+      { name: "Daftar Batch",    path: "/admin/data-mahasiswa" },
+      { name: "Pelaporan",       path: "/pelaporan" },
+    ],
+    wakil_rektor: [
+      { name: "Dashboard",       path: "/admin/dashboard" },
+      { name: "Daftar Batch",    path: "/admin/data-mahasiswa" },
+      { name: "Pelaporan",       path: "/pelaporan" },
+    ],
+    tu_rektorat: [
+      { name: "Dashboard",       path: "/admin/dashboard" },
+      { name: "Daftar Batch",    path: "/admin/data-mahasiswa" },
+      { name: "Pelaporan",       path: "/pelaporan" },
     ],
   };
 
-  const activeMenus = menuConfig[userRole] || menuConfig.verifikator || [{ name: "Dashboard", path: "/verifikator/dashboard" }];
+  const activeMenus = menuConfig[userRole] || menuConfig.operator || [{ name: "Dashboard", path: "/dashboard" }];
 
-  // Cek apakah route aktif
-  const isRouteActive = (path) => {
-    if (path === "/data-mahasiswa") {
-      const activePaths = ["/data-mahasiswa", "/detail-batch", "/detail-mahasiswa"];
-      return activePaths.some(activePath => location.pathname.startsWith(activePath));
-    }
-    return location.pathname === path;
-  };
+  // Cek apakah route aktif (untuk nested routes)
+// Cek apakah route aktif (untuk nested routes)
+const isRouteActive = (path) => {
+  // Untuk admin data mahasiswa (daftar batch)
+  if (path === "/admin/data-mahasiswa") {
+    const activePaths = ["/admin/data-mahasiswa", "/admin/detail-batch", "/admin/detail-mahasiswa"];
+    return activePaths.some(activePath => location.pathname.startsWith(activePath));
+  }
+  
+  // Untuk operator - manajemen data (HANYA untuk route /operator/manajemen-data)
+  if (path === "/operator/manajemen-data") {
+    // HANYA aktif jika persis di /operator/manajemen-data
+    return location.pathname === "/operator/manajemen-data";
+  }
+  
+  // Untuk operator - dokumen valid (DetailMahasiswaOperator)
+  if (path === "/operator/detail-mahasiswa") {
+    // Aktif jika di /operator/detail-mahasiswa (tanpa parameter) atau dengan parameter NIM
+    return location.pathname.startsWith("/operator/detail-mahasiswa");
+  }
+  
+  // Untuk operator - pelaporan
+  if (path === "/operator/pelaporan") {
+    return location.pathname === "/operator/pelaporan";
+  }
+  
+  // Untuk operator - dashboard
+  if (path === "/operator/dashboard") {
+    return location.pathname === "/operator/dashboard";
+  }
+  
+  // Untuk verifikator
+  if (path === "/verifikator/manajemen-data") {
+    return location.pathname === "/verifikator/manajemen-data";
+  }
+  if (path === "/verifikator/pelaporan") {
+    return location.pathname === "/verifikator/pelaporan";
+  }
+  
+  // Untuk rektor
+  if (path === "/rektor/manajemen-data") {
+    return location.pathname === "/rektor/manajemen-data";
+  }
+  if (path === "/rektor/pelaporan") {
+    return location.pathname === "/rektor/pelaporan";
+  }
+  if (path === "/rektor/dokumen-valid") {
+    return location.pathname === "/rektor/dokumen-valid";
+  }
+  
+  // Cocokkan persis untuk route lainnya
+  return location.pathname === path;
+};
 
   // Handle navigasi profile berdasarkan role
   const handleProfileClick = () => {
@@ -154,7 +257,11 @@ const Navbar = () => {
   // Style untuk link mobile
   const mobileLinkClass = (path) => {
     const isActive = isRouteActive(path);
-    return `text-lg font-semibold transition-colors ${isActive ? "text-[#27AE60]" : "text-gray-700"}`;
+    return `block px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+      isActive
+        ? "bg-[#27AE60]/10 text-[#27AE60] font-semibold"
+        : "text-gray-600 hover:bg-gray-50 hover:text-[#27AE60]"
+    }`;
   };
 
   // Mendapatkan dashboard path untuk logo
@@ -164,16 +271,8 @@ const Navbar = () => {
       case "operator": return "/operator/dashboard";
       case "verifikator": return "/verifikator/dashboard";
       case "rektor": return "/rektor/dashboard";
-      default: return "/dashboard";
+      default: return "/admin/dashboard";
     }
-  };
-
-  // Ambil inisial dari nama untuk avatar
-  const getInitials = (name) => {
-    if (!name) return "U";
-    const names = name.split(" ");
-    if (names.length === 1) return names[0].charAt(0).toUpperCase();
-    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
   };
 
   return (
@@ -203,7 +302,7 @@ const Navbar = () => {
         {/* Desktop Nav */}
         <div className="hidden md:flex gap-4 lg:gap-8">
           {activeMenus.map((menu, idx) => (
-            <NavLink key={idx} to={menu.path} className={linkClass(menu.path)}>
+            <NavLink key={idx} to={menu.path} className={() => linkClass(menu.path)}>
               {menu.name}
             </NavLink>
           ))}
@@ -245,7 +344,7 @@ const Navbar = () => {
               <div className="text-gray-800 font-bold text-sm capitalize">{userName}</div>
               <div className="text-[10px] text-gray-500 font-medium tracking-wide">
                 {currentRoleInfo.name}
-                {currentRoleInfo.subtitle && currentRoleInfo.subtitle !== "Administrator" && (
+                {currentRoleInfo.subtitle && (
                   <span className="text-gray-400"> - {currentRoleInfo.subtitle}</span>
                 )}
               </div>
@@ -279,28 +378,29 @@ const Navbar = () => {
             <NavLink
               key={idx}
               to={menu.path}
-              className={mobileLinkClass(menu.path)}
+              className={() => mobileLinkClass(menu.path)}
               onClick={() => setOpenMenu(false)}
             >
               {menu.name}
             </NavLink>
           ))}
-          <hr className="my-4 border-gray-200" />
-          <div
-            className="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-gray-50 rounded-xl transition-colors"
+          
+          {/* Profile di Mobile Menu */}
+          <div 
+            className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-gray-50 rounded-xl transition-colors"
             onClick={() => {
               handleProfileClick();
               setOpenMenu(false);
             }}
           >
             <div className="w-8 h-8 rounded-full border-2 border-[#27AE60] flex items-center justify-center text-[#27AE60] bg-gray-50">
-              <FiUser size={14} />
+              <FiUser size={16} />
             </div>
             <div>
               <div className="text-gray-800 font-bold text-sm capitalize">{userName}</div>
               <div className="text-[10px] text-gray-500 font-medium tracking-wide">
                 {currentRoleInfo.name}
-                {currentRoleInfo.subtitle && currentRoleInfo.subtitle !== "Administrator" && (
+                {currentRoleInfo.subtitle && (
                   <span className="text-gray-400"> - {currentRoleInfo.subtitle}</span>
                 )}
               </div>

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import DashboardLayout from "../ui/DashboardLayout";
+import DashboardLayout from "../../components/ui/DashboardLayout";
 import { FiSearch, FiChevronDown } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
@@ -13,18 +13,7 @@ const IjazahProses = () => {
   const itemsPerPage = 10;
 
   // ==========================================================================
-  // 🟢 LANGKAH 1 (JIKA API SUDAH SIAP):
-  // Hilangkan tanda komentar (//) pada 3 baris di bawah ini.
-  // Ini adalah "wadah" untuk menampung data asli dari database Back-End.
-  // ==========================================================================
-  // const [dataBatch, setDataBatch] = useState([]);
-  // const [isLoading, setIsLoading] = useState(false);
-  // const [totalPagesFromAPI, setTotalPagesFromAPI] = useState(0);
-
-  // ==========================================================================
-  // 🟢 LANGKAH 2 (JIKA API SUDAH SIAP):
-  // Hapus semua data dummy di bawah ini (Mulai dari fakultasList sampai paginatedData)
-  // Karena datanya nanti akan dikirim langsung dari Back-End.
+  // DATA DUMMY (SEMENTARA, HAPUS SAAT API SUDAH READY)
   // ==========================================================================
   const fakultasList = [
     { nama: "Fakultas Teknik dan Sains", kode: "FTS" },
@@ -39,21 +28,21 @@ const IjazahProses = () => {
 
   const dummyData = useMemo(() => {
     let result = [];
-    // Membuat 570 data dengan fakultas yang diacak (campuran)
     for (let i = 1; i <= 570; i++) { 
       const randomFakultas = getRandom(fakultasList);
       result.push({
+        id: i,
         batch: `Batch ${i} - ${randomFakultas.kode}`,
         fakultas: randomFakultas.nama,
         tahun: getRandom(years),
         periode: "Semester Ganjil",
         total: 10,
-        status: "Proses",
       });
     }
     return result;
   }, []);
 
+  // FILTER DATA
   const filtered = dummyData.filter((item) => {
     const keyword = search.toLowerCase();
     return (
@@ -64,122 +53,108 @@ const IjazahProses = () => {
   });
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage); 
-  const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const paginatedData = filtered.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
-  // ==========================================================================
-  // 🟢 LANGKAH 3 (JIKA API SUDAH SIAP):
-  // Buka komentar (/* dan */) pada fungsi useEffect di bawah ini.
-  // Minta Link URL ke anak Back-End (Ganti tulisan URL_DARI_BACK_END).
-  // ==========================================================================
-  /*
   useEffect(() => {
-    const fetchAPI = async () => {
-      setIsLoading(true); // Memunculkan efek loading
-      try {
-        // 1. Ganti URL ini dengan URL dari Back-End
-        const url = new URL("https://URL_DARI_BACK_END/api/ijazah-proses");
-        
-        // 2. Ini cara Front-End mengirim parameter halaman & pencarian ke Back-End
-        url.searchParams.append("page", currentPage);
-        url.searchParams.append("limit", itemsPerPage);
-        if (search) url.searchParams.append("search", search);
-        if (fakultas) url.searchParams.append("fakultas", fakultas);
-        if (tahun) url.searchParams.append("tahun", tahun);
-
-        // 3. Menembak API (Hit API)
-        const response = await fetch(url, {
-          headers: { "Authorization": `Bearer ${localStorage.getItem("authToken")}` }
-        });
-        const result = await response.json(); // Mengubah respon menjadi format JSON
-        
-        // 4. Memasukkan data dari Back-End ke state wadah kita tadi
-        if (result.status === "success") {
-          setDataBatch(result.data); 
-          setTotalPagesFromAPI(result.meta.total_pages); 
-        }
-      } catch (error) {
-        console.error("Gagal mengambil data:", error);
-      } finally {
-        setIsLoading(false); // Mematikan efek loading
-      }
-    };
-    fetchAPI();
-  }, [currentPage, search, fakultas, tahun]); // Efek ini jalan otomatis kalau halaman/pencarian berubah
-  */
-
-  useEffect(() => { setCurrentPage(1); }, [search, fakultas, tahun]);
+    setCurrentPage(1);
+  }, [search, fakultas, tahun]);
 
   const handlePageChange = (pageNumber) => {
-    // 🟢 Jika API siap: Ganti 'totalPages' menjadi 'totalPagesFromAPI'
-    if (pageNumber >= 1 && pageNumber <= totalPages) setCurrentPage(pageNumber);
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+    }
   };
 
+  // ==========================================================================
+  // PAGINATION MENGIKUTI GAYA DARI DASHBOARD / IJAZAHTERBIT
+  // ==========================================================================
   const renderPaginationButtons = () => {
-    let pages = [];
-    // 🟢 Jika API siap: Ganti 'totalPages' menjadi 'totalPagesFromAPI'
-    if (totalPages <= 4) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      if (currentPage <= 2) pages = [1, 2, '...', totalPages];
-      else if (currentPage >= totalPages - 1) pages = [1, '...', totalPages - 1, totalPages];
-      else pages = [1, '...', currentPage, '...', totalPages];
+    const pages = [];
+
+    pages.push(1);
+
+    if (currentPage > 2 && totalPages > 3) pages.push("...");
+
+    if (currentPage === 1 && totalPages > 1) {
+      pages.push(2);
+    } else if (currentPage === totalPages && totalPages > 2) {
+      pages.push(totalPages - 1);
+    } else if (currentPage > 1 && currentPage < totalPages) {
+      pages.push(currentPage);
     }
 
-    return pages.map((page, index) => {
-      const isActive = currentPage === page;
-      const isEllipsis = page === '...';
-      return (
-        <button
-          key={index}
-          onClick={() => !isEllipsis && handlePageChange(page)}
-          disabled={isEllipsis}
-          className={`w-11.5 h-11.5 flex items-center justify-center rounded-xl font-bold text-[18px] transition-all ${
-            isActive ? "bg-[#115E59] text-white shadow-sm" : "bg-[#CBD5E1] text-white hover:bg-[#b0bcc9]" 
-          } ${isEllipsis ? "cursor-default hover:bg-[#CBD5E1]" : ""}`}
-        >
-          {page}
-        </button>
-      );
-    });
+    if (currentPage < totalPages - 1 && totalPages > 3) pages.push("...");
+
+    if (totalPages > 1 && !pages.includes(totalPages)) pages.push(totalPages);
+
+    return pages.map((page, index) => (
+      <button
+        key={index}
+        type="button"
+        onClick={() => typeof page === "number" && handlePageChange(page)}
+        disabled={page === "..."}
+        className={`w-8 h-8 flex items-center justify-center rounded text-xs font-bold shadow-sm transition-colors ${
+          page === currentPage
+            ? "bg-[#00897B] text-white"
+            : page === "..."
+            ? "bg-transparent text-gray-400 cursor-default shadow-none"
+            : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"
+        }`}
+      >
+        {page}
+      </button>
+    ));
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout title="Ijazah Proses">
       <div className="w-full">
         {/* HEADER */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-[28px] font-bold text-gray-800 tracking-tight">
-              Jumlah Ijazah di Proses
-            </h1>
-            <p className="text-[#9CA3AF] text-[14px] font-medium">
-              Update terakhir: 17 Januari 2026, 09:10 WIB • Fakultas Teknik dan Sains
-            </p>
-          </div>
-          <button
-            onClick={() => navigate(-1)}
-            className="text-sm text-[#115E59] font-bold hover:underline"
-          >
-            ← Kembali
-          </button>
+        <div className="mb-6">
+          <h1 className="text-[26px] font-bold text-gray-900">
+            Jumlah Ijazah di Proses
+          </h1>
+          <p className="text-[#9CA3AF] text-sm mt-1">
+            Update terakhir: 17 Januari 2026, 09:10 WIB
+          </p>
         </div>
 
         {/* FILTER BOX */}
         <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-wrap items-center gap-4 border border-gray-100">
-          <div className="flex items-center bg-[#E5E5E5] rounded-lg px-4 h-11 flex-1 min-w-62.5 max-w-md">
+          <div className="flex items-center bg-[#E5E5E5] rounded-lg px-4 h-11 flex-1 min-w-[250px] max-w-md">
             <FiSearch className="text-gray-500 text-lg mr-3" />
-            <input type="text" placeholder="Cari: Batch, Prodi" value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent outline-none text-sm w-full font-medium text-gray-700 placeholder-gray-500" />
+            <input
+              type="text"
+              placeholder="Cari: Batch, Fakultas"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="bg-transparent outline-none text-sm w-full font-medium text-gray-700 placeholder-gray-500"
+            />
           </div>
+
           <div className="relative">
-            <select value={fakultas} onChange={(e) => setFakultas(e.target.value)} className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 min-w-55 outline-none cursor-pointer">
+            <select
+              value={fakultas}
+              onChange={(e) => setFakultas(e.target.value)}
+              className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 min-w-[220px] outline-none cursor-pointer"
+            >
               <option value="">Semua Fakultas</option>
-              {/* 🟢 Nanti list ini juga bisa di-mapping dari API jika perlu */}
-              {fakultasList.map((f, i) => (<option key={i} value={f.nama}>{f.nama}</option>))}
+              {fakultasList.map((f, i) => (
+                <option key={i} value={f.nama}>{f.nama}</option>
+              ))}
             </select>
             <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none" />
           </div>
+
           <div className="relative">
-            <select value={tahun} onChange={(e) => setTahun(e.target.value)} className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 min-w-37.5 outline-none cursor-pointer">
+            <select
+              value={tahun}
+              onChange={(e) => setTahun(e.target.value)}
+              className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 min-w-[150px] outline-none cursor-pointer"
+            >
               <option value="">Tahun Lulus</option>
               <option value="2024">2024</option>
               <option value="2025">2025</option>
@@ -200,31 +175,24 @@ const IjazahProses = () => {
                 <th className="py-4 px-6 text-center">Tahun Lulus</th>
                 <th className="py-4 px-6 text-center">Periode</th>
                 <th className="py-4 px-6 text-center">Total Data</th>
-                <th className="py-4 px-6 text-center">Status</th>
                 <th className="py-4 px-6 text-center w-24">Detail</th>
               </tr>
             </thead>
+
             <tbody>
-              {/* 🟢 LANGKAH 4: Jika API siap, ganti 'paginatedData' menjadi 'dataBatch' */}
               {paginatedData.map((item, i) => {
                 const actualIndex = (currentPage - 1) * itemsPerPage + i + 1;
                 return (
                   <tr key={i} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                     <td className="py-4 px-6 text-center font-bold text-gray-800">{actualIndex}.</td>
-                    {/* Dikembalikan seperti semula agar konsisten */}
                     <td className="py-4 px-6 font-bold text-gray-900">{item.batch}</td>
                     <td className="py-4 px-6 text-center font-bold text-gray-900">{item.fakultas}</td>
                     <td className="py-4 px-6 text-center font-bold text-gray-900">{item.tahun}</td>
                     <td className="py-4 px-6 text-center font-bold text-gray-900">{item.periode}</td>
                     <td className="py-4 px-6 text-center font-bold text-gray-900">{item.total}</td>
                     <td className="py-4 px-6 text-center">
-                      <span className="inline-block bg-[#2F80ED] text-white px-4 py-1.5 rounded-full text-xs font-bold tracking-wide shadow-sm">
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-center">
                       <div
-                        onClick={() => navigate(`/batch-proses/${actualIndex}`, { state: item })}
+                        onClick={() => navigate(`/batch/proses/${item.id}`, { state: item })}
                         className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition"
                       >
                         <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>
@@ -235,16 +203,44 @@ const IjazahProses = () => {
               })}
             </tbody>
           </table>
-        </div>
 
-        {/* PAGINATION */}
-        <div className="flex justify-end items-center px-6 py-6 gap-3 border-t border-gray-100 bg-white rounded-b-xl">
-          <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className={`flex items-center justify-center px-2 text-[28px] font-bold transition-colors ${ currentPage === 1 ? "text-[#CBD5E1] cursor-not-allowed" : "text-[#94a3b8] hover:text-[#64748b]" }`}> &lt; </button>
-          {renderPaginationButtons()}
-          {/* 🟢 Ganti totalPages jadi totalPagesFromAPI nanti */}
-          <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className={`flex items-center justify-center px-2 text-[28px] font-bold transition-colors ${ currentPage === totalPages ? "text-[#CBD5E1] cursor-not-allowed" : "text-[#115E59] hover:text-[#0B4B48]" }`}> &gt; </button>
-        </div>
+          {paginatedData.length === 0 && (
+            <div className="py-8 text-center text-gray-500 font-medium">
+              Data tidak ditemukan.
+            </div>
+          )}
 
+          {/* PAGINATION - MENGGUNAKAN GAYA DARI DASHBOARD / IJAZAHTERBIT */}
+          <div className="p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-gray-100">
+            <p className="text-xs text-gray-400">
+              Menampilkan {paginatedData.length} dari {filtered.length} Data
+            </p>
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50"
+                >
+                  {"<"}
+                </button>
+
+                {renderPaginationButtons()}
+
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50"
+                >
+                  {">"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );
