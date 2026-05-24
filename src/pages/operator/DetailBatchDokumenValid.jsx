@@ -1,555 +1,440 @@
-// src/pages/operator/DokumenValid.jsx
-
 import React, { useMemo, useState, useEffect } from "react";
 import DashboardLayout from "../../components/ui/DashboardLayout";
-import { FiSearch, FiChevronDown } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
+import { FiSearch, FiChevronDown, FiFileText, FiCheckCircle, FiXCircle, FiClock, FiRefreshCw, FiArrowLeft } from "react-icons/fi";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 
-// ==================== DATA BATCH LENGKAP ====================
-const generateBatchData = () => {
-  const data = [];
-  let id = 1;
-  
-  // PERUBAHAN: Tahun dari 2021 sampai 2026
-  const tahunRandom = ["2021", "2022", "2023", "2024", "2025", "2026"];
-  
-  // Daftar nama mahasiswa
-  const daftarNama = [
-    "Adi Saputra", "Rani Maharani", "Budi Pratama", "Kayla Keyla", "Rizky Gusti A",
-    "Risma Puspita", "Budi Doremi", "Siti Aisyah", "Eagle Al-Haikal", "Zahra Nabil",
-    "Dila Fadilla", "Nayla Nim", "Samsul Jun", "Rayyan Hesa", "Zahra Nur",
-    "Zulvikri", "Tasya Cantika", "Baedilah", "Mutqin", "Husni Haqiqi"
-  ];
-  
-  // FAKULTAS TEKNIK DAN SAINS (FTS) - Batch 1 s/d 10
-  const ftsBatch = ["Batch 1 - FTS", "Batch 2 - FTS", "Batch 3 - FTS", "Batch 4 - FTS", "Batch 5 - FTS", 
-                    "Batch 6 - FTS", "Batch 7 - FTS", "Batch 8 - FTS", "Batch 9 - FTS", "Batch 10 - FTS"];
-  const ftsPeriode = ["Semester Ganjil", "Semester Genap", "Semester Ganjil", "Semester Genap", "Semester Ganjil", "Semester Genap", "Semester Ganjil", "Semester Genap", "Semester Ganjil", "Semester Genap"];
-  const ftsProdi = ["Teknik Informatika", "Teknik Mesin", "Teknik Sipil", "Sistem Informasi", "Teknik Elektro"];
-  
-  for (let i = 0; i < ftsBatch.length; i++) {
-    const mahasiswaList = [];
-    for (let j = 0; j < 10; j++) {
-      const nama = daftarNama[(i + j) % daftarNama.length] + (j >= daftarNama.length ? ` ${Math.floor(j / daftarNama.length) + 1}` : "");
-      mahasiswaList.push({
-        id: j + 1,
-        nama: nama,
-        nim: `23110604${String(900 + i * 10 + j).padStart(3, "0")}`,
-        prodi: ftsProdi[j % ftsProdi.length],
-        batch: ftsBatch[i],
-        fakultas: "Fakultas Teknik dan Sains",
-        tahunLulus: tahunRandom[i % tahunRandom.length],
-        jenisKelamin: j % 2 === 0 ? "Laki-laki" : "Perempuan",
-        ipk: (3.0 + (j % 100) / 100).toFixed(2),
-        tempatLahir: ["Bogor", "Jakarta", "Bandung", "Depok", "Bekasi", "Tangerang"][j % 6],
-        tanggalLahir: `${15 + j} ${["Januari", "Februari", "Maret"][j % 3]} 2004`,
-        email: `${nama.toLowerCase().replace(/\s+/g, ".")}@student.uika.ac.id`,
-        noTelp: `0812${String(345678900 + i * 10 + j).slice(0, 8)}`,
-        tahunMasuk: parseInt(tahunRandom[i % tahunRandom.length]) - 3,
-        totalSks: 144
-      });
-    }
-    
-    data.push({
-      id: id++,
-      listBatch: ftsBatch[i],
-      fakultas: "Fakultas Teknik dan Sains",
-      singkatan: "FTS",
-      tahunLulus: tahunRandom[i % tahunRandom.length],
-      periode: ftsPeriode[i],
-      totalData: 10,
-      mahasiswa: mahasiswaList
-    });
-  }
-  
-  // FAKULTAS EKONOMI DAN BISNIS (FEB) - Batch 1 s/d 10
-  const febBatch = ["Batch 1 - FEB", "Batch 2 - FEB", "Batch 3 - FEB", "Batch 4 - FEB", "Batch 5 - FEB",
-                    "Batch 6 - FEB", "Batch 7 - FEB", "Batch 8 - FEB", "Batch 9 - FEB", "Batch 10 - FEB"];
-  const febProdi = ["Manajemen", "Akuntansi", "Bisnis Digital"];
-  
-  for (let i = 0; i < febBatch.length; i++) {
-    const mahasiswaList = [];
-    for (let j = 0; j < 10; j++) {
-      const nama = daftarNama[(i + j + 5) % daftarNama.length] + (j >= daftarNama.length ? ` ${Math.floor(j / daftarNama.length) + 1}` : "");
-      mahasiswaList.push({
-        id: j + 1,
-        nama: nama,
-        nim: `23110604${String(950 + i * 10 + j).padStart(3, "0")}`,
-        prodi: febProdi[j % febProdi.length],
-        batch: febBatch[i],
-        fakultas: "Fakultas Ekonomi dan Bisnis",
-        tahunLulus: tahunRandom[i % tahunRandom.length],
-        jenisKelamin: j % 2 === 0 ? "Laki-laki" : "Perempuan",
-        ipk: (3.0 + (j % 100) / 100).toFixed(2),
-        tempatLahir: ["Bogor", "Jakarta", "Bandung", "Depok", "Bekasi", "Tangerang"][j % 6],
-        tanggalLahir: `${15 + j} ${["Januari", "Februari", "Maret"][j % 3]} 2004`,
-        email: `${nama.toLowerCase().replace(/\s+/g, ".")}@student.uika.ac.id`,
-        noTelp: `0812${String(345678900 + i * 10 + j).slice(0, 8)}`,
-        tahunMasuk: parseInt(tahunRandom[i % tahunRandom.length]) - 3,
-        totalSks: 144
-      });
-    }
-    
-    data.push({
-      id: id++,
-      listBatch: febBatch[i],
-      fakultas: "Fakultas Ekonomi dan Bisnis",
-      singkatan: "FEB",
-      tahunLulus: tahunRandom[i % tahunRandom.length],
-      periode: i % 2 === 0 ? "Semester Ganjil" : "Semester Genap",
-      totalData: 10,
-      mahasiswa: mahasiswaList
-    });
-  }
-  
-  // FAKULTAS HUKUM (FH) - Batch 1 s/d 8
-  const fhBatch = ["Batch 1 - FH", "Batch 2 - FH", "Batch 3 - FH", "Batch 4 - FH",
-                   "Batch 5 - FH", "Batch 6 - FH", "Batch 7 - FH", "Batch 8 - FH"];
-  const fhProdi = ["Ilmu Hukum"];
-  
-  for (let i = 0; i < fhBatch.length; i++) {
-    const mahasiswaList = [];
-    for (let j = 0; j < 10; j++) {
-      const nama = daftarNama[(i + j + 10) % daftarNama.length] + (j >= daftarNama.length ? ` ${Math.floor(j / daftarNama.length) + 1}` : "");
-      mahasiswaList.push({
-        id: j + 1,
-        nama: nama,
-        nim: `23110604${String(1000 + i * 10 + j).padStart(3, "0")}`,
-        prodi: fhProdi[0],
-        batch: fhBatch[i],
-        fakultas: "Fakultas Hukum",
-        tahunLulus: tahunRandom[i % tahunRandom.length],
-        jenisKelamin: j % 2 === 0 ? "Laki-laki" : "Perempuan",
-        ipk: (3.0 + (j % 100) / 100).toFixed(2),
-        tempatLahir: ["Bogor", "Jakarta", "Bandung", "Depok", "Bekasi", "Tangerang"][j % 6],
-        tanggalLahir: `${15 + j} ${["Januari", "Februari", "Maret"][j % 3]} 2004`,
-        email: `${nama.toLowerCase().replace(/\s+/g, ".")}@student.uika.ac.id`,
-        noTelp: `0812${String(345678900 + i * 10 + j).slice(0, 8)}`,
-        tahunMasuk: parseInt(tahunRandom[i % tahunRandom.length]) - 3,
-        totalSks: 144
-      });
-    }
-    
-    data.push({
-      id: id++,
-      listBatch: fhBatch[i],
-      fakultas: "Fakultas Hukum",
-      singkatan: "FH",
-      tahunLulus: tahunRandom[i % tahunRandom.length],
-      periode: i % 2 === 0 ? "Semester Ganjil" : "Semester Genap",
-      totalData: 10,
-      mahasiswa: mahasiswaList
-    });
-  }
-  
-  // FAKULTAS AGAMA ISLAM (FAI) - Batch 1 s/d 8
-  const faiBatch = ["Batch 1 - FAI", "Batch 2 - FAI", "Batch 3 - FAI", "Batch 4 - FAI",
-                    "Batch 5 - FAI", "Batch 6 - FAI", "Batch 7 - FAI", "Batch 8 - FAI"];
-  const faiProdi = ["Pendidikan Agama Islam", "Ekonomi Syariah"];
-  
-  for (let i = 0; i < faiBatch.length; i++) {
-    const mahasiswaList = [];
-    for (let j = 0; j < 10; j++) {
-      const nama = daftarNama[(i + j + 15) % daftarNama.length] + (j >= daftarNama.length ? ` ${Math.floor(j / daftarNama.length) + 1}` : "");
-      mahasiswaList.push({
-        id: j + 1,
-        nama: nama,
-        nim: `23110604${String(1050 + i * 10 + j).padStart(3, "0")}`,
-        prodi: faiProdi[j % faiProdi.length],
-        batch: faiBatch[i],
-        fakultas: "Fakultas Agama Islam",
-        tahunLulus: tahunRandom[i % tahunRandom.length],
-        jenisKelamin: j % 2 === 0 ? "Laki-laki" : "Perempuan",
-        ipk: (3.0 + (j % 100) / 100).toFixed(2),
-        tempatLahir: ["Bogor", "Jakarta", "Bandung", "Depok", "Bekasi", "Tangerang"][j % 6],
-        tanggalLahir: `${15 + j} ${["Januari", "Februari", "Maret"][j % 3]} 2004`,
-        email: `${nama.toLowerCase().replace(/\s+/g, ".")}@student.uika.ac.id`,
-        noTelp: `0812${String(345678900 + i * 10 + j).slice(0, 8)}`,
-        tahunMasuk: parseInt(tahunRandom[i % tahunRandom.length]) - 3,
-        totalSks: 144
-      });
-    }
-    
-    data.push({
-      id: id++,
-      listBatch: faiBatch[i],
-      fakultas: "Fakultas Agama Islam",
-      singkatan: "FAI",
-      tahunLulus: tahunRandom[i % tahunRandom.length],
-      periode: i % 2 === 0 ? "Semester Ganjil" : "Semester Genap",
-      totalData: 10,
-      mahasiswa: mahasiswaList
-    });
-  }
-  
-  // FAKULTAS ILMU KESEHATAN (FIKES) - Batch 1 s/d 8
-  const fikesBatch = ["Batch 1 - FIKES", "Batch 2 - FIKES", "Batch 3 - FIKES", "Batch 4 - FIKES",
-                      "Batch 5 - FIKES", "Batch 6 - FIKES", "Batch 7 - FIKES", "Batch 8 - FIKES"];
-  const fikesProdi = ["Kesehatan Masyarakat", "Ilmu Gizi"];
-  
-  for (let i = 0; i < fikesBatch.length; i++) {
-    const mahasiswaList = [];
-    for (let j = 0; j < 10; j++) {
-      const nama = daftarNama[(i + j + 2) % daftarNama.length] + (j >= daftarNama.length ? ` ${Math.floor(j / daftarNama.length) + 1}` : "");
-      mahasiswaList.push({
-        id: j + 1,
-        nama: nama,
-        nim: `23110604${String(1100 + i * 10 + j).padStart(3, "0")}`,
-        prodi: fikesProdi[j % fikesProdi.length],
-        batch: fikesBatch[i],
-        fakultas: "Fakultas Ilmu Kesehatan",
-        tahunLulus: tahunRandom[i % tahunRandom.length],
-        jenisKelamin: j % 2 === 0 ? "Laki-laki" : "Perempuan",
-        ipk: (3.0 + (j % 100) / 100).toFixed(2),
-        tempatLahir: ["Bogor", "Jakarta", "Bandung", "Depok", "Bekasi", "Tangerang"][j % 6],
-        tanggalLahir: `${15 + j} ${["Januari", "Februari", "Maret"][j % 3]} 2004`,
-        email: `${nama.toLowerCase().replace(/\s+/g, ".")}@student.uika.ac.id`,
-        noTelp: `0812${String(345678900 + i * 10 + j).slice(0, 8)}`,
-        tahunMasuk: parseInt(tahunRandom[i % tahunRandom.length]) - 3,
-        totalSks: 144
-      });
-    }
-    
-    data.push({
-      id: id++,
-      listBatch: fikesBatch[i],
-      fakultas: "Fakultas Ilmu Kesehatan",
-      singkatan: "FIKES",
-      tahunLulus: tahunRandom[i % tahunRandom.length],
-      periode: i % 2 === 0 ? "Semester Ganjil" : "Semester Genap",
-      totalData: 10,
-      mahasiswa: mahasiswaList
-    });
-  }
-  
-  // FAKULTAS KEGURUAN DAN ILMU PENDIDIKAN (FKIP) - Batch 1 s/d 8
-  const fkipBatch = ["Batch 1 - FKIP", "Batch 2 - FKIP", "Batch 3 - FKIP", "Batch 4 - FKIP",
-                     "Batch 5 - FKIP", "Batch 6 - FKIP", "Batch 7 - FKIP", "Batch 8 - FKIP"];
-  const fkipProdi = ["Pendidikan Bahasa Inggris", "Teknologi Pendidikan"];
-  
-  for (let i = 0; i < fkipBatch.length; i++) {
-    const mahasiswaList = [];
-    for (let j = 0; j < 10; j++) {
-      const nama = daftarNama[(i + j + 7) % daftarNama.length] + (j >= daftarNama.length ? ` ${Math.floor(j / daftarNama.length) + 1}` : "");
-      mahasiswaList.push({
-        id: j + 1,
-        nama: nama,
-        nim: `23110604${String(1150 + i * 10 + j).padStart(3, "0")}`,
-        prodi: fkipProdi[j % fkipProdi.length],
-        batch: fkipBatch[i],
-        fakultas: "Fakultas Keguruan dan Ilmu Pendidikan",
-        tahunLulus: tahunRandom[i % tahunRandom.length],
-        jenisKelamin: j % 2 === 0 ? "Laki-laki" : "Perempuan",
-        ipk: (3.0 + (j % 100) / 100).toFixed(2),
-        tempatLahir: ["Bogor", "Jakarta", "Bandung", "Depok", "Bekasi", "Tangerang"][j % 6],
-        tanggalLahir: `${15 + j} ${["Januari", "Februari", "Maret"][j % 3]} 2004`,
-        email: `${nama.toLowerCase().replace(/\s+/g, ".")}@student.uika.ac.id`,
-        noTelp: `0812${String(345678900 + i * 10 + j).slice(0, 8)}`,
-        tahunMasuk: parseInt(tahunRandom[i % tahunRandom.length]) - 3,
-        totalSks: 144
-      });
-    }
-    
-    data.push({
-      id: id++,
-      listBatch: fkipBatch[i],
-      fakultas: "Fakultas Keguruan dan Ilmu Pendidikan",
-      singkatan: "FKIP",
-      tahunLulus: tahunRandom[i % tahunRandom.length],
-      periode: i % 2 === 0 ? "Semester Ganjil" : "Semester Genap",
-      totalData: 10,
-      mahasiswa: mahasiswaList
-    });
-  }
-  
-  return data;
-};
-
-const batchData = generateBatchData();
-
-// Opsi filter
-const fakultasOptions = [
-  "Semua Fakultas",
-  "Fakultas Teknik dan Sains",
-  "Fakultas Ekonomi dan Bisnis",
-  "Fakultas Hukum",
-  "Fakultas Agama Islam",
-  "Fakultas Ilmu Kesehatan",
-  "Fakultas Keguruan dan Ilmu Pendidikan"
-];
-
-// PERUBAHAN: Tambah tahun 2021, 2022, 2023
-const tahunOptions = ["Semua Tahun", "2021", "2022", "2023", "2024", "2025", "2026"];
-
-const DokumenValid = () => {
+const DetailBatchDokumenValid = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { batchId } = useParams();
+
   const [search, setSearch] = useState("");
-  const [fakultas, setFakultas] = useState("");
-  const [tahun, setTahun] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("Semua Status");
   const [currentPage, setCurrentPage] = useState(1);
+
   const itemsPerPage = 10;
 
-  // HASIL PENCARIAN MAHASISWA (NAMA, NIM, PRODI)
-  const searchResult = useMemo(() => {
-    if (!search) return [];
+  // Ambil data batch dari halaman sebelumnya
+  const batchData = location.state || {
+    listBatch: `Batch ${batchId || "1"}`,
+    fakultas: "Fakultas Teknik dan Sains",
+    tahunLulus: "2026",
+    periode: "Semester Ganjil",
+  };
 
-    const keyword = search.toLowerCase();
-    const result = [];
+  const statusOptions = [
+    "Semua Status",
+    "Sudah Valid",
+    "Belum Valid",
+    "Proses Verifikasi",
+    "Perbaikan",
+  ];
 
-    batchData.forEach((batch) => {
-      if (batch.mahasiswa) {
-        batch.mahasiswa.forEach((mhs) => {
-          const matchNama = mhs.nama.toLowerCase().includes(keyword);
-          const matchNim = String(mhs.nim).toLowerCase().includes(keyword);
-          const matchProdi = mhs.prodi.toLowerCase().includes(keyword);
+  // Data dokumen yang akan divalidasi
+  const dokumenList = useMemo(() => {
+    const dokumen = [
+      { id: 1, nama: "Ijazah", keterangan: "Dokumen ijazah asli", required: true },
+      { id: 2, nama: "Transkrip Nilai", keterangan: "Transkrip nilai akademik", required: true },
+      { id: 3, nama: "Surat Keterangan Lulus", keterangan: "Surat keterangan telah menyelesaikan studi", required: true },
+      { id: 4, nama: "Foto Ijazah", keterangan: "Scan ijazah berwarna", required: true },
+      { id: 5, nama: "KTP", keterangan: "Kartu Tanda Penduduk", required: true },
+      { id: 6, nama: "KK", keterangan: "Kartu Keluarga", required: false },
+      { id: 7, nama: "Akta Kelahiran", keterangan: "Akta kelahiran", required: false },
+      { id: 8, nama: "Sertifikat Akreditasi Prodi", keterangan: "Sertifikat akreditasi program studi", required: true },
+      { id: 9, nama: "Surat Pernyataan", keterangan: "Surat pernyataan kebenaran data", required: true },
+      { id: 10, nama: "Pas Foto", keterangan: "Pas foto terbaru 3x4", required: true },
+    ];
 
-          if (matchNama || matchNim || matchProdi) {
-            result.push({
-              nama: mhs.nama,
-              nim: mhs.nim,
-              prodi: mhs.prodi,
-              batch: mhs.batch || batch.listBatch,
-              fakultas: mhs.fakultas || batch.fakultas,
-              tahun: mhs.tahunLulus || batch.tahunLulus,
-              mahasiswa: {
-                ...mhs,
-                batch: mhs.batch || batch.listBatch,
-                fakultas: mhs.fakultas || batch.fakultas,
-                tahun: mhs.tahunLulus || batch.tahunLulus,
-              },
-            });
-          }
-        });
+    // Generate status random untuk demo
+    return dokumen.map((doc, i) => {
+      const statusRandom = Math.random();
+      let status = "";
+      let statusColor = "";
+      
+      if (statusRandom < 0.3) {
+        status = "Sudah Valid";
+        statusColor = "bg-[#27AE60]";
+      } else if (statusRandom < 0.5) {
+        status = "Belum Valid";
+        statusColor = "bg-[#EF4444]";
+      } else if (statusRandom < 0.75) {
+        status = "Proses Verifikasi";
+        statusColor = "bg-[#3B82F6]";
+      } else {
+        status = "Perbaikan";
+        statusColor = "bg-[#F59E0B]";
       }
+
+      return {
+        ...doc,
+        status,
+        statusColor,
+        tanggalUpload: `2026-${String(Math.floor(Math.random() * 12) + 1).padStart(2, "0")}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, "0")}`,
+        verifikator: ["Rektor", "Wakil Rektor", "Dekan", "Wakil Dekan", "TU"][Math.floor(Math.random() * 5)],
+      };
     });
+  }, []);
 
-    return result;
-  }, [search]);
+  // Data mahasiswa dalam batch
+  const mahasiswaList = useMemo(() => {
+    const names = [
+      "Adi Saputra", "Rani Maharani", "Budi Pratama", "Siti Aisyah",
+      "Dimas Nugraha", "Fajar Ramadhan", "Putri Lestari", "Andi Wijaya",
+      "Rizky Maulana", "Nabila Putri", "Yoga Pratama", "Citra Dewi",
+      "Kayla Keyla", "Rizky Gusti A", "Risma Puspita", "Budi Doremi",
+      "Eagle Al-Haikal", "Zahra Nabil", "Dila Fadilla", "Nayla Nim",
+    ];
 
-  const filtered = useMemo(() => {
-    return batchData.filter((item) => {
-      const keyword = search.toLowerCase();
-      const matchSearch = item.listBatch.toLowerCase().includes(keyword) || 
-                         item.fakultas.toLowerCase().includes(keyword);
-      const matchFakultas = !fakultas || fakultas === "Semua Fakultas" || item.fakultas === fakultas;
-      const matchTahun = !tahun || tahun === "Semua Tahun" || item.tahunLulus === tahun;
-      return matchSearch && matchFakultas && matchTahun;
-    });
-  }, [search, fakultas, tahun]);
+    const prodiList = {
+      "Fakultas Teknik dan Sains": ["Teknik Informatika", "Teknik Mesin", "Teknik Sipil", "Sistem Informasi", "Teknik Elektro"],
+      "Fakultas Ekonomi dan Bisnis": ["Manajemen", "Akuntansi", "Bisnis Digital"],
+      "Fakultas Hukum": ["Ilmu Hukum"],
+      "Fakultas Agama Islam": ["Pendidikan Agama Islam", "Ekonomi Syariah"],
+      "Fakultas Ilmu Kesehatan": ["Kesehatan Masyarakat", "Ilmu Gizi"],
+      "Fakultas Keguruan dan Ilmu Pendidikan": ["Pendidikan Bahasa Inggris", "Teknologi Pendidikan"],
+    };
 
-  useEffect(() => { 
-    setCurrentPage(1); 
-  }, [search, fakultas, tahun]);
+    const availableProdi = prodiList[batchData.fakultas] || ["Teknik Informatika"];
 
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+    return Array.from({ length: batchData.totalData || 25 }, (_, i) => ({
+      id: i + 1,
+      nim: `23110604${String(i + 1).padStart(4, "0")}`,
+      nama: names[i % names.length],
+      prodi: availableProdi[i % availableProdi.length],
+      statusVerifikasi: ["Sudah Valid", "Belum Valid", "Proses Verifikasi", "Perbaikan"][i % 4],
+    }));
+  }, [batchData.fakultas, batchData.totalData]);
 
-  const handlePageChange = (page) => {
-    if (page >= 1 && page <= totalPages) setCurrentPage(page);
-  };
+  // Filter data dokumen berdasarkan search dan status
+  const filteredDokumen = dokumenList.filter((item) => {
+    const keyword = search.toLowerCase();
+    const matchesSearch = item.nama.toLowerCase().includes(keyword) ||
+                          item.keterangan.toLowerCase().includes(keyword);
+    const matchesStatus = selectedStatus === "Semua Status" || item.status === selectedStatus;
+    return matchesSearch && matchesStatus;
+  });
 
-  // Fungsi untuk navigasi ke detail batch
-  const handleDetailClick = (item) => {
-    console.log("Navigasi ke detail batch:", item);
-    navigate(`/operator/dokumen-valid/batch/${item.id}`, { state: item });
-  };
+  const totalPages = Math.ceil(filteredDokumen.length / itemsPerPage);
+  const paginatedData = filteredDokumen.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
-  // Fungsi untuk navigasi ke detail mahasiswa dari hasil pencarian
-  const handleMahasiswaClick = (item) => {
-    navigate(`/operator/detail-mahasiswa/${item.nim}`, { state: item.mahasiswa });
-  };
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedStatus]);
 
-  // PAGINATION SAMA PERSIS DENGAN PELAPORAN DAN MANAJEMEN DATA
-  const renderPaginationButtons = () => {
-    const pages = [];
-    pages.push(1);
-    if (currentPage > 2 && totalPages > 3) pages.push("...");
-    if (currentPage === 1 && totalPages > 1) {
-      pages.push(2);
-    } else if (currentPage === totalPages && totalPages > 2) {
-      pages.push(totalPages - 1);
-    } else if (currentPage > 1 && currentPage < totalPages) {
-      pages.push(currentPage);
+  const handlePageChange = (pageNumber) => {
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
     }
-    if (currentPage < totalPages - 1 && totalPages > 3) pages.push("...");
-    if (totalPages > 1 && !pages.includes(totalPages)) pages.push(totalPages);
+  };
 
-    return pages.map((page, index) => (
-      <button
-        key={index}
-        onClick={() => typeof page === "number" && handlePageChange(page)}
-        disabled={page === "..."}
-        className={`w-8 h-8 flex items-center justify-center rounded text-xs font-bold shadow-sm transition-colors ${
-          page === currentPage
-            ? "bg-[#00897B] text-white"
-            : page === "..."
-            ? "bg-transparent text-gray-400 cursor-default shadow-none"
-            : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"
-        }`}
-      >
-        {page}
-      </button>
-    ));
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case "Sudah Valid":
+        return <FiCheckCircle className="text-white" size={14} />;
+      case "Belum Valid":
+        return <FiXCircle className="text-white" size={14} />;
+      case "Proses Verifikasi":
+        return <FiClock className="text-white" size={14} />;
+      case "Perbaikan":
+        return <FiRefreshCw className="text-white" size={14} />;
+      default:
+        return null;
+    }
+  };
+
+  const renderPaginationButtons = () => {
+    if (totalPages <= 1) return null;
+    
+    let pages = [];
+
+    if (totalPages <= 4) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else if (currentPage <= 2) {
+      pages = [1, 2, "...", totalPages];
+    } else if (currentPage >= totalPages - 1) {
+      pages = [1, "...", totalPages - 1, totalPages];
+    } else {
+      pages = [1, "...", currentPage, "...", totalPages];
+    }
+
+    return pages.map((page, index) => {
+      const isActive = currentPage === page;
+      const isEllipsis = page === "...";
+
+      return (
+        <button
+          key={index}
+          type="button"
+          onClick={() => !isEllipsis && handlePageChange(page)}
+          disabled={isEllipsis}
+          className={`w-[46px] h-[46px] flex items-center justify-center rounded-[12px] font-bold text-[18px] transition-all ${
+            isActive
+              ? "bg-[#115E59] text-white shadow-sm"
+              : "bg-[#CBD5E1] text-white hover:bg-[#b0bcc9]"
+          } ${isEllipsis ? "cursor-default hover:bg-[#CBD5E1]" : ""}`}
+        >
+          {page}
+        </button>
+      );
+    });
+  };
+
+  const handleDetailMahasiswa = (mhs) => {
+    navigate(`/operator/detail-dokumen-valid/${mhs.nim}`, { state: mhs });
+  };
+
+  const handleBack = () => {
+    navigate(-1);
   };
 
   return (
-    <DashboardLayout title="Dokumen Valid">
+    <DashboardLayout title="Detail Validasi Dokumen">
       <div className="w-full">
+        {/* Tombol Kembali */}
+        <button 
+          onClick={handleBack}
+          className="flex items-center gap-2 text-gray-500 hover:text-[#0B6B63] mb-4 transition-colors"
+        >
+          <FiArrowLeft size={18} />
+          <span className="text-sm font-medium">Kembali</span>
+        </button>
+
+        {/* HEADER */}
         <div className="mb-6">
-          <h1 className="text-[26px] font-bold text-gray-900">Daftar Dokumen Valid</h1>
-          <p className="text-[#9CA3AF] text-sm mt-1">Arsip digital ijazah dan transkrip mahasiswa yang telah melewati proses verifikasi institusi.</p>
+          <h1 className="text-[26px] font-bold text-gray-900">
+            Detail Validasi Dokumen
+          </h1>
+          <p className="text-[#9CA3AF] text-sm mt-1">
+            {batchData.listBatch} • {batchData.fakultas} • {batchData.periode} • {batchData.tahunLulus}
+          </p>
         </div>
 
-        {/* Search bar di kiri, dropdown filter di kanan */}
-        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-wrap items-center gap-4 border border-gray-100">
-          {/* Search Bar - DI KIRI dengan hasil pencarian */}
-          <div className="flex-1 min-w-[250px] max-w-md relative">
-            <div className="flex items-center bg-[#E5E5E5] rounded-lg px-4 h-11">
-              <FiSearch className="text-gray-500 text-lg mr-3" />
-              <input 
-                type="text" 
-                placeholder="Cari: Nama Mahasiswa, NIM, Prodi" 
-                value={search} 
-                onChange={(e) => setSearch(e.target.value)}
-                className="bg-transparent outline-none text-sm w-full font-medium text-gray-700 placeholder-gray-500" 
-              />
+        {/* INFO BATCH CARD */}
+        <div className="bg-gradient-to-r from-[#115E59] to-[#0B4B48] rounded-xl p-5 mb-6 shadow-sm">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <p className="text-[#A7F3D0] text-[11px] font-medium">Total Mahasiswa</p>
+              <p className="text-white text-[22px] font-bold">{mahasiswaList.length}</p>
             </div>
+            <div>
+              <p className="text-[#A7F3D0] text-[11px] font-medium">Sudah Valid</p>
+              <p className="text-white text-[22px] font-bold">
+                {mahasiswaList.filter(m => m.statusVerifikasi === "Sudah Valid").length}
+              </p>
+            </div>
+            <div>
+              <p className="text-[#A7F3D0] text-[11px] font-medium">Belum Valid</p>
+              <p className="text-white text-[22px] font-bold">
+                {mahasiswaList.filter(m => m.statusVerifikasi === "Belum Valid").length}
+              </p>
+            </div>
+            <div>
+              <p className="text-[#A7F3D0] text-[11px] font-medium">Proses / Perbaikan</p>
+              <p className="text-white text-[22px] font-bold">
+                {mahasiswaList.filter(m => m.statusVerifikasi === "Proses Verifikasi" || m.statusVerifikasi === "Perbaikan").length}
+              </p>
+            </div>
+          </div>
+        </div>
 
-            {/* HASIL SEARCH NAMA / NIM / PRODI */}
-            {search && searchResult.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#ECECEC] rounded-xl overflow-hidden shadow-lg z-50">
-                {searchResult.slice(0, 4).map((item, i) => (
-                  <div
-                    key={i}
-                    onClick={() => handleMahasiswaClick(item)}
-                    className="flex items-center justify-between px-4 py-2.5 hover:bg-[#FAFAFA] transition border-b border-[#F5F5F5] last:border-b-0 cursor-pointer"
-                  >
-                    <div>
-                      <p className="text-[13px] font-semibold text-[#111827] leading-none">
-                        {item.nama}
-                      </p>
-                      <p className="text-[11px] text-[#9CA3AF] mt-1">
-                        {item.nim} • {item.prodi}
-                      </p>
-                      <p className="text-[11px] text-[#9CA3AF] mt-1">
-                        {item.fakultas}
-                      </p>
-                    </div>
-                    <div className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-2 py-1 rounded-md">
-                      {item.batch}
-                    </div>
-                  </div>
-                ))}
-                {searchResult.length > 4 && (
-                  <div className="px-4 py-2 text-center text-[11px] text-[#9CA3AF] bg-[#FAFAFA]">
-                    +{searchResult.length - 4} hasil lainnya
-                  </div>
-                )}
-              </div>
-            )}
+        {/* FILTER BOX */}
+        <div className="bg-white border border-[#E5E7EB] p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 mb-5 shadow-sm">
+          <div className="flex items-center bg-[#E5E5E5] rounded-lg px-3 h-10 w-72">
+            <FiSearch className="text-gray-500 text-sm mr-2 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Cari: Nama Dokumen, Keterangan"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="bg-transparent outline-none text-sm w-full"
+            />
           </div>
 
-          {/* Dropdown Filters - DI KANAN (menjauh ke pojok) */}
           <div className="flex items-center gap-3 ml-auto">
-            {/* Dropdown Fakultas */}
-            <div className="relative min-w-[220px]">
-              <select 
-                value={fakultas || "Semua Fakultas"} 
-                onChange={(e) => setFakultas(e.target.value === "Semua Fakultas" ? "" : e.target.value)}
-                className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 w-full outline-none cursor-pointer"
+            <div className="relative">
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="appearance-none bg-[#E5E5E5] text-sm px-4 h-10 rounded-lg pr-10 min-w-[180px] outline-none cursor-pointer"
               >
-                {fakultasOptions.map((item, index) => (
-                  <option key={index} value={item}>{item}</option>
+                {statusOptions.map((status, i) => (
+                  <option key={i} value={status}>{status}</option>
                 ))}
               </select>
-              <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none" />
-            </div>
-
-            {/* Dropdown Tahun */}
-            <div className="relative w-[150px]">
-              <select 
-                value={tahun || "Semua Tahun"} 
-                onChange={(e) => setTahun(e.target.value === "Semua Tahun" ? "" : e.target.value)}
-                className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 w-full outline-none cursor-pointer"
-              >
-                {tahunOptions.map((item, index) => (
-                  <option key={index} value={item}>{item}</option>
-                ))}
-              </select>
-              <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none" />
+              <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
             </div>
           </div>
         </div>
 
-        {/* PERBAIKAN: Tabel dengan lebar kolom tetap dan tidak bergeser, font medium */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
-          <div className="min-w-[1000px]">
-            <table className="w-full text-sm text-left table-fixed">
-              <thead className="bg-[#F3F4F6] text-gray-500 font-bold border-b border-gray-200">
+        {/* TABLE SECTION - DOKUMEN VALIDASI */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full table-fixed text-sm">
+              <colgroup>
+                <col className="w-[6%]" />
+                <col className="w-[20%]" />
+                <col className="w-[30%]" />
+                <col className="w-[15%]" />
+                <col className="w-[15%]" />
+                <col className="w-[14%]" />
+              </colgroup>
+
+              <thead className="bg-[#F7F7F7] text-gray-500 border-b border-gray-200">
                 <tr>
-                  <th className="py-4 px-6 text-center w-16">No.</th>
-                  <th className="py-4 px-6 w-[200px]">List Batch</th>
-                  <th className="py-4 px-6 text-center w-[280px]">Fakultas</th>
-                  <th className="py-4 px-6 text-center w-[120px]">Tahun Lulus</th>
-                  <th className="py-4 px-6 text-center w-[150px]">Periode</th>
-                  <th className="py-4 px-6 text-center w-[100px]">Total Data</th>
-                  <th className="py-4 px-6 text-center w-24">Detail</th>
+                  <th className="px-4 py-4 text-center">No</th>
+                  <th className="px-4 py-4 text-left">Nama Dokumen</th>
+                  <th className="px-4 py-4 text-left">Keterangan</th>
+                  <th className="px-4 py-4 text-center">Tanggal Upload</th>
+                  <th className="px-4 py-4 text-center">Status</th>
+                  <th className="px-4 py-4 text-center">Verifikator</th>
                 </tr>
               </thead>
+
               <tbody>
-                {paginatedData.map((item, index) => {
-                  const actualIndex = (currentPage - 1) * itemsPerPage + index + 1;
+                {paginatedData.map((item, i) => {
+                  const actualIndex = (currentPage - 1) * itemsPerPage + i + 1;
                   return (
-                    <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                      <td className="py-4 px-6 text-center font-medium text-gray-800 truncate">{actualIndex}.</td>
-                      <td className="py-4 px-6 font-medium text-gray-900 truncate">{item.listBatch}</td>
-                      <td className="py-4 px-6 text-center font-medium text-gray-900 truncate">{item.fakultas}</td>
-                      <td className="py-4 px-6 text-center font-medium text-gray-900 truncate">{item.tahunLulus}</td>
-                      <td className="py-4 px-6 text-center font-medium text-gray-900 truncate">{item.periode}</td>
-                      <td className="py-4 px-6 text-center font-medium text-gray-900 truncate">{item.totalData}</td>
-                      <td className="py-4 px-6 text-center">
-                        <button
-                          onClick={() => handleDetailClick(item)}
-                          className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
+                    <tr
+                      key={item.id}
+                      className="h-[70px] border-t border-gray-200 hover:bg-gray-50"
+                    >
+                      <td className="px-4 py-4 text-center align-middle">
+                        {actualIndex}
+                      </td>
+
+                      <td className="px-4 py-4 font-medium text-gray-800 align-middle">
+                        <div className="flex items-center gap-2">
+                          <FiFileText className="text-[#115E59]" size={16} />
+                          <span>{item.nama}</span>
+                          {item.required && (
+                            <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">Wajib</span>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-4 text-gray-500 align-middle">
+                        {item.keterangan}
+                      </td>
+
+                      <td className="px-4 py-4 text-center align-middle">
+                        {item.tanggalUpload}
+                      </td>
+
+                      <td className="px-4 py-4 text-center align-middle">
+                        <span
+                          className={`inline-flex items-center gap-1 min-w-[100px] justify-center px-3 py-1.5 rounded-full text-xs font-bold text-white ${item.statusColor}`}
                         >
-                          <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>
-                        </button>
+                          {getStatusIcon(item.status)}
+                          {item.status}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-4 text-center align-middle">
+                        {item.verifikator}
                       </td>
                     </tr>
                   );
                 })}
+
+                {paginatedData.length === 0 && (
+                  <tr>
+                    <td colSpan="6" className="px-4 py-8 text-center text-gray-400">
+                      Data dokumen tidak ditemukan.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
 
-          {paginatedData.length === 0 && (
-            <div className="py-8 text-center text-gray-500 font-medium">Data tidak ditemukan.</div>
-          )}
-
           {/* PAGINATION */}
-          <div className="p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-gray-100">
-            <p className="text-xs text-gray-400">
-              Menampilkan {paginatedData.length} dari {filtered.length} Data
-            </p>
-            {totalPages > 1 && (
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50"
-                >
-                  {"<"}
-                </button>
-                {renderPaginationButtons()}
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50"
-                >
-                  {">"}
-                </button>
-              </div>
-            )}
+          {totalPages > 0 && filteredDokumen.length > 0 && (
+            <div className="flex justify-end items-center px-6 py-6 gap-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`flex items-center justify-center px-2 text-[28px] font-bold transition-colors ${
+                  currentPage === 1
+                    ? "text-[#CBD5E1] cursor-not-allowed"
+                    : "text-[#94a3b8] hover:text-[#64748b]"
+                }`}
+              >
+                &lt;
+              </button>
+
+              {renderPaginationButtons()}
+
+              <button
+                type="button"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`flex items-center justify-center px-2 text-[28px] font-bold transition-colors ${
+                  currentPage === totalPages
+                    ? "text-[#CBD5E1] cursor-not-allowed"
+                    : "text-[#115E59] hover:text-[#0B4B48]"
+                }`}
+              >
+                &gt;
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* DAFTAR MAHASISWA PER BATCH */}
+        <div className="mt-8">
+          <h2 className="text-lg font-bold text-gray-800 mb-4">
+            Daftar Mahasiswa {batchData.listBatch}
+          </h2>
+          
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-[#F7F7F7] text-gray-500 border-b border-gray-200 sticky top-0">
+                  <tr>
+                    <th className="px-4 py-3 text-center w-16">No</th>
+                    <th className="px-4 py-3 text-left">Nama Mahasiswa</th>
+                    <th className="px-4 py-3 text-center">NIM</th>
+                    <th className="px-4 py-3 text-center">Program Studi</th>
+                    <th className="px-4 py-3 text-center">Status Verifikasi</th>
+                    <th className="px-4 py-3 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mahasiswaList.map((mhs, i) => {
+                    const statusColor = mhs.statusVerifikasi === "Sudah Valid" ? "bg-[#27AE60]" :
+                                       mhs.statusVerifikasi === "Belum Valid" ? "bg-[#EF4444]" :
+                                       mhs.statusVerifikasi === "Proses Verifikasi" ? "bg-[#3B82F6]" :
+                                       "bg-[#F59E0B]";
+                    return (
+                      <tr key={mhs.id} className="border-t border-gray-200 hover:bg-gray-50">
+                        <td className="px-4 py-3 text-center">{i + 1}</td>
+                        <td className="px-4 py-3 font-medium text-gray-800">{mhs.nama}</td>
+                        <td className="px-4 py-3 text-center font-mono text-sm">{mhs.nim}</td>
+                        <td className="px-4 py-3 text-center">{mhs.prodi}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold text-white ${statusColor}`}>
+                            {mhs.statusVerifikasi}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleDetailMahasiswa(mhs)}
+                            className="text-[#115E59] hover:text-[#0B4B48] font-medium text-sm underline"
+                          >
+                            Lihat Detail
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -557,4 +442,4 @@ const DokumenValid = () => {
   );
 };
 
-export default DokumenValid;
+export default DetailBatchDokumenValid;

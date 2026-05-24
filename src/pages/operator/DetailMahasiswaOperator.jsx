@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { FiUser, FiBook, FiFileText, FiArrowLeft } from "react-icons/fi";
+import { FiUser, FiBook, FiFileText, FiArrowLeft, FiAlertCircle, FiCheckCircle } from "react-icons/fi";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 
 const DetailMahasiswaOperator = () => {
@@ -12,6 +12,10 @@ const DetailMahasiswaOperator = () => {
 
   // Cari data dari state (dikirim via navigate)
   const mahasiswa = state;
+
+  // Cek apakah halaman ini berasal dari Dokumen Valid atau Upload Data
+  // Jika dari Dokumen Valid, biasanya akan memiliki property 'status'
+  const isFromDokumenValid = mahasiswa?.status !== undefined;
 
   if (!mahasiswa) {
     return (
@@ -37,6 +41,18 @@ const DetailMahasiswaOperator = () => {
   const tanggal = mahasiswa?.tanggalLahir || tanggalList[Math.floor(Math.random() * tanggalList.length)];
   const ipk = mahasiswa?.ipk || (Math.random() * (4.0 - 3.2) + 3.2).toFixed(2);
   const totalSks = mahasiswa?.totalSks || (Math.floor(Math.random() * 10) + 140);
+
+  // Fungsi getStatusUI - untuk halaman Dokumen Valid
+  const getStatusUI = (status) => {
+    const s = (status || "terbit").toLowerCase();
+    if (s.includes("terbit")) return { bg: "bg-[#22C55E]", text: "Terbit", sub1: "Di Validasi oleh Rektor", sub2: "Data terverifikasi sah dalam pangkalan data universitas" };
+    if (s.includes("proses")) return { bg: "bg-[#2879B9]", text: "Proses", sub1: "Proses Validasi oleh Operator", sub2: "Data masih dalam pengecekan dan proses validasi" };
+    if (s.includes("reject")) return { bg: "bg-[#DC2626]", text: "Reject", sub1: "Ditolak oleh Verifikator", sub2: "Terdapat ketidaksesuaian data yang perlu diperbaiki" };
+    if (s.includes("revoke")) return { bg: "bg-[#EAB308]", text: "Revoke", sub1: "Di Revoke oleh Wakil Dekan", sub2: "Kesalahan pada penulisan nama Mahasiswa" };
+    return { bg: "bg-[#22C55E]", text: "Terbit", sub1: "Di Validasi oleh Rektor", sub2: "Data terverifikasi sah dalam pangkalan data universitas" };
+  };
+
+  const statusUI = getStatusUI(mahasiswa?.status);
 
   // LOGIKA MATKUL (SESUAI FAKULTAS)
   const getMatkul = () => {
@@ -98,8 +114,8 @@ const DetailMahasiswaOperator = () => {
           <span className="text-sm font-medium">Kembali</span>
         </button>
 
-        {/* PROFILE CARD */}
-        <div className="bg-white rounded-xl px-8 py-6 flex items-center mb-6 shadow-sm border border-gray-200">
+        {/* PROFILE CARD - Dinamis sesuai asal halaman */}
+        <div className="bg-white rounded-xl px-8 py-6 flex justify-between items-center mb-6 shadow-sm border border-gray-200">
           <div className="flex items-center gap-6">
             <div className="w-[88px] h-[88px] rounded-full bg-[#E5F3EB] overflow-hidden flex items-center justify-center border-4 border-[#E5F3EB]">
               <svg viewBox="0 0 36 36" fill="none" width="88" height="88">
@@ -116,10 +132,26 @@ const DetailMahasiswaOperator = () => {
             <div className="flex flex-col gap-1.5">
               <h2 className="font-bold text-[20px] text-gray-900">{mahasiswa.nama}</h2>
               <p className="text-[14px] text-gray-600">NIM: {mahasiswa.nim}</p>
-              <div>
-              </div>
+              {mahasiswa?.batch && (
+                <div>
+                  <span className="inline-block bg-[#115E59] text-white text-[12px] px-4 py-1.5 rounded-full font-bold shadow-sm">
+                    {mahasiswa.batch}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
+
+          {/* Hanya tampilkan status dan catatan jika berasal dari Dokumen Valid */}
+          {isFromDokumenValid && (
+            <div className="text-right flex flex-col items-end gap-1">
+              <span className={`${statusUI.bg} text-white text-[13px] px-8 py-1.5 rounded-full font-bold shadow-sm`}>
+                {statusUI.text}
+              </span>
+              <p className="text-[12px] text-gray-800 font-bold mt-1">{statusUI.sub1}</p>
+              <p className="text-[11px] text-gray-400">{statusUI.sub2}</p>
+            </div>
+          )}
         </div>
 
         {/* INFO GRID */}
@@ -156,6 +188,19 @@ const DetailMahasiswaOperator = () => {
             </div>
           </div>
         </div>
+
+        {/* Catatan (hanya tampil jika dari Dokumen Valid) */}
+        {isFromDokumenValid && mahasiswa?.catatan && (
+          <div className="mb-6 p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+            <div className="flex items-start gap-3">
+              <FiAlertCircle className="text-yellow-600 text-lg mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="text-sm font-bold text-yellow-800 mb-1">Catatan Verifikasi</h4>
+                <p className="text-sm text-yellow-700">{mahasiswa.catatan}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* TRANSKRIP NILAI */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">

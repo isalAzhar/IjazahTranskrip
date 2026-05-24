@@ -15,9 +15,8 @@ import {
   getFakultasList,
 } from "./DaftarUnit";
 
-// ==================== FUNGSI VALIDASI EMAIL ====================
+// ==================== FUNGSI VALIDASI EMAIL (dari Kode 1 - lebih baik) ====================
 const isValidEmail = (email) => {
-  // Format: xxxx@xxxx.xxx (minimal 1 karakter sebelum @, 1 karakter setelah @, dan minimal 2 karakter setelah titik)
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   return emailRegex.test(email);
 };
@@ -74,6 +73,7 @@ const DaftarPengguna = () => {
         </div>
 
         <button
+          type="button"
           onClick={() => setOpenTambah(true)}
           className="flex items-center gap-2 bg-[#0B4B48] hover:bg-[#083c3a] text-white px-4 py-2 rounded-lg shadow-xl text-sm font-semibold transition"
         >
@@ -127,6 +127,7 @@ const DaftarPengguna = () => {
                   <td className="py-4 px-4">
                     <div className="flex justify-center gap-3">
                       <button
+                        type="button"
                         className="text-blue-600 hover:text-blue-800 transition"
                         onClick={() => {
                           setSelectedUser(user);
@@ -138,6 +139,7 @@ const DaftarPengguna = () => {
                       </button>
 
                       <button
+                        type="button"
                         className="text-red-500 hover:text-red-700 transition"
                         onClick={() => {
                           setSelectedUser(user);
@@ -148,8 +150,8 @@ const DaftarPengguna = () => {
                         <FiTrash2 size={18} />
                       </button>
                     </div>
-                   </td>
-                 </tr>
+                  </td>
+                </tr>
               ))
             )}
           </tbody>
@@ -209,6 +211,7 @@ const DaftarPengguna = () => {
 
             <div className="flex justify-center px-8 py-5 bg-gray-200">
               <button
+                type="button"
                 onClick={() => setOpenSukses(false)}
                 className="px-8 py-2 rounded-xl bg-[#0B4B48] shadow-md text-white hover:bg-[#083c3a] transition"
               >
@@ -236,29 +239,36 @@ const AddUserForm = ({ onSave, onClose, users = [] }) => {
     password: "",
   });
 
+  // AMBIL DATA UNIT LANGSUNG DARI DAFTAR UNIT
   const units = getUnitsData();
-  const hasUniversitas = units.some((u) => u.jenis === "Universitas");
   const fakultasList = getFakultasList();
 
-  // Daftar unit yang tersedia (nama unit dari DaftarUnit)
-  const availableUnits = units.map(u => u.nama);
+  const universitasList = units.filter((u) => u.jenis === "Universitas");
+
+  const hasUniversitas = universitasList.length > 0;
+  const hasFakultas = fakultasList.length > 0;
+  const hasUnits = units.length > 0;
 
   const roleOptions = {
     Universitas: ["Rektor", "Wakil Rektor", "TU Rektor"],
     Fakultas: ["Dekan", "Wakil Dekan", "TU Fakultas"],
   };
 
-  // Role yang TIDAK perlu NIDN (TU Rektor dan TU Fakultas)
+  // Role yang TIDAK perlu NIDN (dari Kode 1 - lebih baik)
   const rolesWithoutNidn = ["TU Rektor", "TU Fakultas"];
   const isRoleRequireNidn = !rolesWithoutNidn.includes(role);
 
   const isRoleAlreadyTerisi = (roleName) => {
     if (!namaUnit) return true;
-    return users.some((u) => u.unit === namaUnit && u.role === roleName);
+
+    return users.some(
+      (u) => u.unit === namaUnit && u.role === roleName
+    );
   };
 
   const getPersonilData = () => {
     if (!jenisUnit || !role || !namaUnit) return null;
+
     return getPersonilByRole(jenisUnit, role, namaUnit);
   };
 
@@ -305,6 +315,7 @@ const AddUserForm = ({ onSave, onClose, users = [] }) => {
 
   const handleRoleChange = (value) => {
     setRole(value);
+
     setForm((prev) => ({
       ...prev,
       email: "",
@@ -319,12 +330,11 @@ const AddUserForm = ({ onSave, onClose, users = [] }) => {
     });
   };
 
-  const emailTidakValid =
-    form.email.length > 0 && !isValidEmail(form.email);
+  const emailTidakValid = form.email.length > 0 && !isValidEmail(form.email);
 
-  const passwordKurang =
-    form.password.length > 0 && form.password.length < 8;
+  const passwordKurang = form.password.length > 0 && form.password.length < 8;
 
+  // Improved isSubmitDisabled dari kedua kode
   const isSubmitDisabled = () => {
     if (!role || !namaUnit || !form.nama || !form.email || !isValidEmail(form.email) || !form.password || form.password.length < 8) {
       return true;
@@ -366,8 +376,6 @@ const AddUserForm = ({ onSave, onClose, users = [] }) => {
     onSave(newUser);
     onClose();
   };
-
-  const hasUnits = units.length > 0;
 
   return (
     <>
@@ -414,7 +422,7 @@ const AddUserForm = ({ onSave, onClose, users = [] }) => {
                     <option value="Universitas">Universitas</option>
                   )}
 
-                  {fakultasList.length > 0 && (
+                  {hasFakultas && (
                     <option value="Fakultas">Fakultas</option>
                   )}
                 </select>
@@ -439,14 +447,12 @@ const AddUserForm = ({ onSave, onClose, users = [] }) => {
                     Pilih Nama Unit
                   </option>
 
-                  {jenisUnit === "Universitas" && (
-                    // Ambil nama universitas dari data units
-                    units.filter(u => u.jenis === "Universitas").map((unit) => (
-                      <option key={unit.id} value={unit.nama}>
-                        {unit.nama}
+                  {jenisUnit === "Universitas" &&
+                    universitasList.map((u) => (
+                      <option key={u.id} value={u.nama}>
+                        {u.nama}
                       </option>
-                    ))
-                  )}
+                    ))}
 
                   {jenisUnit === "Fakultas" &&
                     fakultasList.map((f) => (
@@ -496,21 +502,21 @@ const AddUserForm = ({ onSave, onClose, users = [] }) => {
             </div>
           </div>
 
-          {role && !personilData?.nama && (
-            <p className="text-xs text-red-500 mt-2">
-              Data {role} belum diisi di Daftar Unit. Silakan lengkapi data
-              unit terlebih dahulu.
-            </p>
-          )}
+          <div className="min-h-[18px] mt-2">
+            {role && !personilData?.nama && (
+              <p className="text-xs text-red-500">
+                Data {role} belum diisi di Daftar Unit. Silakan lengkapi data
+                unit terlebih dahulu.
+              </p>
+            )}
+          </div>
         </div>
 
         {role && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <label className="text-xs text-gray-400">
-                  Nama {role}
-                </label>
+                <label className="text-xs text-gray-400">Nama {role}</label>
 
                 <input
                   name="nama"
@@ -538,9 +544,9 @@ const AddUserForm = ({ onSave, onClose, users = [] }) => {
                   value={form.nidn}
                   onChange={handleChange}
                   placeholder={
-                    isRoleRequireNidn 
-                      ? "NIDN akan terisi otomatis" 
-                      : "Tidak diperlukan untuk role ini"
+                    !isRoleRequireNidn 
+                      ? "Tidak diperlukan untuk role ini"
+                      : "NIDN akan terisi otomatis"
                   }
                   readOnly={!!personilData?.nidn || !isRoleRequireNidn}
                   className={`w-full mt-1 border rounded-2xl px-4 py-3 ${
@@ -558,9 +564,11 @@ const AddUserForm = ({ onSave, onClose, users = [] }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 gap-6 items-start">
               <div>
-                <label className="text-xs text-gray-400">Email</label>
+                <label className="text-xs text-gray-400">
+                  Email <span className="text-red-500">*</span>
+                </label>
 
                 <input
                   name="email"
@@ -573,15 +581,15 @@ const AddUserForm = ({ onSave, onClose, users = [] }) => {
                   }`}
                 />
 
-                {emailTidakValid && (
-                  <p className="text-xs text-red-500 mt-1">
-                    Email harus menggunakan format yang benar (contoh: nama@domain.com).
-                  </p>
-                )}
+                <p className="text-xs text-red-500 mt-1 min-h-[18px]">
+                  {emailTidakValid ? "Email harus menggunakan format yang benar (contoh: nama@domain.com)." : ""}
+                </p>
               </div>
 
               <div>
-                <label className="text-xs text-gray-400">Password</label>
+                <label className="text-xs text-gray-400">
+                  Password <span className="text-red-500">*</span>
+                </label>
 
                 <div className="relative mt-1">
                   <input
@@ -608,11 +616,9 @@ const AddUserForm = ({ onSave, onClose, users = [] }) => {
                   </button>
                 </div>
 
-                {passwordKurang && (
-                  <p className="text-xs text-red-500 mt-1">
-                    Password minimal 8 karakter.
-                  </p>
-                )}
+                <p className="text-xs text-red-500 mt-1 min-h-[18px]">
+                  {passwordKurang ? "Password minimal 8 karakter." : ""}
+                </p>
               </div>
             </div>
           </div>
@@ -621,6 +627,7 @@ const AddUserForm = ({ onSave, onClose, users = [] }) => {
 
       <div className="flex justify-end gap-3 px-8 py-5 bg-gray-200">
         <button
+          type="button"
           onClick={onClose}
           className="px-6 py-2 rounded-xl bg-white border border-gray-300 shadow-md text-black"
         >
@@ -628,6 +635,7 @@ const AddUserForm = ({ onSave, onClose, users = [] }) => {
         </button>
 
         <button
+          type="button"
           onClick={handleSubmit}
           disabled={isSubmitDisabled()}
           className={`px-6 py-2 rounded-xl shadow-md text-white transition ${
@@ -661,11 +669,9 @@ const EditUserForm = ({ userData, onSave, onClose }) => {
     });
   };
 
-  const emailTidakValid =
-    form.email.length > 0 && !isValidEmail(form.email);
+  const emailTidakValid = form.email.length > 0 && !isValidEmail(form.email);
 
-  const passwordKurang =
-    form.password.length > 0 && form.password.length < 8;
+  const passwordKurang = form.password.length > 0 && form.password.length < 8;
 
   const isSubmitDisabled =
     !form.email ||
@@ -728,7 +734,9 @@ const EditUserForm = ({ userData, onSave, onClose }) => {
         </div>
 
         <div>
-          <label className="text-xs text-gray-400">Email</label>
+          <label className="text-xs text-gray-400">
+            Email <span className="text-red-500">*</span>
+          </label>
 
           <input
             name="email"
@@ -741,15 +749,15 @@ const EditUserForm = ({ userData, onSave, onClose }) => {
             }`}
           />
 
-          {emailTidakValid && (
-            <p className="text-xs text-red-500 mt-1">
-              Email harus menggunakan format yang benar (contoh: nama@domain.com).
-            </p>
-          )}
+          <p className="text-xs text-red-500 mt-1 min-h-[18px]">
+            {emailTidakValid ? "Email harus menggunakan format yang benar (contoh: nama@domain.com)." : ""}
+          </p>
         </div>
 
         <div>
-          <label className="text-xs text-gray-400">Password</label>
+          <label className="text-xs text-gray-400">
+            Password <span className="text-red-500">*</span>
+          </label>
 
           <div className="relative mt-1">
             <input
@@ -772,16 +780,15 @@ const EditUserForm = ({ userData, onSave, onClose }) => {
             </button>
           </div>
 
-          {passwordKurang && (
-            <p className="text-xs text-red-500 mt-1">
-              Password minimal 8 karakter.
-            </p>
-          )}
+          <p className="text-xs text-red-500 mt-1 min-h-[18px]">
+            {passwordKurang ? "Password minimal 8 karakter." : ""}
+          </p>
         </div>
       </div>
 
       <div className="flex justify-end gap-3 px-8 py-5 bg-gray-200">
         <button
+          type="button"
           onClick={onClose}
           className="px-6 py-2 rounded-xl bg-white border border-gray-300 shadow-md text-black hover:bg-gray-50 transition"
         >
@@ -789,6 +796,7 @@ const EditUserForm = ({ userData, onSave, onClose }) => {
         </button>
 
         <button
+          type="button"
           onClick={handleSubmit}
           disabled={isSubmitDisabled}
           className={`px-6 py-2 rounded-xl shadow-md text-white transition ${
@@ -836,6 +844,7 @@ const DeleteUserForm = ({ userData, onDelete, onClose }) => {
 
       <div className="flex justify-end gap-3 px-8 py-5 bg-gray-200">
         <button
+          type="button"
           onClick={onClose}
           className="px-6 py-2 rounded-xl bg-white border border-gray-300 shadow-md text-black"
         >
@@ -843,6 +852,7 @@ const DeleteUserForm = ({ userData, onDelete, onClose }) => {
         </button>
 
         <button
+          type="button"
           onClick={onDelete}
           className="px-6 py-2 rounded-xl bg-red-600 shadow-md text-white hover:bg-red-700 transition"
         >

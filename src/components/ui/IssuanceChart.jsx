@@ -41,24 +41,24 @@ const IssuanceChart = () => (
             contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}} 
           />
           
-          {/* Warna Opsi C: Vibrant tapi Elegan */}
-          <Bar dataKey="y2024" name="2024" fill="#2ECC71" barSize={16} /> {/* Warna Emerald / Hijau Segar */}
-          <Bar dataKey="y2025" name="2025" fill="#FF6B6B" barSize={16} /> {/* Warna Coral / Merah Muda Hangat */}
-          <Bar dataKey="y2026" name="2026" fill="#3498DB" barSize={16} /> {/* Warna Royal Blue / Biru Profesional */}
+          {/* Warna dari kode kedua (Earth Tone) */}
+          <Bar dataKey="y2024" name="2024" fill="#F4CC70" barSize={16} />
+          <Bar dataKey="y2025" name="2025" fill="#DE7A22" barSize={16} />
+          <Bar dataKey="y2026" name="2026" fill="#6AB187" barSize={16} />
           
         </BarChart>
       </ResponsiveContainer>
     </div>
     
-    {/* Custom Legend - Warna Opsi C: Vibrant tapi Elegan */}
+    {/* Custom Legend - Warna dari kode kedua */}
     <div className="flex justify-center gap-3 mt-6">
-      <div className="px-4 py-1.5 bg-[#2ECC71] text-white text-xs font-bold rounded-md shadow-sm">
+      <div className="px-4 py-1.5 bg-[#F4CC70] text-black text-xs font-bold rounded-md shadow-sm">
         Tahun 2024
       </div>
-      <div className="px-4 py-1.5 bg-[#FF6B6B] text-white text-xs font-bold rounded-md shadow-sm">
+      <div className="px-4 py-1.5 bg-[#DE7A22] text-white text-xs font-bold rounded-md shadow-sm">
         Tahun 2025
       </div>
-      <div className="px-4 py-1.5 bg-[#3498DB] text-white text-xs font-bold rounded-md shadow-sm">
+      <div className="px-4 py-1.5 bg-[#6AB187] text-white text-xs font-bold rounded-md shadow-sm">
         Tahun 2026
       </div>
     </div>

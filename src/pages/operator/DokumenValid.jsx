@@ -463,11 +463,9 @@ const DokumenValid = () => {
             <div
               key={i}
               onClick={() =>
-                navigate("/detail-mahasiswa", {
-                  state: {
-                    mahasiswa: item.mahasiswa,
-                  },
-                })
+              navigate(`/operator/detail-mahasiswa/${item.nim}`, { 
+                state: { 
+                  mahasiswa: item.mahasiswa } })
               }
               className="flex items-center justify-between px-4 py-2.5 hover:bg-[#FAFAFA] transition border-b border-[#F5F5F5] last:border-b-0 cursor-pointer"
             >

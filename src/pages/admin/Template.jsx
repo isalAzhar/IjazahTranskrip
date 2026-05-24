@@ -115,7 +115,6 @@ const nidnFields = ["NIDN Rektor", "NIDN Dekan"];
 
 // =====================================================
 // IJAZAH — FIELD SUBTITLES
-// Bahasa Inggris hanya tampil untuk Ijazah
 // =====================================================
 
 const fieldSubtitle = {
@@ -170,8 +169,21 @@ const getFieldSize = (field) => {
 };
 
 // =====================================================
+// WAITING DATA TEXT COMPONENT
+// =====================================================
+
+const WaitingDataText = ({ small = false }) => (
+  <div
+    className={`w-full h-full flex items-center justify-center text-center text-gray-500 font-medium leading-tight px-1 ${
+      small ? "text-[6px]" : "text-[8px]"
+    }`}
+  >
+    Menunggu Data
+  </div>
+);
+
+// =====================================================
 // SHARED — RENDER DRAGGABLE ELEMENTS
-// documentType = "ijazah" / "transkip"
 // =====================================================
 
 const renderElements = (
@@ -179,7 +191,8 @@ const renderElements = (
   isSaved,
   isLocked,
   handleMouseDownElement,
-  documentType
+  documentType,
+  isPreview = false
 ) =>
   elements.map((el) => {
     const isBoxOnly = boxOnlyFields.includes(el.label);
@@ -196,6 +209,12 @@ const renderElements = (
     const colonTextSize =
       documentType === "transkip" ? "text-[11px]" : "text-[11px]";
 
+    const isSmallBox =
+      el.width <= 40 ||
+      el.height <= 18 ||
+      el.label.includes("Paraf") ||
+      el.label.includes("NIDN");
+
     return (
       <div
         key={el.id}
@@ -208,9 +227,11 @@ const renderElements = (
       >
         {isBoxOnly && (
           <div
-            className="border border-gray-500 bg-white/70 rounded-sm"
+            className="border border-gray-500 bg-white/70 rounded-sm overflow-hidden"
             style={{ width: el.width, height: el.height }}
-          />
+          >
+            {isPreview && <WaitingDataText small={isSmallBox} />}
+          </div>
         )}
 
         {isSignature && (
@@ -228,18 +249,23 @@ const renderElements = (
             )}
 
             <div
-              className="border border-gray-500 bg-white/70 mt-[6px] rounded-sm"
+              className="border border-gray-500 bg-white/70 mt-[6px] rounded-sm overflow-hidden"
               style={{ width: el.width, height: el.height }}
-            />
+            >
+              {isPreview && <WaitingDataText />}
+            </div>
           </div>
         )}
 
         {isNameLine && (
           <div className="flex flex-col items-center">
             <div
-              className="border border-gray-500 bg-white/70 rounded-sm"
+              className="border border-gray-500 bg-white/70 rounded-sm overflow-hidden"
               style={{ width: el.width, height: el.height }}
-            />
+            >
+              {isPreview && <WaitingDataText small />}
+            </div>
+
             <div
               className="border-t border-black mt-[2px]"
               style={{ width: el.width + 8 }}
@@ -258,9 +284,11 @@ const renderElements = (
             </span>
 
             <div
-              className="border border-gray-500 bg-white/70 rounded-sm"
+              className="border border-gray-500 bg-white/70 rounded-sm overflow-hidden"
               style={{ width: el.width, height: el.height }}
-            />
+            >
+              {isPreview && <WaitingDataText small />}
+            </div>
           </div>
         )}
 
@@ -279,9 +307,11 @@ const renderElements = (
             )}
 
             <div
-              className="border border-gray-500 bg-white/70 mt-[6px] rounded-sm"
+              className="border border-gray-500 bg-white/70 mt-[6px] rounded-sm overflow-hidden"
               style={{ width: el.width, height: el.height }}
-            />
+            >
+              {isPreview && <WaitingDataText small={isSmallBox} />}
+            </div>
           </div>
         )}
 
@@ -314,9 +344,11 @@ const renderElements = (
             </span>
 
             <div
-              className="border border-gray-500 bg-white/70 rounded-sm"
+              className="border border-gray-500 bg-white/70 rounded-sm overflow-hidden"
               style={{ width: el.width, height: el.height }}
-            />
+            >
+              {isPreview && <WaitingDataText small={isSmallBox} />}
+            </div>
           </div>
         )}
       </div>
@@ -325,8 +357,7 @@ const renderElements = (
 
 // =====================================================
 // TRANSKRIP — DYNAMIC TABLE OVERLAY
-// Tabel tidak menampilkan row statis.
-// Row hanya muncul jika mataKuliahData terisi dari API.
+// Menggunakan struktur tabel dari Kode 2 (dengan kolom BOBOT terpisah)
 // =====================================================
 
 const TranskipTableOverlay = ({ elements, mataKuliahData = [] }) => {
@@ -380,11 +411,11 @@ const TranskipTableOverlay = ({ elements, mataKuliahData = [] }) => {
                 <th className="border border-[#707070] font-semibold">
                   MATA KULIAH
                 </th>
-                <th
-                  colSpan={4}
-                  className="border border-[#707070] font-semibold"
-                >
+                <th colSpan={2} className="border border-[#707070] font-semibold">
                   NILAI
+                </th>
+                <th colSpan={2} className="border border-[#707070] font-semibold">
+                  BOBOT
                 </th>
               </tr>
 
@@ -417,11 +448,11 @@ const TranskipTableOverlay = ({ elements, mataKuliahData = [] }) => {
                 <th className="border border-[#707070] font-semibold">
                   MATA KULIAH
                 </th>
-                <th
-                  colSpan={4}
-                  className="border border-[#707070] font-semibold"
-                >
+                <th colSpan={2} className="border border-[#707070] font-semibold">
                   NILAI
+                </th>
+                <th colSpan={2} className="border border-[#707070] font-semibold">
+                  BOBOT
                 </th>
               </tr>
 
@@ -544,7 +575,7 @@ const TranskipTableOverlay = ({ elements, mataKuliahData = [] }) => {
 };
 
 // =====================================================
-// MAIN COMPONENT
+// MAIN COMPONENT (menggunakan flow dari Kode 2)
 // =====================================================
 
 const Template = () => {
@@ -554,17 +585,17 @@ const Template = () => {
   const [ijazahSaved, setIjazahSaved] = useState(false);
   const [ijazahLocked, setIjazahLocked] = useState(false);
   const [ijazahPreview, setIjazahPreview] = useState(false);
+  const [ijazahHasPreviewed, setIjazahHasPreviewed] = useState(false);
 
   const [transkipElements, setTranskipElements] = useState([]);
   const [transkipSaved, setTranskipSaved] = useState(false);
   const [transkipLocked, setTranskipLocked] = useState(false);
   const [transkipPreview, setTranskipPreview] = useState(false);
+  const [transkipHasPreviewed, setTranskipHasPreviewed] = useState(false);
 
   const [draggingElement, setDraggingElement] = useState(null);
   const [showSavedModal, setShowSavedModal] = useState(false);
 
-  // Data ini nanti diisi dari API backend.
-  // Jangan pakai dummy data di sini.
   const [mataKuliahData, setMataKuliahData] = useState([]);
 
   const currentFields = activeTab === "ijazah" ? ijazahFields : transkipFields;
@@ -575,8 +606,21 @@ const Template = () => {
   const isLocked = activeTab === "ijazah" ? ijazahLocked : transkipLocked;
   const hasFields = currentElements.length > 0;
 
+  const hasPreviewed =
+    activeTab === "ijazah" ? ijazahHasPreviewed : transkipHasPreviewed;
+
   const isFieldActive = (field) =>
     currentElements.some((el) => el.label === field);
+
+  const resetPreviewState = () => {
+    if (activeTab === "ijazah") {
+      setIjazahSaved(false);
+      setIjazahHasPreviewed(false);
+    } else {
+      setTranskipSaved(false);
+      setTranskipHasPreviewed(false);
+    }
+  };
 
   const handleDragStart = (e, field) => {
     if (isSaved || isLocked || isFieldActive(field)) return;
@@ -621,8 +665,12 @@ const Template = () => {
 
     if (activeTab === "ijazah") {
       setIjazahElements((prev) => [...prev, newElement]);
+      setIjazahSaved(false);
+      setIjazahHasPreviewed(false);
     } else {
       setTranskipElements((prev) => [...prev, newElement]);
+      setTranskipSaved(false);
+      setTranskipHasPreviewed(false);
     }
   };
 
@@ -656,8 +704,10 @@ const Template = () => {
 
     if (activeTab === "ijazah") {
       setIjazahElements(updater);
+      resetPreviewState();
     } else {
       setTranskipElements(updater);
+      resetPreviewState();
     }
   };
 
@@ -670,13 +720,51 @@ const Template = () => {
 
     if (activeTab === "ijazah") {
       setIjazahElements(remover);
+      resetPreviewState();
     } else {
       setTranskipElements(remover);
+      resetPreviewState();
+    }
+  };
+
+  const handleEditLock = () => {
+    if (!hasFields) return;
+
+    if (activeTab === "ijazah") {
+      if (ijazahLocked) {
+        setIjazahLocked(false);
+        setIjazahSaved(false);
+        setIjazahHasPreviewed(false);
+      } else {
+        setIjazahLocked(true);
+        setIjazahHasPreviewed(false);
+      }
+    } else {
+      if (transkipLocked) {
+        setTranskipLocked(false);
+        setTranskipSaved(false);
+        setTranskipHasPreviewed(false);
+      } else {
+        setTranskipLocked(true);
+        setTranskipHasPreviewed(false);
+      }
+    }
+  };
+
+  const handlePreview = () => {
+    if (!hasFields || !isLocked) return;
+
+    if (activeTab === "ijazah") {
+      setIjazahHasPreviewed(true);
+      setIjazahPreview(true);
+    } else {
+      setTranskipHasPreviewed(true);
+      setTranskipPreview(true);
     }
   };
 
   const handleSave = () => {
-    if (!hasFields) return;
+    if (!hasFields || !isLocked || !hasPreviewed) return;
 
     const payload = {
       jenis_template: activeTab,
@@ -692,9 +780,6 @@ const Template = () => {
 
     console.log("DATA TEMPLATE SIAP DIKIRIM KE DATABASE:", payload);
 
-    // Nanti kalau endpoint backend sudah ada:
-    // await api.post("/template", payload);
-
     if (activeTab === "ijazah") {
       setIjazahSaved(true);
     } else {
@@ -704,39 +789,7 @@ const Template = () => {
     setShowSavedModal(true);
   };
 
-  const handleEditLock = () => {
-    if (!hasFields) return;
-
-    if (isLocked) {
-      if (activeTab === "ijazah") {
-        setIjazahLocked(false);
-        setIjazahSaved(false);
-      } else {
-        setTranskipLocked(false);
-        setTranskipSaved(false);
-      }
-      return;
-    }
-
-    if (!isSaved) return;
-
-    if (activeTab === "ijazah") {
-      setIjazahLocked(true);
-    } else {
-      setTranskipLocked(true);
-    }
-  };
-
-  const handlePreview = () => {
-    if (!hasFields || !isSaved || !isLocked) return;
-
-    if (activeTab === "ijazah") {
-      setIjazahPreview(true);
-    } else {
-      setTranskipPreview(true);
-    }
-  };
-
+  // PREVIEW MODE
   if (ijazahPreview) {
     return (
       <div className="min-h-screen bg-[#d9d9d9] p-6 overflow-auto">
@@ -751,7 +804,7 @@ const Template = () => {
 
         <div className="relative w-fit mx-auto bg-white p-6 rounded-xl shadow-lg">
           <img src={ijazahBg} alt="Preview Ijazah" className="w-[780px]" />
-          {renderElements(ijazahElements, true, true, () => {}, "ijazah")}
+          {renderElements(ijazahElements, true, true, () => {}, "ijazah", true)}
         </div>
       </div>
     );
@@ -771,7 +824,16 @@ const Template = () => {
 
         <div className="relative w-fit mx-auto bg-white p-6 rounded-xl shadow-lg">
           <img src={transkipBg} alt="Preview Transkrip" className="w-[780px]" />
-          {renderElements(transkipElements, true, true, () => {}, "transkip")}
+
+          {renderElements(
+            transkipElements,
+            true,
+            true,
+            () => {},
+            "transkip",
+            true
+          )}
+
           <TranskipTableOverlay
             elements={transkipElements}
             mataKuliahData={mataKuliahData}
@@ -781,6 +843,7 @@ const Template = () => {
     );
   }
 
+  // MAIN EDIT MODE
   return (
     <DashboardLayout>
       <div className="bg-white min-h-screen -mt-6 -mb-6 -mx-4 md:-mx-8 px-4 md:px-8 pt-6 pb-6">
@@ -819,9 +882,9 @@ const Template = () => {
 
           <button
             onClick={handlePreview}
-            disabled={!hasFields || !isSaved || !isLocked}
+            disabled={!hasFields || !isLocked}
             className={`border border-gray-300 shadow-sm rounded-xl px-5 py-3 font-semibold text-sm transition ${
-              !hasFields || !isSaved || !isLocked
+              !hasFields || !isLocked
                 ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                 : "bg-white hover:bg-gray-50 text-black"
             }`}
@@ -832,9 +895,10 @@ const Template = () => {
 
         <div className="border-t border-gray-300 pt-4">
           <div className="flex gap-4">
+            {/* LEFT PANEL - DATA FIELDS */}
             <div className="w-[260px] bg-[#e5e5e5] p-2 rounded-lg h-[760px] overflow-y-auto flex-shrink-0">
               <div className="px-2 py-2 mb-1">
-                <h2 className="text-sm font-black text-gray-700 uppercase tracking-wide">
+                <h2 className="text-md font-black text-gray-700 uppercase tracking-wide">
                   Data Field
                 </h2>
               </div>
@@ -869,6 +933,7 @@ const Template = () => {
               </div>
             </div>
 
+            {/* RIGHT PANEL - TEMPLATE AREA */}
             <div className="flex-1 bg-[#d9d9d9] p-6 rounded-lg">
               <div
                 onDrop={handleDropToTemplate}
@@ -885,6 +950,7 @@ const Template = () => {
                       alt="Template Ijazah"
                       className="w-[780px]"
                     />
+
                     {renderElements(
                       ijazahElements,
                       ijazahSaved,
@@ -902,6 +968,7 @@ const Template = () => {
                       alt="Template Transkrip"
                       className="w-[780px]"
                     />
+
                     {renderElements(
                       transkipElements,
                       transkipSaved,
@@ -909,6 +976,7 @@ const Template = () => {
                       handleMouseDownElement,
                       "transkip"
                     )}
+
                     <TranskipTableOverlay
                       elements={transkipElements}
                       mataKuliahData={mataKuliahData}
@@ -917,13 +985,14 @@ const Template = () => {
                 )}
               </div>
 
+              {/* ACTION BUTTONS */}
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   onClick={handleSave}
-                  disabled={!hasFields}
+                  disabled={!hasFields || !isLocked || !hasPreviewed}
                   className={`font-bold px-8 py-3 rounded-xl shadow transition ${
-                    !hasFields
-                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    !hasFields || !isLocked || !hasPreviewed
+                      ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                       : "bg-[#0B6B63] hover:bg-[#09544e] text-white"
                   }`}
                 >
@@ -932,9 +1001,9 @@ const Template = () => {
 
                 <button
                   onClick={handleEditLock}
-                  disabled={!hasFields || (!isSaved && !isLocked)}
+                  disabled={!hasFields}
                   className={`font-bold px-8 py-3 rounded-xl shadow transition ${
-                    !hasFields || (!isSaved && !isLocked)
+                    !hasFields
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : isLocked
                       ? "bg-white hover:bg-gray-50 text-[#0B6B63] border border-[#0B6B63]"
@@ -948,6 +1017,7 @@ const Template = () => {
           </div>
         </div>
 
+        {/* SUCCESS MODAL */}
         {showSavedModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-2xl shadow-xl w-[360px] p-6 text-center">

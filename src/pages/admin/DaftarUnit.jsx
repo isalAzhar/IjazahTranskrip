@@ -67,15 +67,46 @@ export const isFakultasLengkap = (fakultasName) => {
 };
 // ==================== AKHIR FUNGSI HELPER ====================
 
-// ==================== FUNGSI VALIDASI NIDN ====================
-const handleNidnChange = (e, setterFunc) => {
-  const value = e.target.value;
-  // Hanya izinkan angka
-  if (value === "" || /^\d+$/.test(value)) {
-    setterFunc(value);
-  }
+// ==================== CONSTANTS ====================
+const emptyForm = {
+  jenis: "", nama: "", en: "",
+  dekan: "", nidnDekan: "",
+  wakil: "", nidnWakil: "",
+  katu: "",
+  ttdDekan: null, parafWakil: null, parafKatu: null, stempel: null,
 };
+
+const emptyProdiForm = {
+  nama: "", namaEn: "", sk: "", ketua: "", nidn: "", file: null,
+};
+// ==================== AKHIR CONSTANTS ====================
+
+// ==================== FUNGSI VALIDASI NIDN ====================
+const onlyNumber = (value) => value.replace(/\D/g, "");
 // ==================== AKHIR FUNGSI VALIDASI ====================
+
+// ==================== KOMPONEN UI MINI ====================
+const RequiredLabel = ({ children }) => (
+  <label className="text-black font-semibold text-sm">
+    {children} <span className="text-red-500">*</span>
+  </label>
+);
+
+const ActionIconButton = ({ children, onClick, danger = false, title = "" }) => (
+  <button
+    type="button"
+    title={title}
+    onClick={onClick}
+    className={`w-8 h-8 flex items-center justify-center rounded-md transition ${
+      danger
+        ? "text-gray-400 hover:text-red-500 hover:bg-red-50"
+        : "text-gray-400 hover:text-[#1F7A6E] hover:bg-[#E8F5E9]"
+    }`}
+  >
+    {children}
+  </button>
+);
+// ==================== AKHIR KOMPONEN UI MINI ====================
 
 const DaftarUnit = () => {
   const [units, setUnits] = useState(() => {
@@ -92,79 +123,20 @@ const DaftarUnit = () => {
   const [deleteType, setDeleteType] = useState("");
   const [loadingDone, setLoadingDone] = useState(false);
 
-  // Cek apakah sudah ada unit Universitas
-  const hasUniversitas = units.some(u => u.jenis === "Universitas");
-
   // PRODI STATE
   const [openProdiForm, setOpenProdiForm] = useState(false);
-  const [prodiForm, setProdiForm] = useState({
-    nama: "",
-    namaEn: "",
-    sk: "",
-    ketua: "",
-    nidn: "",
-    file: null,
-  });
+  const [prodiForm, setProdiForm] = useState(emptyProdiForm);
   const [activeUnitId, setActiveUnitId] = useState(null);
+  const [openProdiIndex, setOpenProdiIndex] = useState({});
+
+  const [form, setForm] = useState(emptyForm);
 
   React.useEffect(() => {
     localStorage.setItem("units", JSON.stringify(units));
   }, [units]);
 
-  const triggerSuccess = (msg) => {
-    setSuccessMessage(msg);
-    setShowSuccess(true);
-    setTimeout(() => {
-      setShowSuccess(false);
-    }, 2000);
-  };
-
-  const handleEditProdi = (unitId, index) => {
-    const unit = units.find((u) => u.id === unitId);
-    const data = unit.prodi[index];
-
-    setProdiForm({
-      nama: data.nama,
-      namaEn: data.namaEn,
-      ketua: data.ketua,
-      nidn: data.nidn,
-      sk: data.sk,
-      file: data.file,
-      editIndex: index,
-    });
-    setActiveUnitId(unitId);
-    setOpenProdiForm(true);
-  };
-
-  const handleDeleteProdi = (unitId, index) => {
-    setUnits((prev) =>
-      prev.map((u) => {
-        if (u.id !== unitId) return u;
-        return {
-          ...u,
-          prodi: u.prodi.filter((_, i) => i !== index),
-        };
-      })
-    );
-    triggerSuccess("Prodi berhasil dihapus");
-  };
-
-  const [form, setForm] = useState({
-    jenis: "",
-    nama: "",
-    en: "",
-    dekan: "",
-    nidnDekan: "",
-    wakil: "",
-    nidnWakil: "",
-    katu: "",
-    ttdDekan: null,
-    parafWakil: null,
-    parafKatu: null,
-    stempel: null,
-  });
-
   const isUniversitas = form.jenis === "Universitas";
+  const universitasSudahAda = units.some((u) => u.jenis === "Universitas" && u.id !== editId);
 
   const labelPimpinan = isUniversitas ? "Rektor" : "Dekan";
   const labelWakil = isUniversitas ? "Wakil Rektor" : "Wakil Dekan";
@@ -174,60 +146,61 @@ const DaftarUnit = () => {
   const labelParafKatu = isUniversitas ? "Paraf TU Rektor" : "Paraf KATU";
   const labelStempel = isUniversitas ? "Stempel Universitas" : "Stempel Fakultas";
 
+  // Validasi form unit
+  const isUnitFormValid = 
+    form.jenis.trim() && form.nama.trim() && form.en.trim() &&
+    form.dekan.trim() && form.nidnDekan.trim() &&
+    form.wakil.trim() && form.nidnWakil.trim() &&
+    form.katu.trim() &&
+    form.ttdDekan && form.parafWakil && form.parafKatu && form.stempel;
+
+  // Validasi form prodi
+  const isProdiFormValid =
+    prodiForm.nama.trim() && prodiForm.namaEn.trim() && prodiForm.sk.trim() &&
+    prodiForm.ketua.trim() && prodiForm.nidn.trim() && prodiForm.file;
+
+  const triggerSuccess = (msg) => {
+    setSuccessMessage(msg);
+    setShowSuccess(true);
+    setTimeout(() => {
+      setShowSuccess(false);
+    }, 2000);
+  };
+
   const handleChange = useCallback((key) => (e) => {
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
+  }, []);
+
+  const handleNumberChange = useCallback((key) => (e) => {
+    setForm((prev) => ({ ...prev, [key]: onlyNumber(e.target.value) }));
   }, []);
 
   const handleFile = useCallback((key) => (e) => {
     setForm((prev) => ({ ...prev, [key]: e.target.files[0] }));
   }, []);
 
-  // Handler khusus untuk NIDN dengan validasi angka
-  const handleNidnChangeForm = useCallback((key) => (e) => {
-    const value = e.target.value;
-    if (value === "" || /^\d+$/.test(value)) {
-      setForm((prev) => ({ ...prev, [key]: value }));
-    }
-  }, []);
-
   const openForm = (unit = null) => {
     if (unit) {
       setEditId(unit.id);
-      setForm(unit);
+      setForm({ ...emptyForm, ...unit });
     } else {
       setEditId(null);
-      setForm({
-        jenis: "",
-        nama: "",
-        en: "",
-        dekan: "",
-        nidnDekan: "",
-        wakil: "",
-        nidnWakil: "",
-        katu: "",
-        ttdDekan: null,
-        parafWakil: null,
-        parafKatu: null,
-        stempel: null,
-      });
+      setForm(emptyForm);
     }
     setOpenModal(true);
   };
 
   const handleSave = () => {
-    if (!form.nama || !form.jenis) return;
-
-    if (
-      form.jenis === "Universitas" &&
-      units.some((u) => u.jenis === "Universitas" && u.id !== editId)
-    ) {
-      alert("Universitas hanya boleh 1!");
+    if (!isUnitFormValid) return;
+    
+    if (form.jenis === "Universitas" && universitasSudahAda) {
+      alert("Universitas hanya boleh ditambahkan satu kali!");
       return;
     }
 
     if (editId) {
       setUnits((prev) =>
-        prev.map((u) => (u.id === editId ? { ...form, id: editId } : u))
+        prev.map((u) => (u.id === editId ? { ...form, id: editId, prodi: u.prodi || [] } : u))
       );
     } else {
       setUnits((prev) => [
@@ -258,18 +231,39 @@ const DaftarUnit = () => {
 
   const openProdiModal = (unitId) => {
     setActiveUnitId(unitId);
-    setProdiForm({
-      nama: "",
-      namaEn: "",
-      sk: "",
-      ketua: "",
-      nidn: "",
-      file: null,
-    });
+    setProdiForm(emptyProdiForm);
     setOpenProdiForm(true);
   };
 
+  const handleEditProdi = (unitId, index) => {
+    const unit = units.find((u) => u.id === unitId);
+    const data = unit.prodi[index];
+    
+    setProdiForm({
+      ...emptyProdiForm,
+      ...data,
+      editIndex: index,
+    });
+    setActiveUnitId(unitId);
+    setOpenProdiForm(true);
+  };
+
+  const handleDeleteProdi = (unitId, index) => {
+    setUnits((prev) =>
+      prev.map((u) => {
+        if (u.id !== unitId) return u;
+        return {
+          ...u,
+          prodi: u.prodi.filter((_, i) => i !== index),
+        };
+      })
+    );
+    triggerSuccess("Prodi berhasil dihapus");
+  };
+
   const saveProdi = () => {
+    if (!isProdiFormValid) return;
+    
     setUnits((prev) =>
       prev.map((u) => {
         if (u.id !== activeUnitId) return u;
@@ -292,13 +286,19 @@ const DaftarUnit = () => {
     }));
   };
 
-  // Handler khusus untuk NIDN Prodi
   const handleProdiNidnChange = (e) => {
-    const value = e.target.value;
-    if (value === "" || /^\d+$/.test(value)) {
-      setProdiForm((prev) => ({ ...prev, nidn: value }));
-    }
+    setProdiForm((prev) => ({
+      ...prev,
+      nidn: onlyNumber(e.target.value),
+    }));
   };
+
+  const toggleProdiDropdown = (unitId, idx) => {
+    const key = `${unitId}-${idx}`;
+    setOpenProdiIndex((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const isProdiOpen = (unitId, idx) => !!openProdiIndex[`${unitId}-${idx}`];
 
   return (
     <DashboardLayout>
@@ -312,6 +312,7 @@ const DaftarUnit = () => {
             </p>
           </div>
           <button
+            type="button"
             onClick={() => openForm()}
             className="flex items-center gap-2 bg-[#0B4B48] hover:bg-[#083c3a] text-white px-4 py-2 rounded-lg shadow-xl text-sm font-semibold transition"
           >
@@ -320,7 +321,7 @@ const DaftarUnit = () => {
           </button>
         </div>
 
-        {/* LIST */}
+        {/* LIST UNIT */}
         <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-3">
           {[...units]
             .sort((a, b) => {
@@ -336,31 +337,43 @@ const DaftarUnit = () => {
 
               return (
                 <div key={u.id} className="border border-gray-100 rounded-lg">
-                  {/* HEADER */}
+                  {/* HEADER UNIT */}
                   <div
                     onClick={() => setOpenUnit(openUnit === u.id ? null : u.id)}
-                    className="flex justify-between items-center px-4 py-3 cursor-pointer hover:bg-gray-50"
+                    className="flex justify-between items-center gap-4 px-4 py-3 cursor-pointer hover:bg-gray-50"
                   >
-                    <div>
-                      <p className="text-base font-bold text-gray-800">{u.nama}</p>
-                      <p className="text-xs text-gray-400">{u.en}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-base font-bold text-gray-800 truncate">{u.nama}</p>
+                      <p className="text-xs text-gray-400 truncate">{u.en}</p>
                     </div>
-                    <div className="flex gap-3 text-gray-400">
-                      <FiChevronDown />
-                      <FiEdit2 onClick={(e) => { e.stopPropagation(); openForm(u); }} />
-                      <FiTrash2
-                        className="cursor-pointer hover:text-red-500"
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <ActionIconButton title="Buka/Tutup">
+                        <FiChevronDown
+                          className={`transition-transform duration-200 ${openUnit === u.id ? "rotate-180" : ""}`}
+                        />
+                      </ActionIconButton>
+                      <ActionIconButton
+                        title="Edit Unit"
+                        onClick={(e) => { e.stopPropagation(); openForm(u); }}
+                      >
+                        <FiEdit2 size={16} />
+                      </ActionIconButton>
+                      <ActionIconButton
+                        title="Hapus Unit"
+                        danger
                         onClick={(e) => {
                           e.stopPropagation();
                           setDeleteTarget(u.id);
                           setDeleteType("unit");
                           setShowDeleteModal(true);
                         }}
-                      />
+                      >
+                        <FiTrash2 size={16} />
+                      </ActionIconButton>
                     </div>
                   </div>
 
-                  {/* DROPDOWN */}
+                  {/* DROPDOWN UNIT */}
                   {openUnit === u.id && (
                     <div className="px-4 pb-5 pt-3 space-y-5 border-t border-gray-100">
                       <div>
@@ -379,58 +392,72 @@ const DaftarUnit = () => {
                         <p className="text-sm font-medium text-gray-700">{katu}</p>
                         <p className="text-xs text-gray-400">{u.katu}</p>
 
-                        {/* PRODI DROPDOWN */}
+                        {/* DAFTAR PRODI */}
                         {u.jenis === "Fakultas" && u.prodi?.length > 0 && (
                           <div className="mt-3 pl-3 border-l border-gray-200 space-y-2">
                             {u.prodi.map((p, idx) => (
-                              <details key={idx} className="group">
-                                <summary className="cursor-pointer list-none flex items-center justify-between">
-                                  <div>
-                                    <p className="text-sm font-semibold text-gray-800">{p.nama}</p>
+                              <div key={idx} className="border border-gray-100 rounded-lg">
+                                {/* ROW PRODI */}
+                                <div
+                                  onClick={() => toggleProdiDropdown(u.id, idx)}
+                                  className="flex justify-between items-center gap-4 px-3 py-2.5 cursor-pointer hover:bg-gray-50 rounded-lg"
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-semibold text-gray-800 truncate">{p.nama}</p>
                                     {p.namaEn && (
-                                      <p className="text-[11px] text-gray-400">{p.namaEn}</p>
+                                      <p className="text-[11px] text-gray-400 truncate">{p.namaEn}</p>
                                     )}
                                   </div>
-                                  <div className="flex items-center gap-3 text-gray-400">
-                                    <FiEdit2
-                                      size={14}
-                                      className="cursor-pointer hover:text-[#1F7A6E]"
+                                  <div className="flex items-center gap-1 flex-shrink-0">
+                                    <ActionIconButton title="Buka/Tutup">
+                                      <FiChevronDown
+                                        size={15}
+                                        className={`transition-transform duration-200 ${isProdiOpen(u.id, idx) ? "rotate-180" : ""}`}
+                                      />
+                                    </ActionIconButton>
+                                    <ActionIconButton
+                                      title="Edit Prodi"
                                       onClick={(e) => {
-                                        e.preventDefault();
                                         e.stopPropagation();
                                         handleEditProdi(u.id, idx);
                                       }}
-                                    />
-                                    <FiTrash2
-                                      size={14}
-                                      className="cursor-pointer hover:text-red-500"
+                                    >
+                                      <FiEdit2 size={14} />
+                                    </ActionIconButton>
+                                    <ActionIconButton
+                                      title="Hapus Prodi"
+                                      danger
                                       onClick={(e) => {
-                                        e.preventDefault();
                                         e.stopPropagation();
                                         setDeleteTarget({ unitId: u.id, index: idx });
                                         setDeleteType("prodi");
                                         setShowDeleteModal(true);
                                       }}
-                                    />
-                                    <FiChevronDown className="transition-transform duration-200 group-open:rotate-180" />
+                                    >
+                                      <FiTrash2 size={14} />
+                                    </ActionIconButton>
                                   </div>
-                                </summary>
-                                <div className="mt-2 pl-3 border-l border-gray-200 space-y-2">
-                                  <p className="text-[13px] font-semibold text-gray-700">
-                                    Ketua Program Studi
-                                  </p>
-                                  <p className="text-[11px] text-gray-500 ml-1 font-normal">
-                                    <span className="text-gray-500">{p.ketua}</span>
-                                    <span className="text-gray-400"> - {p.nidn}</span>
-                                  </p>
                                 </div>
-                              </details>
+
+                                {/* DROPDOWN PRODI */}
+                                {isProdiOpen(u.id, idx) && (
+                                  <div className="px-3 pb-3 pt-1 border-t border-gray-100">
+                                    <p className="text-sm font-medium text-gray-700">Ketua Program Studi</p>
+                                    <p className="text-xs text-gray-400 mt-0.5">{p.ketua}</p>
+                                    {p.nidn && (
+                                      <p className="text-xs text-gray-400">NIDN: {p.nidn}</p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             ))}
                           </div>
                         )}
                       </div>
+
                       {u.jenis === "Fakultas" && (
                         <button
+                          type="button"
                           onClick={() => openProdiModal(u.id)}
                           className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[#1F7A6E] border border-[#1F7A6E] px-3 py-1.5 rounded-md hover:bg-[#1F7A6E] hover:text-white transition"
                         >
@@ -457,22 +484,19 @@ const DaftarUnit = () => {
               <div className="p-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   <div className="flex flex-col gap-2">
-                    <label className="text-black font-semibold text-sm">Jenis Unit</label>
+                    <RequiredLabel>Jenis Unit</RequiredLabel>
                     <div className="relative">
                       <select
                         value={form.jenis}
                         onChange={handleChange("jenis")}
-                        className={`w-full border border-gray-400 shadow-lg rounded-2xl px-4 py-3 pr-12 bg-gray-50 outline-none focus:border-[#0B4B48] appearance-none ${
-                          hasUniversitas && form.jenis !== "Universitas" ? "cursor-pointer" : ""
-                        }`}
+                        className="w-full border border-gray-400 shadow-lg rounded-2xl px-4 py-3 pr-12 bg-gray-50 outline-none focus:border-[#0B4B48] appearance-none"
                       >
                         <option value="" disabled hidden>Pilih Jenis Unit</option>
                         <option 
                           value="Universitas" 
-                          disabled={hasUniversitas && !editId}
-                          className={hasUniversitas && !editId ? "text-gray-400 bg-gray-100" : ""}
+                          disabled={universitasSudahAda}
                         >
-                          Universitas {hasUniversitas && !editId ? "(Sudah ada)" : ""}
+                          Universitas {universitasSudahAda ? "(Sudah terisi)" : ""}
                         </option>
                         <option value="Fakultas">Fakultas</option>
                       </select>
@@ -480,7 +504,7 @@ const DaftarUnit = () => {
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-black font-semibold text-sm">Nama Unit</label>
+                    <RequiredLabel>Nama Unit</RequiredLabel>
                     <input
                       value={form.nama}
                       onChange={handleChange("nama")}
@@ -489,7 +513,7 @@ const DaftarUnit = () => {
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-black font-semibold text-sm">Nama (English)</label>
+                    <RequiredLabel>Nama (English)</RequiredLabel>
                     <input
                       value={form.en}
                       onChange={handleChange("en")}
@@ -501,7 +525,7 @@ const DaftarUnit = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   <div className="flex flex-col gap-2">
-                    <label className="text-black font-semibold text-sm">{labelPimpinan}</label>
+                    <RequiredLabel>{labelPimpinan}</RequiredLabel>
                     <input
                       value={form.dekan}
                       onChange={handleChange("dekan")}
@@ -510,16 +534,17 @@ const DaftarUnit = () => {
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-black font-semibold text-sm">NIDN</label>
+                    <RequiredLabel>NIDN</RequiredLabel>
                     <input
                       value={form.nidnDekan}
-                      onChange={handleNidnChangeForm("nidnDekan")}
+                      onChange={handleNumberChange("nidnDekan")}
                       placeholder="NIDN (hanya angka)"
+                      inputMode="numeric"
                       className="w-full border border-gray-400 shadow-lg rounded-2xl px-4 py-3 text-sm bg-gray-50 outline-none focus:border-[#0B4B48]"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-black font-semibold text-sm">{labelTTD}</label>
+                    <RequiredLabel>{labelTTD}</RequiredLabel>
                     <input
                       type="file"
                       onChange={handleFile("ttdDekan")}
@@ -531,7 +556,7 @@ const DaftarUnit = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   <div className="flex flex-col gap-2">
-                    <label className="text-black font-semibold text-sm">{labelWakil}</label>
+                    <RequiredLabel>{labelWakil}</RequiredLabel>
                     <input
                       value={form.wakil}
                       onChange={handleChange("wakil")}
@@ -540,16 +565,17 @@ const DaftarUnit = () => {
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-black font-semibold text-sm">NIDN Wakil</label>
+                    <RequiredLabel>NIDN Wakil</RequiredLabel>
                     <input
                       value={form.nidnWakil}
-                      onChange={handleNidnChangeForm("nidnWakil")}
+                      onChange={handleNumberChange("nidnWakil")}
                       placeholder="NIDN Wakil (hanya angka)"
+                      inputMode="numeric"
                       className="w-full border border-gray-400 shadow-lg rounded-2xl px-4 py-3 text-sm bg-gray-50 outline-none focus:border-[#0B4B48]"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-black font-semibold text-sm">{labelParafWakil}</label>
+                    <RequiredLabel>{labelParafWakil}</RequiredLabel>
                     <input
                       type="file"
                       onChange={handleFile("parafWakil")}
@@ -561,7 +587,7 @@ const DaftarUnit = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   <div className="flex flex-col gap-2">
-                    <label className="text-black font-semibold text-sm">{labelKatu}</label>
+                    <RequiredLabel>{labelKatu}</RequiredLabel>
                     <input
                       value={form.katu}
                       onChange={handleChange("katu")}
@@ -570,7 +596,7 @@ const DaftarUnit = () => {
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-black font-semibold text-sm">{labelParafKatu}</label>
+                    <RequiredLabel>{labelParafKatu}</RequiredLabel>
                     <input
                       type="file"
                       onChange={handleFile("parafKatu")}
@@ -579,7 +605,7 @@ const DaftarUnit = () => {
                     {form.parafKatu?.name && <p className="text-xs text-gray-400 mt-1">{form.parafKatu.name}</p>}
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-black font-semibold text-sm">{labelStempel}</label>
+                    <RequiredLabel>{labelStempel}</RequiredLabel>
                     <input
                       type="file"
                       onChange={handleFile("stempel")}
@@ -592,14 +618,21 @@ const DaftarUnit = () => {
 
               <div className="flex justify-end gap-3 px-6 py-5 bg-gray-50 border-t border-gray-200 rounded-b-2xl">
                 <button
+                  type="button"
                   onClick={() => setOpenModal(false)}
                   className="px-6 py-2 rounded-xl bg-white border border-gray-300 shadow-md text-black font-medium hover:bg-gray-50 transition"
                 >
                   Batal
                 </button>
                 <button
+                  type="button"
                   onClick={handleSave}
-                  className="px-6 py-2 rounded-xl bg-[#0B4B48] shadow-md text-white font-medium hover:bg-[#083c3a] transition"
+                  disabled={!isUnitFormValid}
+                  className={`px-6 py-2 rounded-xl shadow-md font-medium transition ${
+                    !isUnitFormValid
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-[#0B4B48] text-white hover:bg-[#083c3a]"
+                  }`}
                 >
                   Simpan
                 </button>
@@ -613,13 +646,15 @@ const DaftarUnit = () => {
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
             <div className="bg-white w-[900px] max-h-[90vh] overflow-y-auto rounded-2xl shadow-xl">
               <div className="px-6 py-5 border-b border-gray-200">
-                <h2 className="text-xl font-bold text-gray-800">Tambah Program Studi</h2>
+                <h2 className="text-xl font-bold text-gray-800">
+                  {prodiForm.editIndex !== undefined ? "Edit Program Studi" : "Tambah Program Studi"}
+                </h2>
                 <p className="text-sm text-gray-500 mt-1">Lengkapi data program studi di bawah ini</p>
               </div>
 
               <div className="p-6 space-y-6">
                 <div className="flex flex-col gap-2">
-                  <label className="text-black font-semibold text-sm">Fakultas</label>
+                  <RequiredLabel>Fakultas</RequiredLabel>
                   <div className="w-full border border-gray-400 shadow-lg rounded-2xl px-4 py-3 text-sm bg-gray-100 text-gray-800">
                     {units.find((u) => u.id === activeUnitId)?.nama || "-"}
                   </div>
@@ -627,7 +662,7 @@ const DaftarUnit = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   <div className="flex flex-col gap-2">
-                    <label className="text-black font-semibold text-sm">Nama Prodi</label>
+                    <RequiredLabel>Nama Prodi</RequiredLabel>
                     <input
                       value={prodiForm.nama}
                       onChange={(e) => setProdiForm({ ...prodiForm, nama: e.target.value })}
@@ -636,7 +671,7 @@ const DaftarUnit = () => {
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-black font-semibold text-sm">Nama Prodi (English)</label>
+                    <RequiredLabel>Nama Prodi (English)</RequiredLabel>
                     <input
                       value={prodiForm.namaEn}
                       onChange={(e) => setProdiForm({ ...prodiForm, namaEn: e.target.value })}
@@ -645,7 +680,7 @@ const DaftarUnit = () => {
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-black font-semibold text-sm">No SK Akreditasi</label>
+                    <RequiredLabel>No SK Akreditasi</RequiredLabel>
                     <input
                       value={prodiForm.sk}
                       onChange={(e) => setProdiForm({ ...prodiForm, sk: e.target.value })}
@@ -657,7 +692,7 @@ const DaftarUnit = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   <div className="flex flex-col gap-2">
-                    <label className="text-black font-semibold text-sm">Kepala Program Studi</label>
+                    <RequiredLabel>Kepala Program Studi</RequiredLabel>
                     <input
                       value={prodiForm.ketua}
                       onChange={(e) => setProdiForm({ ...prodiForm, ketua: e.target.value })}
@@ -666,16 +701,17 @@ const DaftarUnit = () => {
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-black font-semibold text-sm">NIDN Kepala Program Studi</label>
+                    <RequiredLabel>NIDN Kepala Program Studi</RequiredLabel>
                     <input
                       value={prodiForm.nidn}
                       onChange={handleProdiNidnChange}
                       placeholder="NIDN (hanya angka)"
+                      inputMode="numeric"
                       className="w-full border border-gray-400 shadow-lg rounded-2xl px-4 py-3 text-sm bg-gray-50 outline-none focus:border-[#0B4B48]"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-black font-semibold text-sm">File Paraf Kepala Program Studi</label>
+                    <RequiredLabel>File Paraf Kepala Program Studi</RequiredLabel>
                     <input
                       type="file"
                       onChange={handleProdiFile}
@@ -688,14 +724,21 @@ const DaftarUnit = () => {
 
               <div className="flex justify-end gap-3 px-6 py-5 bg-gray-50 border-t border-gray-200 rounded-b-2xl">
                 <button
+                  type="button"
                   onClick={() => setOpenProdiForm(false)}
                   className="px-6 py-2 rounded-xl bg-white border border-gray-300 shadow-md text-black font-medium hover:bg-gray-50 transition"
                 >
                   Batal
                 </button>
                 <button
+                  type="button"
                   onClick={saveProdi}
-                  className="px-6 py-2 rounded-xl bg-[#0B4B48] shadow-md text-white font-medium hover:bg-[#083c3a] transition"
+                  disabled={!isProdiFormValid}
+                  className={`px-6 py-2 rounded-xl shadow-md font-medium transition ${
+                    !isProdiFormValid
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-[#0B4B48] text-white hover:bg-[#083c3a]"
+                  }`}
                 >
                   Simpan
                 </button>
@@ -709,15 +752,16 @@ const DaftarUnit = () => {
       {showSuccess && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-[9999]">
           <div className="bg-white w-[360px] rounded-2xl p-7 text-center shadow-xl">
-            <div className="w-16 h-16 mx-auto bg-green-500 flex items-center justify-center rounded-full mb-4 shadow-md">
+            <div className="w-16 h-16 mx-auto bg-[#0B4B48] flex items-center justify-center rounded-full mb-4 shadow-md">
               <HiCheckCircle size={36} className="text-white" />
             </div>
-            <p className="text-base font-semibold text-gray-800">Berhasil</p>
+            <p className="text-base font-semibold text-gray-800">Data Berhasil Disimpan</p>
             <p className="text-sm text-gray-400 mt-1">{successMessage}</p>
             <button
+              type="button"
               onClick={handleSelesai}
               disabled={loadingDone}
-              className={`mt-5 w-full py-2 rounded-md text-sm text-white transition ${loadingDone ? "bg-green-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-600"}`}
+              className="mt-5 w-full py-2 rounded-md text-sm text-white bg-[#0B4B48] hover:bg-[#083c3a] transition"
             >
               Selesai
             </button>
@@ -740,6 +784,7 @@ const DaftarUnit = () => {
             </p>
             <div className="flex flex-col gap-2 mt-5">
               <button
+                type="button"
                 onClick={() => {
                   if (deleteType === "unit") {
                     handleDelete(deleteTarget);
@@ -753,6 +798,7 @@ const DaftarUnit = () => {
                 Hapus Data
               </button>
               <button
+                type="button"
                 onClick={() => setShowDeleteModal(false)}
                 className="w-full bg-gray-100 py-2 rounded-md text-sm hover:bg-gray-200 transition"
               >

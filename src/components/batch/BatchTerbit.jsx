@@ -62,13 +62,17 @@ const BatchTerbit = () => {
     },
   ];
 
-  const passedFakultasName = location.state?.fakultas;
+  // Ambil data dari halaman IjazahTerbit.jsx (dari Kode 2)
+  const batchDariHalamanSebelumnya = location.state?.batch;
+  const mahasiswaDariHalamanSebelumnya =
+    location.state?.mahasiswa || batchDariHalamanSebelumnya?.mahasiswa || [];
+
+  const passedFakultasName =
+    location.state?.fakultas || batchDariHalamanSebelumnya?.fakultas;
 
   const selectedFakultas = useMemo(() => {
     if (passedFakultasName) {
-      const match = fakultasData.find(
-        (f) => f.nama === passedFakultasName
-      );
+      const match = fakultasData.find((f) => f.nama === passedFakultasName);
 
       if (match) return match;
     }
@@ -94,39 +98,80 @@ const BatchTerbit = () => {
     "Indra Wijaya",
   ];
 
-  // TOTAL DATA 45
-  const mahasiswa = useMemo(() => {
+  // DATA DUMMY CADANGAN (dari Kode 2)
+  const mahasiswaDummy = useMemo(() => {
     return Array.from({ length: 45 }, (_, i) => ({
       id: i + 1,
       nama: names[i % names.length],
-      nim: `2311060409${(i + 1)
-        .toString()
-        .padStart(2, "0")}`,
-      prodi:
-        selectedFakultas.prodi[
-          i % selectedFakultas.prodi.length
-        ],
+      nim: `2311060409${(i + 1).toString().padStart(2, "0")}`,
+      prodi: selectedFakultas.prodi[i % selectedFakultas.prodi.length],
       fakultas: selectedFakultas.nama,
       tahun: "2025",
       status: "Terbit",
+      batch: batchDariHalamanSebelumnya?.batch || "Batch 15",
     }));
-  }, [selectedFakultas]);
+  }, [selectedFakultas, batchDariHalamanSebelumnya]);
 
-  const filteredMahasiswa = mahasiswa.filter((mhs) => {
-    const keyword = search.toLowerCase();
+  // Gunakan data dari halaman sebelumnya jika ada, else gunakan dummy
+  const mahasiswa =
+    mahasiswaDariHalamanSebelumnya.length > 0
+      ? mahasiswaDariHalamanSebelumnya.map((mhs, idx) => ({
+          ...mhs,
+          id: mhs.id || idx + 1,
+          nama: mhs.nama || names[idx % names.length],
+          nim:
+            mhs.nim ||
+            `2311060409${(idx + 1).toString().padStart(2, "0")}`,
+          prodi: mhs.prodi || selectedFakultas.prodi[0],
+          fakultas: mhs.fakultas || selectedFakultas.nama,
+          tahun: mhs.tahun || batchDariHalamanSebelumnya?.tahun || "2025",
+          status: mhs.status || "Terbit",
+          batch: batchDariHalamanSebelumnya?.batch || "Batch 15",
+        }))
+      : mahasiswaDummy;
 
-    return (
-      mhs.nama.toLowerCase().includes(keyword) ||
-      mhs.nim.includes(keyword) ||
-      mhs.prodi.toLowerCase().includes(keyword)
-    );
-  });
+  const filteredMahasiswa = mahasiswa
+    .filter((mhs) => {
+      const keyword = search.toLowerCase();
+
+      return (
+        mhs.nama.toLowerCase().includes(keyword) ||
+        String(mhs.nim).includes(keyword) ||
+        mhs.prodi.toLowerCase().includes(keyword)
+      );
+    })
+    .sort((a, b) => {
+      return a.nama.localeCompare(b.nama);
+    });
+
+  const getBadgeColor = (status) => {
+    switch (status) {
+      case "Terbit":
+        return "bg-[#27AE60] text-white";
+      case "Proses":
+        return "bg-[#3B82F6] text-white";
+      case "Reject":
+        return "bg-[#EF4444] text-white";
+      case "Revoke":
+        return "bg-[#F59E0B] text-white";
+      default:
+        return "bg-gray-400 text-white";
+    }
+  };
+
+  // ==========================================================================
+  // HANDLE DETAIL MAHASISWA - ROUTE DARI KODE 1 (TIDAK DIUBAH)
+  // ==========================================================================
+  const handleDetailMahasiswa = (mhs) => {
+    navigate(`/detail-mahasiswa/${mhs.nim}`, {
+      state: mhs,
+    });
+  };
 
   return (
     <DashboardLayout>
       <div className="w-full pb-10">
-
-        {/* HEADER */}
+        {/* HEADER - gaya dari Kode 2 */}
         <div className="mb-6">
           <div className="flex flex-col gap-1">
             <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">
@@ -140,7 +185,7 @@ const BatchTerbit = () => {
           </div>
         </div>
 
-        {/* FILTER BOX */}
+        {/* FILTER BOX - gaya dari Kode 2 */}
         <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-100">
           <div className="flex items-center bg-[#F3F4F6] rounded-lg px-4 h-[44px] w-full">
             <FiSearch className="text-gray-500 text-lg mr-3" />
@@ -155,108 +200,80 @@ const BatchTerbit = () => {
           </div>
         </div>
 
-        {/* TABLE SECTION */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden relative">
+        {/* TABLE SECTION - gaya dari Kode 2 */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-[#F7F7F7] text-gray-500 border-b border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-center">No</th>
+                <th className="px-4 py-3 text-left">Nama</th>
+                <th className="px-4 py-3 text-center">NIM</th>
+                <th className="px-4 py-3 text-center">Program Studi</th>
+                <th className="px-4 py-3 text-center">Tahun Lulus</th>
+                <th className="px-4 py-3 text-center">Status</th>
+                <th className="px-4 py-3 text-center">Detail</th>
+              </tr>
+            </thead>
 
-          {/* Hanya tampil 10 row di awal */}
-          <div className="max-h-[655px] overflow-y-auto relative">
+            <tbody>
+              {filteredMahasiswa.map((mhs, i) => (
+                <tr
+                  key={mhs.id || i}
+                  className="border-t border-gray-200 hover:bg-gray-50 transition-colors"
+                >
+                  <td className="px-4 py-3 text-center">{i + 1}</td>
 
-            <table className="w-full text-sm text-left whitespace-nowrap border-collapse">
+                  <td className="px-4 py-3 font-semibold text-gray-800">
+                    {mhs.nama}
+                  </td>
 
-              <thead className="bg-[#F9FAFB] text-gray-500 font-bold border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-                <tr>
-                  <th className="py-4 px-6 text-center w-16">
-                    No.
-                  </th>
+                  <td className="px-4 py-3 font-medium text-gray-800 text-center">
+                    {mhs.nim}
+                  </td>
 
-                  <th className="py-4 px-6">
-                    Nama
-                  </th>
+                  <td className="px-4 py-3 font-medium text-gray-800 text-center">
+                    {mhs.prodi}
+                  </td>
 
-                  <th className="py-4 px-6">
-                    NIM
-                  </th>
+                  <td className="px-4 py-3 font-medium text-gray-800 text-center">
+                    {mhs.tahun}
+                  </td>
 
-                  <th className="py-4 px-6">
-                    Program Studi
-                  </th>
+                  <td className="px-4 py-3 text-center">
+                    <span
+                      className={`inline-block min-w-[86px] px-4 py-1.5 rounded-full text-xs font-bold ${getBadgeColor(
+                        mhs.status || "Terbit"
+                      )}`}
+                    >
+                      {mhs.status || "Terbit"}
+                    </span>
+                  </td>
 
-                  <th className="py-4 px-6 text-center">
-                    Tahun Lulus
-                  </th>
-
-                  <th className="py-4 px-6 text-center">
-                    Status
-                  </th>
-
-                  <th className="py-4 px-6 text-center w-24">
-                    Detail
-                  </th>
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      type="button"
+                      onClick={() => handleDetailMahasiswa(mhs)}
+                      className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-100 transition"
+                      title="Lihat Detail Mahasiswa"
+                    >
+                      <div className="w-3 h-3 border-t-2 border-b-2 border-gray-400"></div>
+                    </button>
+                  </td>
                 </tr>
-              </thead>
+              ))}
 
-              <tbody>
-                {filteredMahasiswa.map((mhs, i) => (
-                  <tr
-                    key={i}
-                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+              {filteredMahasiswa.length === 0 && (
+                <tr>
+                  <td
+                    colSpan="7"
+                    className="px-4 py-8 text-center text-gray-400"
                   >
-                    <td className="py-4 px-6 text-center font-bold text-gray-800">
-                      {i + 1}.
-                    </td>
-
-                    <td className="py-4 px-6 font-bold text-gray-900">
-                      {mhs.nama}
-                    </td>
-
-                    <td className="py-4 px-6 font-bold text-gray-900">
-                      {mhs.nim}
-                    </td>
-
-                    <td className="py-4 px-6 font-bold text-gray-900">
-                      {mhs.prodi}
-                    </td>
-
-                    <td className="py-4 px-6 text-center font-bold text-gray-900">
-                      {mhs.tahun}
-                    </td>
-
-                    {/* STATUS */}
-                    <td className="py-4 px-6 text-center">
-                      <span className="inline-block bg-[#27AE60] text-white px-5 py-1.5 rounded-full text-xs font-bold tracking-wide shadow-sm">
-                        Terbit
-                      </span>
-                    </td>
-
-                    {/* DETAIL */}
-                    <td className="py-4 px-6 text-center">
-                      <div
-                        onClick={() =>
-                          navigate(
-                            `/detail-mahasiswa/${mhs.nim}`,
-                            {
-                              state: mhs,
-                            }
-                          )
-                        }
-                        className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition"
-                        title="Lihat Detail"
-                      >
-                        <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* EMPTY STATE */}
-          {filteredMahasiswa.length === 0 && (
-            <div className="py-8 text-center text-gray-500 font-medium">
-              Data mahasiswa tidak ditemukan.
-            </div>
-          )}
+                    Data mahasiswa tidak ditemukan.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </DashboardLayout>
