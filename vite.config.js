@@ -18,15 +18,17 @@ export default defineConfig({
     port: 5173,
     host: true,
     proxy: {
-  "/api": {
-    target: "https://api-gateway-production-ec56.up.railway.app",
-    changeOrigin: true,
-    secure: true,
-  },
-},
+      "/api": {
+        // 🔥 UBAH TARGET KE VPS KOMANDAN
+        target: "http://103.158.196.32:8010", 
+        changeOrigin: true,
+        // 🔥 WAJIB FALSE karena VPS menggunakan http biasa, bukan https
+        secure: false, 
+      },
+    },
   },
   build: {
     outDir: "dist",
     sourcemap: false,
   },
-});   
+});

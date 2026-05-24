@@ -16,13 +16,12 @@ const unitMap = {
   6: { name: "FTS",     label: "Fakultas Teknik & Sains" },
 };
 
-// Role Labels dengan dukungan unit/fakultas
+// 🔥 UPDATE: Tambahkan "admin" agar sinkron dengan Backend
 const roleLabels = {
-  admin_sistem:  { name: "Admin Sistem", subtitle: "Administrator", hasUnit: false },
+  admin:         { name: "Admin Sistem", subtitle: "Administrator", hasUnit: false }, // <--- TAMBAHAN BARU
   operator:      { name: "Operator",     subtitle: "Data Entry", hasUnit: false },
   verifikator:   { name: "Verifikator",  subtitle: "Verifikator", hasUnit: false },
   rektor:        { name: "Rektor",       subtitle: "Universitas", hasUnit: false },
-  // Role tambahan untuk fakultas
   dekan:         { name: "Dekan",        subtitle: null, hasUnit: true },
   wakil_dekan:   { name: "Wakil Dekan",  subtitle: null, hasUnit: true },
   tu_fakultas:   { name: "Tata Usaha",   subtitle: "Fakultas", hasUnit: true },
@@ -30,7 +29,6 @@ const roleLabels = {
   tu_rektorat:   { name: "Tata Usaha",   subtitle: "Rektorat", hasUnit: false },
 };
 
-// Mapping verifikator berdasarkan role asli
 const verifikatorPositionMap = {
   tu_fakultas:   { name: "Verifikator", subtitle: "TU Fakultas" },
   wakil_dekan:   { name: "Verifikator", subtitle: "Wakil Dekan 1" },
@@ -40,8 +38,8 @@ const verifikatorPositionMap = {
   rektor:        { name: "Verifikator", subtitle: "Rektor" },
 };
 
-// Role yang tidak menampilkan notifikasi
-const ROLES_WITHOUT_NOTIF = ["admin_sistem"];
+// 🔥 UPDATE: Tambahkan "admin" ke daftar tanpa notif
+const ROLES_WITHOUT_NOTIF = ["admin", "admin_sistem"];
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -55,10 +53,13 @@ const Navbar = () => {
 
   const userRole = user?.role?.toLowerCase().trim() || "";
   const userOriginalRole = user?.original_role || user?.role || userRole;
-  const userName = user?.name || user?.fullname || user?.username || "User";
+  
+  // 🔥 UPDATE: Jika tidak ada nama, gunakan email bagian depan (misal: adminsistem@gmail.com jadi adminsistem)
+  const fallbackName = user?.email ? user.email.split('@')[0] : "User";
+  const userName = user?.name || user?.fullname || user?.username || fallbackName;
+  
   const idUnit = user?.id_unit;
 
-  // Fungsi untuk mendapatkan nama unit/fakultas
   const getUnitName = () => {
     if (idUnit && unitMap[idUnit]) {
       return unitMap[idUnit].name;
@@ -66,7 +67,6 @@ const Navbar = () => {
     return null;
   };
 
-  // Fungsi untuk mendapatkan label verifikator berdasarkan role asli
   const getVerifikatorLabel = () => {
     if (userOriginalRole && verifikatorPositionMap[userOriginalRole]) {
       return verifikatorPositionMap[userOriginalRole];
@@ -83,7 +83,6 @@ const Navbar = () => {
     return roleLabels.verifikator;
   };
 
-  // Tentukan role info yang akan ditampilkan
   let currentRoleInfo;
   if (userRole === "verifikator") {
     currentRoleInfo = getVerifikatorLabel();
@@ -91,7 +90,6 @@ const Navbar = () => {
     const roleConfig = roleLabels[userRole] || { name: "User", subtitle: "Sistem", hasUnit: false };
     currentRoleInfo = { ...roleConfig };
     
-    // Jika role memiliki unit (dekan, wakil_dekan, tu_fakultas), tambahkan nama unit
     if (roleConfig.hasUnit && getUnitName()) {
       currentRoleInfo.subtitle = getUnitName();
     }
@@ -99,18 +97,21 @@ const Navbar = () => {
 
   const showNotifIcon = !ROLES_WITHOUT_NOTIF.includes(userRole);
 
-  // MENU PER ROLE - Disesuaikan dengan route yang diminta
+  // 🔥 UPDATE: Tambahkan konfigurasi menu untuk "admin"
+  const adminMenuConfig = [
+    { name: "Dashboard",       path: "/admin/dashboard" },
+    { name: "Template",        path: "/admin/template" },
+    { name: "Daftar Batch",    path: "/admin/data-mahasiswa" },
+    { name: "Daftar Unit",     path: "/admin/daftar-unit" },
+    { name: "Daftar Pengguna", path: "/admin/daftar-pengguna" },
+  ];
+
   const menuConfig = {
-    admin_sistem: [
-      { name: "Dashboard",       path: "/admin/dashboard" },
-      { name: "Template",        path: "/admin/template" },
-      { name: "Daftar Batch",    path: "/admin/data-mahasiswa" },
-      { name: "Daftar Unit",     path: "/admin/daftar-unit" },
-      { name: "Daftar Pengguna", path: "/admin/daftar-pengguna" },
-    ],
+    admin: adminMenuConfig, // <--- MENU UNTUK ADMIN BARU
+    admin_sistem: adminMenuConfig,
     operator: [
       { name: "Dashboard",      path: "/operator/dashboard" },
-      { name: "Upload Data", path: "/operator/upload-data" },
+      { name: "Upload Data",    path: "/operator/upload-data" },
       { name: "Pelaporan",      path: "/operator/pelaporan" },
       { name: "Dokumen Valid",  path: "/operator/dokumen-valid" },
     ],
@@ -125,7 +126,6 @@ const Navbar = () => {
       { name: "Pelaporan",      path: "/rektor/pelaporan" },
       { name: "Dokumen Valid",  path: "/rektor/dokumen-valid" },
     ],
-    // Role fakultas (dekan, wakil_dekan, tu_fakultas) - akses ke admin routes
     dekan: [
       { name: "Dashboard",       path: "/admin/dashboard" },
       { name: "Daftar Batch",    path: "/admin/data-mahasiswa" },
@@ -155,63 +155,28 @@ const Navbar = () => {
 
   const activeMenus = menuConfig[userRole] || menuConfig.operator || [{ name: "Dashboard", path: "/dashboard" }];
 
-  // Cek apakah route aktif (untuk nested routes)
-// Cek apakah route aktif (untuk nested routes)
-const isRouteActive = (path) => {
-  // Untuk admin data mahasiswa (daftar batch)
-  if (path === "/admin/data-mahasiswa") {
-    const activePaths = ["/admin/data-mahasiswa", "/admin/detail-batch", "/admin/detail-mahasiswa"];
-    return activePaths.some(activePath => location.pathname.startsWith(activePath));
-  }
-  
-  // Untuk operator - manajemen data (HANYA untuk route /operator/manajemen-data)
-  if (path === "/operator/manajemen-data") {
-    // HANYA aktif jika persis di /operator/manajemen-data
-    return location.pathname === "/operator/manajemen-data";
-  }
-  
-  // Untuk operator - dokumen valid (DetailMahasiswaOperator)
-  if (path === "/operator/detail-mahasiswa") {
-    // Aktif jika di /operator/detail-mahasiswa (tanpa parameter) atau dengan parameter NIM
-    return location.pathname.startsWith("/operator/detail-mahasiswa");
-  }
-  
-  // Untuk operator - pelaporan
-  if (path === "/operator/pelaporan") {
-    return location.pathname === "/operator/pelaporan";
-  }
-  
-  // Untuk operator - dashboard
-  if (path === "/operator/dashboard") {
-    return location.pathname === "/operator/dashboard";
-  }
-  
-  // Untuk verifikator
-  if (path === "/verifikator/manajemen-data") {
-    return location.pathname === "/verifikator/manajemen-data";
-  }
-  if (path === "/verifikator/pelaporan") {
-    return location.pathname === "/verifikator/pelaporan";
-  }
-  
-  // Untuk rektor
-  if (path === "/rektor/manajemen-data") {
-    return location.pathname === "/rektor/manajemen-data";
-  }
-  if (path === "/rektor/pelaporan") {
-    return location.pathname === "/rektor/pelaporan";
-  }
-  if (path === "/rektor/dokumen-valid") {
-    return location.pathname === "/rektor/dokumen-valid";
-  }
-  
-  // Cocokkan persis untuk route lainnya
-  return location.pathname === path;
-};
+  const isRouteActive = (path) => {
+    if (path === "/admin/data-mahasiswa") {
+      const activePaths = ["/admin/data-mahasiswa", "/admin/detail-batch", "/admin/detail-mahasiswa"];
+      return activePaths.some(activePath => location.pathname.startsWith(activePath));
+    }
+    if (path === "/operator/manajemen-data") return location.pathname === "/operator/manajemen-data";
+    if (path === "/operator/detail-mahasiswa") return location.pathname.startsWith("/operator/detail-mahasiswa");
+    if (path === "/operator/pelaporan") return location.pathname === "/operator/pelaporan";
+    if (path === "/operator/dashboard") return location.pathname === "/operator/dashboard";
+    if (path === "/verifikator/manajemen-data") return location.pathname === "/verifikator/manajemen-data";
+    if (path === "/verifikator/pelaporan") return location.pathname === "/verifikator/pelaporan";
+    if (path === "/rektor/manajemen-data") return location.pathname === "/rektor/manajemen-data";
+    if (path === "/rektor/pelaporan") return location.pathname === "/rektor/pelaporan";
+    if (path === "/rektor/dokumen-valid") return location.pathname === "/rektor/dokumen-valid";
+    
+    return location.pathname === path;
+  };
 
-  // Handle navigasi profile berdasarkan role
+  // 🔥 UPDATE: Tambahkan case "admin" untuk menghindari terlempar ke /login
   const handleProfileClick = () => {
     switch (userRole) {
+      case "admin": // <--- TAMBAHAN BARU
       case "admin_sistem":
         navigate("/admin/profile");
         break;
@@ -225,18 +190,16 @@ const isRouteActive = (path) => {
         navigate("/rektor/profile");
         break;
       default:
-        navigate("/profile");
+        navigate("/dashboard");
     }
   };
 
-  // Handle scroll effect
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Handle click outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotif(false);
@@ -246,7 +209,6 @@ const isRouteActive = (path) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Style untuk link desktop
   const linkClass = (path) => {
     const isActive = isRouteActive(path);
     return `px-4 py-2 text-sm font-medium transition-all duration-300 relative
@@ -254,7 +216,6 @@ const isRouteActive = (path) => {
       ${isActive ? "after:absolute after:left-0 after:-bottom-1 after:w-full after:h-[0.5px] after:bg-[#27AE60]" : ""}`;
   };
 
-  // Style untuk link mobile
   const mobileLinkClass = (path) => {
     const isActive = isRouteActive(path);
     return `block px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
@@ -264,9 +225,10 @@ const isRouteActive = (path) => {
     }`;
   };
 
-  // Mendapatkan dashboard path untuk logo
+  // 🔥 UPDATE: Tambahkan case "admin" 
   const getDashboardPath = () => {
     switch (userRole) {
+      case "admin": return "/admin/dashboard"; // <--- TAMBAHAN BARU
       case "admin_sistem": return "/admin/dashboard";
       case "operator": return "/operator/dashboard";
       case "verifikator": return "/verifikator/dashboard";

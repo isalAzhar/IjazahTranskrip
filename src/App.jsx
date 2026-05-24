@@ -47,10 +47,10 @@ import RektorDashboard from "./pages/rektor/RektorDashboard";
 import VerifikatorProfile from "./pages/verifikator/Profile";
 import RektorProfile from "./pages/rektor/Profile";
 
-// Roles
-const ALL_ROLES = ["admin_sistem", "operator", "verifikator", "rektor"];
+// Roles (🔥 UPDATE: Menambahkan "admin" agar sinkron dengan API Backend)
+const ALL_ROLES = ["admin", "admin_sistem", "operator", "verifikator", "rektor"];
 const OPERATOR_ROLES = ["operator"];
-const ADMIN_ROLES = ["admin_sistem"];
+const ADMIN_ROLES = ["admin", "admin_sistem"];
 const VERIFIKATOR_ROLES = ["verifikator"];
 const REKTOR_ROLES = ["rektor"];
 
@@ -66,7 +66,16 @@ const RoleBasedRedirect = () => {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  const redirectMap = { admin_sistem: "/admin/dashboard", operator: "/operator/dashboard", verifikator: "/verifikator/dashboard", rektor: "/rektor/dashboard" };
+  
+  // 🔥 UPDATE: Menambahkan mapping untuk role "admin" ke "/admin/dashboard"
+  const redirectMap = { 
+    admin: "/admin/dashboard",
+    admin_sistem: "/admin/dashboard", 
+    operator: "/operator/dashboard", 
+    verifikator: "/verifikator/dashboard", 
+    rektor: "/rektor/dashboard" 
+  };
+  
   return <Navigate to={redirectMap[user.role] || "/login"} replace />;
 };
 

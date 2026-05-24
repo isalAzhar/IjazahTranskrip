@@ -6,75 +6,6 @@ import { FiEye, FiEyeOff, FiLoader } from "react-icons/fi";
 import bgLogin from "../../assets/img/background.jpg";
 import logoUika from "../../assets/img/Logo.jpg";
 
-// DATA STATIS UNTUK LOGIN (Hardcoded accounts)
-// Role yang tersedia: admin_sistem, operator, verifikator, rektor
-const STATIC_USERS = [
-  {
-    id: 1,
-    email: "admin@uika.ac.id",
-    password: "admin123",
-    name: "Admin Sistem",
-    role: "admin_sistem",
-    original_role: "admin_sistem"
-  },
-  {
-    id: 2,
-    email: "operator@uika.ac.id",
-    password: "operator123",
-    name: "Operator",
-    role: "operator",
-    original_role: "operator"
-  },
-  {
-    id: 3,
-    email: "tu_fakultas@uika.ac.id",
-    password: "tufak123",
-    name: "TU Fakultas",
-    role: "verifikator",
-    original_role: "tu_fakultas"
-  },
-  {
-    id: 4,
-    email: "wakil_dekan@uika.ac.id",
-    password: "wakildekan123",
-    name: "Wakil Dekan 1",
-    role: "verifikator",
-    original_role: "wakil_dekan"
-  },
-  {
-    id: 5,
-    email: "dekan@uika.ac.id",
-    password: "dekan123",
-    name: "Dekan",
-    role: "verifikator",
-    original_role: "dekan"
-  },
-  {
-    id: 6,
-    email: "tu_rektorat@uika.ac.id",
-    password: "turek123",
-    name: "TU Rektorat",
-    role: "verifikator",
-    original_role: "tu_rektorat"
-  },
-  {
-    id: 7,
-    email: "wakil_rektor@uika.ac.id",
-    password: "wakil123",
-    name: "Wakil Rektor 1",
-    role: "verifikator",
-    original_role: "wakil_rektor"
-  },
-  {
-    id: 8,
-    email: "rektor@uika.ac.id",
-    password: "rektor123",
-    name: "Rektor",
-    role: "rektor",
-    original_role: "rektor"
-  }
-];
-
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -85,7 +16,7 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e) => {
+const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
@@ -95,71 +26,76 @@ const Login = () => {
     }
 
     setLoading(true);
-    
-    // SIMULASI DELAY (seperti koneksi ke server)
-    setTimeout(() => {
+    try {
+      console.log("POS 1: Menembak ke Server (via Proxy)...");
+      
+      // 🔥 PAKSA MENGGUNAKAN RELATIVE PATH AGAR PROXY BEKERJA
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json" 
+        },
+        credentials: "include", 
+        body: JSON.stringify({ email, password }),
+      });
+
+      console.log("POS 2: Tembakan Berhasil. Status HTTP:", response.status);
+
+      // Baca dulu sebagai teks mentah untuk mengamankan data
+      const responseText = await response.text();
+      console.log("POS 3: Balasan Mentah Server:", responseText);
+
+      let data;
       try {
-        // LOGIN MENGGUNAKAN DATA STATIS
-        const foundUser = STATIC_USERS.find(
-          user => user.email === email && user.password === password
-        );
-
-        if (foundUser) {
-          // Buat token dummy
-          const dummyToken = `dummy_token_${foundUser.id}_${Date.now()}`;
-          
-          // Data user yang akan disimpan
-          const userData = {
-            id: foundUser.id,
-            email: foundUser.email,
-            name: foundUser.name,
-            role: foundUser.role,
-            original_role: foundUser.original_role || foundUser.role
-          };
-          
-          // Simpan ke localStorage sebagai backup
-          localStorage.setItem("authToken", dummyToken);
-          localStorage.setItem("user", JSON.stringify(userData));
-          localStorage.setItem("role", foundUser.role);
-          localStorage.setItem("original_role", foundUser.original_role || foundUser.role);
-          localStorage.setItem("name", foundUser.name);
-          localStorage.setItem("email", foundUser.email);
-          
-          // Panggil fungsi login dari AuthContext
-          login(userData, dummyToken);
-          
-          const role = foundUser.role;
-          console.log("Login successful!");
-          console.log("Role:", role);
-          console.log("Name:", foundUser.name);
-          console.log("Original Role:", foundUser.original_role || foundUser.role);
-
-          // PENGALIHAN BERDASARKAN ROLE
-          let target = "/";
-          
-          if (role === "admin_sistem") {
-            target = "/admin/dashboard";
-          } else if (role === "operator") {
-            target = "/operator/dashboard";
-          } else if (role === "verifikator") {
-            target = "/verifikator/dashboard";
-          } else if (role === "rektor") {
-            target = "/rektor/dashboard";
-          } else {
-            target = "/dashboard";
-          }
-
-          navigate(target, { replace: true });
-        } else {
-          setError("Email atau password salah");
-        }
-      } catch (err) {
-        console.error("Login error:", err);
-        setError("Terjadi kesalahan saat login");
-      } finally {
-        setLoading(false);
+        data = JSON.parse(responseText);
+      } catch (parseErr) {
+        throw new Error("Gagal menerjemahkan JSON. Balasan server: " + responseText.substring(0, 50));
       }
-    }, 800); // Simulasi delay loading
+
+      console.log("POS 4: Data JSON Sukses Dibaca:", data);
+
+      if (response.ok && data.status === "success") {
+        
+        console.log("POS 5: Menyaring Role...");
+        if (data.data && data.data.role) {
+          let rawRole = data.data.role.toLowerCase().trim();
+          if (rawRole === "wakil_dekan_1") rawRole = "wakil_dekan";
+          if (rawRole === "wakil_rektor_1") rawRole = "wakil_rektor";
+          if (rawRole === "admin_sistem") rawRole = "admin";
+          data.data.role = rawRole;
+        }
+
+        const accessToken = data.access_token; 
+        const userData = data.data;
+
+        console.log("POS 6: Menyimpan ke AuthContext...");
+        await login(userData, accessToken);
+        
+        console.log("POS 7: Penyimpanan Sukses! Bersiap Pindah Halaman...");
+        
+        // PENGALIHAN HALAMAN
+        const role = userData.role;
+        let target = "/dashboard";
+          
+        if (role === "admin") target = "/admin/dashboard";
+        else if (role === "operator" || role === "operator_data") target = "/operator/dashboard";
+        else if (role === "rektor") target = "/rektor/dashboard";
+        else target = "/verifikator/dashboard";
+
+        console.log("POS 8: Berpindah ke:", target);
+        navigate(target, { replace: true });
+
+      } else {
+        setError(data.message || "Email atau password salah");
+      }
+    } catch (err) {
+      // 🔥 ERROR ASLINYA AKAN DITAMPILKAN DI SINI!
+      console.error("🚨 LEDAKAN TERJADI:", err);
+      setError("CRASH: " + err.message); 
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
