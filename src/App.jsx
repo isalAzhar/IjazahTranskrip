@@ -15,7 +15,7 @@ import DetailMahasiswa from "./pages/admin/DetailMahasiswa";
 import DaftarUnit from "./pages/admin/DaftarUnit";
 import DaftarPengguna from "./pages/admin/DaftarPengguna";
 import Profile from "./pages/admin/Profile";
-
+  
 // Ijazah & Batch Components
 import IjazahTerbit from "./components/ijazah/IjazahTerbit";
 import IjazahProses from "./components/ijazah/IjazahProses";
