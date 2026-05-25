@@ -20,7 +20,7 @@ export default defineConfig({
     proxy: {
       "/api": {
         // 🔥 UBAH TARGET KE VPS KOMANDAN
-        target: "http://localhost:3000", 
+        target: "http://103.158.196.32:8010", 
         changeOrigin: true,
         // 🔥 WAJIB FALSE karena VPS menggunakan http biasa, bukan https
         secure: false, 

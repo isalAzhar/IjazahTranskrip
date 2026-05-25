@@ -58,14 +58,18 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    console.log("[AuthContext] Logout dieksekusi");
-    localStorage.clear();
-    setUser(null);
-    setToken(null);
-    
-    // Taktik anti-crash: Gunakan window.location karena Context ini berada di luar Router
-    window.location.href = "/"; 
-  };
+  console.log("[AuthContext] Logout dieksekusi");
+
+  sessionStorage.removeItem("inbound_uploaded_data");
+  sessionStorage.removeItem("inbound_uploaded_batch_ids");
+  sessionStorage.removeItem("inbound_uploaded_pagination");
+
+  localStorage.clear();
+  setUser(null);
+  setToken(null);
+
+  window.location.href = "/";
+};
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout, loading, isAuthenticated: !!user }}>
