@@ -1,57 +1,76 @@
 // src/pages/DaftarUnit.jsx
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { FiChevronDown, FiEdit2, FiTrash2, FiPlus } from "react-icons/fi";
 import { HiCheckCircle } from "react-icons/hi";
 import { HiOutlineExclamationTriangle } from "react-icons/hi2";
 
-// ==================== FUNGSI HELPER UNTUK DIAKSES DARI FILE LAIN ====================
+// 🔥 IMPORT BRANKAS TOKEN
+import { useAuth } from "../context/AuthContext";
+
+// ==================== FUNGSI HELPER ====================
 export const getUnitsData = () => {
   const saved = localStorage.getItem("units");
   return saved ? JSON.parse(saved) : [];
 };
 
-export const getPersonilByRole = (jenisUnit, role, unitName = null) => {
-  const units = getUnitsData();
+// Di dalam file DaftarUnit.jsx / .js
+export const getPersonilByRole = (jenisUnit, role, namaUnit) => {
+const semuaUnit = getUnitsData();
+const unitData = semuaUnit.find(u => u.nama === namaUnit || u.nama_unit === namaUnit);
+console.log("🔍 CEK ISI DATA UNIT UNTUK NIDN:", unitData);
+
+
+  if (!unitData) return null;
+
+  let namaPejabat = "";
+  let nidnPejabat = "";
+
+  // 🔥 SAMAKAN PERSIS DENGAN DATABASE (Huruf Kecil Semua)
+  switch (role) {
+    case "rektor":
+      namaPejabat = unitData.rektor;
+      nidnPejabat = unitData.nidn_rektor || unitData.nidn_rektor;
+      break;
+    case "wakil_rektor_1":
+      namaPejabat = unitData.wakil_rektor_1 || unitData.wakilRektor || unitData.wakil;
+      nidnPejabat = unitData.nidnWakilRektor || unitData.nidn_wakil_rektor_1;
+      break;
+   case "tu_rektorat":
+      namaPejabat = unitData.tu_rektorat || unitData.katu;
+      nidnPejabat = unitData.nidn_tu_rektorat || "";
+      break;
+
+   case "dekan":
+      namaPejabat = unitData.dekan;
+      nidnPejabat = unitData.nidnDekan; // <-- Tadi salah karena nidn_dekan
+      break;
+
+   case "wakil_dekan_1":
+      namaPejabat = unitData.wakil;     // <-- Tadi salah karena wakil_dekan_1
+      nidnPejabat = unitData.nidnWakil; // <-- Tadi salah karena nidn_wakil_dekan_1
+      break;
+
+  case "tu_fakultas":
+      namaPejabat = unitData.katu;      // <-- Tadi salah karena tu_fakultas
+      nidnPejabat = ""; // TU biasanya tidak wajib NIDN
+      break;
   
-  if (jenisUnit === "Universitas") {
-    const universitas = units.find(u => u.jenis === "Universitas");
-    if (!universitas) return null;
-    
-    switch(role) {
-      case "Rektor":
-        return { nama: universitas.dekan, nidn: universitas.nidnDekan };
-      case "Wakil Rektor":
-        return { nama: universitas.wakil, nidn: universitas.nidnWakil };
-      case "TU Rektor":
-        return { nama: universitas.katu, nidn: "" };
-      default:
-        return null;
-    }
-  } else if (jenisUnit === "Fakultas" && unitName) {
-    const fakultas = units.find(u => u.jenis === "Fakultas" && u.nama === unitName);
-    if (!fakultas) return null;
-    
-    switch(role) {
-      case "Dekan":
-        return { nama: fakultas.dekan, nidn: fakultas.nidnDekan };
-      case "Wakil Dekan":
-        return { nama: fakultas.wakil, nidn: fakultas.nidnWakil };
-      case "TU Fakultas":
-        return { nama: fakultas.katu, nidn: "" };
-      default:
-        return null;
-    }
+    default:
+      return null;
   }
-  
-  return null;
+
+  if (!namaPejabat) return null;
+
+  return {
+    nama: namaPejabat,
+    nidn: nidnPejabat || "" 
+  };
 };
 
 export const getFakultasList = () => {
   const units = getUnitsData();
-  return units
-    .filter(u => u.jenis === "Fakultas")
-    .map(u => u.nama);
+  return units.filter(u => u.jenis?.toLowerCase() === "fakultas").map(u => u.nama);
 };
 
 export const isRoleTerisi = (unitName, role) => {
@@ -67,7 +86,7 @@ export const isFakultasLengkap = (fakultasName) => {
 };
 // ==================== AKHIR FUNGSI HELPER ====================
 
-// ==================== CONSTANTS ====================
+// ==================== CONSTANTS & VALIDASI ====================
 const emptyForm = {
   jenis: "", nama: "", en: "",
   dekan: "", nidnDekan: "",
@@ -79,13 +98,9 @@ const emptyForm = {
 const emptyProdiForm = {
   nama: "", namaEn: "", sk: "", ketua: "", nidn: "", file: null,
 };
-// ==================== AKHIR CONSTANTS ====================
 
-// ==================== FUNGSI VALIDASI NIDN ====================
 const onlyNumber = (value) => value.replace(/\D/g, "");
-// ==================== AKHIR FUNGSI VALIDASI ====================
 
-// ==================== KOMPONEN UI MINI ====================
 const RequiredLabel = ({ children }) => (
   <label className="text-black font-semibold text-sm">
     {children} <span className="text-red-500">*</span>
@@ -106,13 +121,16 @@ const ActionIconButton = ({ children, onClick, danger = false, title = "" }) => 
     {children}
   </button>
 );
-// ==================== AKHIR KOMPONEN UI MINI ====================
+// ==================== AKHIR CONSTANTS ====================
 
 const DaftarUnit = () => {
-  const [units, setUnits] = useState(() => {
-    const saved = localStorage.getItem("units");
-    return saved ? JSON.parse(saved) : [];
-  });
+  // 🔥 STATE TOKEN & API
+  const { token, logout } = useAuth();
+  const [units, setUnits] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiError, setApiError] = useState("");
+
+  // 🔥 STATE UI
   const [openUnit, setOpenUnit] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -123,7 +141,7 @@ const DaftarUnit = () => {
   const [deleteType, setDeleteType] = useState("");
   const [loadingDone, setLoadingDone] = useState(false);
 
-  // PRODI STATE
+  // 🔥 STATE PRODI
   const [openProdiForm, setOpenProdiForm] = useState(false);
   const [prodiForm, setProdiForm] = useState(emptyProdiForm);
   const [activeUnitId, setActiveUnitId] = useState(null);
@@ -131,10 +149,79 @@ const DaftarUnit = () => {
 
   const [form, setForm] = useState(emptyForm);
 
-  React.useEffect(() => {
-    localStorage.setItem("units", JSON.stringify(units));
+  // 🔥 FETCH DATA DARI API
+  useEffect(() => {
+    const fetchUnits = async () => {
+      try {
+        setIsLoading(true);
+        setApiError("");
+
+        const response = await fetch("/api/unit/getAllUnit", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+          const rawData = Array.isArray(result) ? result : (result.data || []);
+          const formattedData = rawData.map(item => {
+            const jenisRaw = item.jenis_unit ? item.jenis_unit.toLowerCase() : "";
+            const isUni = jenisRaw === "universitas";
+
+            const mappedProdi = Array.isArray(item.prodi) ? item.prodi.map(p => ({
+              id: p.id_prodi, // Tangkap ID Prodi jika nanti mau dipakai untuk Edit/Delete
+              nama: p.nama_prodi || "-",
+              namaEn: p.nama_prodi_en || "",
+              ketua: p.kaprodi || "-",
+              nidn: p.nidn_kaprodi || "-",
+              sk: p.no_sk_akreditasi || "-",
+              fileLama: p.file_paraf_kaprodi || null // Catat nama file jika sudah ada
+            })).sort((a, b) => {
+              // Mengurutkan Prodi sesuai abjad (A-Z)
+              const namaA = a.nama || "";
+              const namaB = b.nama || "";
+              return namaA.localeCompare(namaB);
+            }) : [];
+            
+            return {
+              id: item.id_unit,
+              jenis: isUni ? "Universitas" : "Fakultas",
+              nama: item.nama_unit || "-",
+              en: item.nama_unit_en || "-",
+              dekan: isUni ? item.rektor : item.dekan,
+              nidnDekan: isUni ? item.nidn_rektor : item.nidn_dekan,
+              wakil: isUni ? item.wakil_rektor_1 : item.wakil_dekan_1,
+              nidnWakil: isUni ? item.nidn_wakil_rektor_1 : item.nidn_wakil_dekan_1,
+              katu: isUni ? item.tu_rektorat : item.tu_fakultas,
+              prodi: mappedProdi
+            };
+          });
+          setUnits(formattedData);
+          localStorage.setItem("units", JSON.stringify(formattedData));
+        } else {
+          setApiError(result.message || "Gagal mengambil data unit.");
+        }
+      } catch (err) {
+        setApiError("Gagal terhubung ke server backend.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (token) fetchUnits();
+  }, [token, logout]);
+
+  useEffect(() => {
+    if (units.length > 0) {
+      localStorage.setItem("units", JSON.stringify(units));
+    }
   }, [units]);
 
+  // VARIABEL UI DINAMIS
   const isUniversitas = form.jenis === "Universitas";
   const universitasSudahAda = units.some((u) => u.jenis === "Universitas" && u.id !== editId);
 
@@ -146,43 +233,54 @@ const DaftarUnit = () => {
   const labelParafKatu = isUniversitas ? "Paraf TU Rektor" : "Paraf KATU";
   const labelStempel = isUniversitas ? "Stempel Universitas" : "Stempel Fakultas";
 
-  // Validasi form unit
   const isUnitFormValid = 
-    form.jenis.trim() && form.nama.trim() && form.en.trim() &&
-    form.dekan.trim() && form.nidnDekan.trim() &&
-    form.wakil.trim() && form.nidnWakil.trim() &&
-    form.katu.trim() &&
-    form.ttdDekan && form.parafWakil && form.parafKatu && form.stempel;
+    form.jenis?.trim() && form.nama?.trim() && form.en?.trim() &&
+    form.dekan?.trim() && form.nidnDekan?.trim() &&
+    form.wakil?.trim() && form.nidnWakil?.trim() &&
+    form.katu?.trim() &&
+    (editId ? true : (form.ttdDekan && form.parafWakil && form.parafKatu && form.stempel));
 
-  // Validasi form prodi
   const isProdiFormValid =
-    prodiForm.nama.trim() && prodiForm.namaEn.trim() && prodiForm.sk.trim() &&
-    prodiForm.ketua.trim() && prodiForm.nidn.trim() && prodiForm.file;
+    prodiForm.nama?.trim() && prodiForm.namaEn?.trim() && prodiForm.sk?.trim() &&
+    prodiForm.ketua?.trim() && prodiForm.nidn?.trim(); 
 
   const triggerSuccess = (msg) => {
     setSuccessMessage(msg);
     setShowSuccess(true);
-    setTimeout(() => {
-      setShowSuccess(false);
-    }, 2000);
+    // Timeout dihapus agar user bisa klik "Selesai" secara manual
   };
 
-  const handleChange = useCallback((key) => (e) => {
-    setForm((prev) => ({ ...prev, [key]: e.target.value }));
+  const handleChange = useCallback((key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value })), []);
+  const handleNumberChange = useCallback((key) => (e) => setForm((prev) => ({ ...prev, [key]: onlyNumber(e.target.value) })), []);
+const handleFile = useCallback((key) => (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validasi: Cek apakah tipe file adalah PNG
+      if (file.type !== "image/png" && !file.name.toLowerCase().endsWith(".png")) {
+        alert("Hanya file gambar dengan format .PNG yang diperbolehkan!");
+        e.target.value = ""; // Reset input file agar kosong lagi
+        return;
+      }
+      setForm((prev) => ({ ...prev, [key]: file }));
+    }
   }, []);
-
-  const handleNumberChange = useCallback((key) => (e) => {
-    setForm((prev) => ({ ...prev, [key]: onlyNumber(e.target.value) }));
-  }, []);
-
-  const handleFile = useCallback((key) => (e) => {
-    setForm((prev) => ({ ...prev, [key]: e.target.files[0] }));
-  }, []);
-
   const openForm = (unit = null) => {
     if (unit) {
       setEditId(unit.id);
-      setForm({ ...emptyForm, ...unit });
+        setForm({
+        jenis: unit.jenis || "",
+        nama: unit.nama || "",
+        en: unit.en || "",
+        dekan: unit.dekan || "",
+        nidnDekan: unit.nidnDekan || "",
+        wakil: unit.wakil || "",
+        nidnWakil: unit.nidnWakil || "",
+        katu: unit.katu || "",
+        ttdDekan: null,
+        parafWakil: null,
+        parafKatu: null,
+        stempel: null,
+      });
     } else {
       setEditId(null);
       setForm(emptyForm);
@@ -190,45 +288,93 @@ const DaftarUnit = () => {
     setOpenModal(true);
   };
 
-  const handleSave = () => {
-    if (!isUnitFormValid) return;
-    
-    if (form.jenis === "Universitas" && universitasSudahAda) {
+  // 🔥 SIMPAN KE API
+  const handleSave = async () => {
+    if (!form.jenis || !form.nama) {
+      alert("Jenis unit dan Nama Unit wajib diisi!");
+      return;
+    }
+
+    if (form.jenis === "Universitas" && universitasSudahAda && !editId) {
       alert("Universitas hanya boleh ditambahkan satu kali!");
       return;
     }
 
-    if (editId) {
-      setUnits((prev) =>
-        prev.map((u) => (u.id === editId ? { ...form, id: editId, prodi: u.prodi || [] } : u))
-      );
-    } else {
-      setUnits((prev) => [
-        ...prev,
-        {
-          ...form,
-          id: Date.now(),
-          prodi: [],
-        },
-      ]);
+    const formData = new FormData();
+    formData.append("nama_unit", form.nama);
+    formData.append("jenis_unit", form.jenis.toLowerCase());
+    formData.append("nama_unit_en", form.en || "");
+    formData.append("dekan", form.dekan || "");
+    formData.append("nidn_dekan", form.nidnDekan || "");
+    formData.append("wakil_dekan_1", form.wakil || "");
+    formData.append("nidn_wakil_dekan_1", form.nidnWakil || "");
+    formData.append("tu_fakultas", form.katu || "");
+    
+    if (form.ttdDekan) formData.append("file_ttd_dekan", form.ttdDekan);
+    if (form.parafWakil) formData.append("file_paraf_wadek", form.parafWakil);
+    if (form.parafKatu) formData.append("file_paraf_tu_fakultas", form.parafKatu);
+    if (form.stempel) formData.append("file_stempel_fakultas", form.stempel);
+
+    try {
+      const url = editId ? `/api/unit/editUnit/${editId}` : "/api/unit/createUnit";
+      const method = editId ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method: method,
+        headers: { "Authorization": `Bearer ${token}` }, // TANPA CONTENT-TYPE
+        body: formData,
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        setOpenModal(false);
+        triggerSuccess(editId ? "Unit berhasil diupdate!" : "Unit berhasil ditambahkan!");
+      } else {
+        alert("Error Backend: " + JSON.stringify(result));
+      }
+    } catch (err) {
+      alert("Error Koneksi.");
     }
-    triggerSuccess(editId ? "Unit berhasil diupdate" : "Unit berhasil ditambahkan");
-    setOpenModal(false);
   };
 
-  const handleDelete = (id) => {
-    setUnits((prev) => prev.filter((u) => u.id !== id));
-    triggerSuccess("Unit berhasil dihapus");
+// 🔥 FUNGSI HAPUS UNIT (Menembak API DELETE)
+  const handleDelete = async (id) => {
+    try {
+      // 🎯 Sesuaikan rute ini dengan rute delete di Backend Komandan
+      // Misalnya: "/api/unit/deleteUnit/${id}" atau "/api/unit/${id}"
+      const response = await fetch(`/api/unit/deleteUnit/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      if (response.ok) {
+        // Jika backend merespon sukses, hapus dari tampilan Frontend
+        setUnits((prev) => prev.filter((u) => u.id !== id));
+        triggerSuccess("Unit berhasil dihapus dari database!");
+      } else {
+        const errorData = await response.json();
+        alert(`Gagal menghapus unit: ${errorData.message || "Kesalahan Server"}`);
+      }
+    } catch (error) {
+      console.error("Error menghapus unit:", error);
+      alert("Terjadi kesalahan koneksi saat menghapus unit.");
+    }
   };
 
+  // 🔥 TOMBOL SELESAI DI KLIK
   const handleSelesai = () => {
     setLoadingDone(true);
     setTimeout(() => {
       setLoadingDone(false);
       setShowSuccess(false);
+      window.location.reload(); // Refresh untuk menarik data terbaru dari DB
     }, 500);
   };
 
+  // --- PRODI FUNCTIONS ---
   const openProdiModal = (unitId) => {
     setActiveUnitId(unitId);
     setProdiForm(emptyProdiForm);
@@ -238,12 +384,7 @@ const DaftarUnit = () => {
   const handleEditProdi = (unitId, index) => {
     const unit = units.find((u) => u.id === unitId);
     const data = unit.prodi[index];
-    
-    setProdiForm({
-      ...emptyProdiForm,
-      ...data,
-      editIndex: index,
-    });
+    setProdiForm({ ...emptyProdiForm, ...data, editIndex: index });
     setActiveUnitId(unitId);
     setOpenProdiForm(true);
   };
@@ -252,52 +393,81 @@ const DaftarUnit = () => {
     setUnits((prev) =>
       prev.map((u) => {
         if (u.id !== unitId) return u;
-        return {
-          ...u,
-          prodi: u.prodi.filter((_, i) => i !== index),
-        };
+        return { ...u, prodi: u.prodi.filter((_, i) => i !== index) };
       })
     );
     triggerSuccess("Prodi berhasil dihapus");
   };
 
-  const saveProdi = () => {
+  // 🔥 FUNGSI SIMPAN PRODI (Menembak API POST/PUT)
+  const saveProdi = async () => {
     if (!isProdiFormValid) return;
-    
-    setUnits((prev) =>
-      prev.map((u) => {
-        if (u.id !== activeUnitId) return u;
-        return {
-          ...u,
-          prodi: prodiForm.editIndex !== undefined
-            ? u.prodi.map((p, i) => i === prodiForm.editIndex ? prodiForm : p)
-            : [...(u.prodi || []), prodiForm],
-        };
-      })
-    );
-    triggerSuccess("Prodi berhasil disimpan");
-    setOpenProdiForm(false);
+
+    // 1. Bungkus data ke dalam FormData agar file foto bisa ikut terkirim
+    const formData = new FormData();
+    formData.append("id_unit", activeUnitId); // ID Fakultas/Universitas tempat Prodi ini bernaung
+    formData.append("nama_prodi", prodiForm.nama);
+    formData.append("nama_prodi_en", prodiForm.namaEn || "");
+    formData.append("kaprodi", prodiForm.ketua || "");
+    formData.append("nidn_kaprodi", prodiForm.nidn || "");
+    formData.append("no_sk_akreditasi", prodiForm.sk || "");
+
+    // Jika ada file stempel/paraf prodi yang dipilih, masukkan ke form
+    if (prodiForm.file) {
+      formData.append("file_paraf_kaprodi", prodiForm.file);
+    }
+
+    try {
+      // 2. Tentukan apakah ini mode Edit atau Tambah Baru
+      const isEdit = prodiForm.editIndex !== undefined;
+      
+      // 🎯 CATATAN KOMANDAN: Sesuaikan rute URL ini dengan rute di Backend!
+      const url = isEdit 
+        ? `/api/unit/editProdi/${prodiForm.id}` // Jika update
+        : `/api/unit/createProdi`;              // Jika tambah baru
+        
+      const method = isEdit ? "PUT" : "POST";
+
+      // 3. Tembakkan ke server Backend
+      const response = await fetch(url, {
+        method: method,
+        headers: { 
+          "Authorization": `Bearer ${token}` 
+          // TANPA Content-Type, biarkan browser yang mengatur otomatis
+        },
+        body: formData,
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        setOpenProdiForm(false);
+        triggerSuccess(isEdit ? "Prodi berhasil diupdate!" : "Prodi berhasil ditambahkan!");
+        // UI akan ter-refresh otomatis ketika tombol "Selesai" diklik (karena fungsi handleSelesai)
+      } else {
+        alert("Error Backend: " + (result.message || JSON.stringify(result)));
+      }
+    } catch (err) {
+      console.error("Error save prodi:", err);
+      alert("Error Koneksi: Gagal menyimpan Prodi ke server.");
+    }
   };
 
-  const handleProdiFile = (e) => {
-    setProdiForm((prev) => ({
-      ...prev,
-      file: e.target.files[0],
-    }));
-  };
-
-  const handleProdiNidnChange = (e) => {
-    setProdiForm((prev) => ({
-      ...prev,
-      nidn: onlyNumber(e.target.value),
-    }));
-  };
-
+const handleProdiFile = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.type !== "image/png" && !file.name.toLowerCase().endsWith(".png")) {
+        alert("Hanya file gambar dengan format .PNG yang diperbolehkan!");
+        e.target.value = ""; 
+        return;
+      }
+      setProdiForm((prev) => ({ ...prev, file: file }));
+    }
+  };  const handleProdiNidnChange = (e) => setProdiForm((prev) => ({ ...prev, nidn: onlyNumber(e.target.value) }));
   const toggleProdiDropdown = (unitId, idx) => {
     const key = `${unitId}-${idx}`;
     setOpenProdiIndex((prev) => ({ ...prev, [key]: !prev[key] }));
   };
-
   const isProdiOpen = (unitId, idx) => !!openProdiIndex[`${unitId}-${idx}`];
 
   return (
@@ -310,6 +480,7 @@ const DaftarUnit = () => {
             <p className="text-sm text-gray-400 mt-1">
               Kelola data pejabat penandatangan dokumen ijazah dan transkrip.
             </p>
+            {apiError && <p className="text-sm text-red-500 mt-2 font-semibold">⚠️ {apiError}</p>}
           </div>
           <button
             type="button"
@@ -323,153 +494,167 @@ const DaftarUnit = () => {
 
         {/* LIST UNIT */}
         <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-3">
-          {[...units]
-            .sort((a, b) => {
-              if (a.jenis === "Universitas") return -1;
-              if (b.jenis === "Universitas") return 1;
-              return 0;
-            })
-            .map((u) => {
-              const isUni = u.jenis === "Universitas";
-              const pimpinan = isUni ? "Rektor" : "Dekan";
-              const wakil = isUni ? "Wakil Rektor" : "Wakil Dekan";
-              const katu = isUni ? "TU Rektor" : "KATU Fakultas";
+          {isLoading ? (
+            <div className="py-10 text-center flex flex-col items-center justify-center space-y-3">
+               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0B4B48]"></div>
+               <p className="text-sm text-gray-500 font-medium">Menarik data dari server pusat...</p>
+            </div>
+          ) : units.length === 0 ? (
+            <div className="py-10 text-center text-gray-400 font-medium text-sm">
+               Belum ada data unit di database. Silakan tambah unit baru.
+            </div>
+          ) : (
+            [...units]
+              .sort((a, b) => {
+                if (a.jenis === "Universitas") return -1;
+                if (b.jenis === "Universitas") return 1;
+                
+                const namaA = a.nama || "";
+                const namaB = b.nama || "";
+                return namaA.localeCompare(namaB);
+              })
+              .map((u) => {
+                const isUni = u.jenis === "Universitas";
+                const pimpinan = isUni ? "Rektor" : "Dekan";
+                const wakil = isUni ? "Wakil Rektor" : "Wakil Dekan";
+                const katu = isUni ? "TU Rektor" : "KATU Fakultas";
 
-              return (
-                <div key={u.id} className="border border-gray-100 rounded-lg">
-                  {/* HEADER UNIT */}
-                  <div
-                    onClick={() => setOpenUnit(openUnit === u.id ? null : u.id)}
-                    className="flex justify-between items-center gap-4 px-4 py-3 cursor-pointer hover:bg-gray-50"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-base font-bold text-gray-800 truncate">{u.nama}</p>
-                      <p className="text-xs text-gray-400 truncate">{u.en}</p>
-                    </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <ActionIconButton title="Buka/Tutup">
-                        <FiChevronDown
-                          className={`transition-transform duration-200 ${openUnit === u.id ? "rotate-180" : ""}`}
-                        />
-                      </ActionIconButton>
-                      <ActionIconButton
-                        title="Edit Unit"
-                        onClick={(e) => { e.stopPropagation(); openForm(u); }}
-                      >
-                        <FiEdit2 size={16} />
-                      </ActionIconButton>
-                      <ActionIconButton
-                        title="Hapus Unit"
-                        danger
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteTarget(u.id);
-                          setDeleteType("unit");
-                          setShowDeleteModal(true);
-                        }}
-                      >
-                        <FiTrash2 size={16} />
-                      </ActionIconButton>
-                    </div>
-                  </div>
-
-                  {/* DROPDOWN UNIT */}
-                  {openUnit === u.id && (
-                    <div className="px-4 pb-5 pt-3 space-y-5 border-t border-gray-100">
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">{pimpinan}</p>
-                        <p className="text-xs text-gray-400">
-                          {u.dekan} <span className="mx-1">-</span> {u.nidnDekan}
-                        </p>
+                return (
+                  <div key={u.id} className="border border-gray-100 rounded-lg">
+                    {/* HEADER UNIT */}
+                    <div
+                      onClick={() => setOpenUnit(openUnit === u.id ? null : u.id)}
+                      className="flex justify-between items-center gap-4 px-4 py-3 cursor-pointer hover:bg-gray-50"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-base font-bold text-gray-800 truncate">{u.nama}</p>
+                        <p className="text-xs text-gray-400 truncate">{u.en}</p>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">{wakil}</p>
-                        <p className="text-xs text-gray-400">
-                          {u.wakil} <span className="mx-1">-</span> {u.nidnWakil}
-                        </p>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <ActionIconButton title="Buka/Tutup">
+                          <FiChevronDown
+                            className={`transition-transform duration-200 ${openUnit === u.id ? "rotate-180" : ""}`}
+                          />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          title="Edit Unit"
+                          onClick={(e) => { e.stopPropagation(); openForm(u); }}
+                        >
+                          <FiEdit2 size={16} />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          title="Hapus Unit"
+                          danger
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteTarget(u.id);
+                            setDeleteType("unit");
+                            setShowDeleteModal(true);
+                          }}
+                        >
+                          <FiTrash2 size={16} />
+                        </ActionIconButton>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">{katu}</p>
-                        <p className="text-xs text-gray-400">{u.katu}</p>
+                    </div>
 
-                        {/* DAFTAR PRODI */}
-                        {u.jenis === "Fakultas" && u.prodi?.length > 0 && (
-                          <div className="mt-3 pl-3 border-l border-gray-200 space-y-2">
-                            {u.prodi.map((p, idx) => (
-                              <div key={idx} className="border border-gray-100 rounded-lg">
-                                {/* ROW PRODI */}
-                                <div
-                                  onClick={() => toggleProdiDropdown(u.id, idx)}
-                                  className="flex justify-between items-center gap-4 px-3 py-2.5 cursor-pointer hover:bg-gray-50 rounded-lg"
-                                >
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-semibold text-gray-800 truncate">{p.nama}</p>
-                                    {p.namaEn && (
-                                      <p className="text-[11px] text-gray-400 truncate">{p.namaEn}</p>
-                                    )}
+                    {/* DROPDOWN UNIT */}
+                    {openUnit === u.id && (
+                      <div className="px-4 pb-5 pt-3 space-y-5 border-t border-gray-100">
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">{pimpinan}</p>
+                          <p className="text-xs text-gray-400">
+                            {u.dekan} <span className="mx-1">-</span> {u.nidnDekan}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">{wakil}</p>
+                          <p className="text-xs text-gray-400">
+                            {u.wakil} <span className="mx-1">-</span> {u.nidnWakil}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">{katu}</p>
+                          <p className="text-xs text-gray-400">{u.katu}</p>
+
+                          {/* DAFTAR PRODI */}
+                          {u.jenis === "Fakultas" && u.prodi?.length > 0 && (
+                            <div className="mt-3 pl-3 border-l border-gray-200 space-y-2">
+                              {u.prodi.map((p, idx) => (
+                                <div key={idx} className="border border-gray-100 rounded-lg">
+                                  {/* ROW PRODI */}
+                                  <div
+                                    onClick={() => toggleProdiDropdown(u.id, idx)}
+                                    className="flex justify-between items-center gap-4 px-3 py-2.5 cursor-pointer hover:bg-gray-50 rounded-lg"
+                                  >
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-sm font-semibold text-gray-800 truncate">{p.nama}</p>
+                                      {p.namaEn && (
+                                        <p className="text-[11px] text-gray-400 truncate">{p.namaEn}</p>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-1 flex-shrink-0">
+                                      <ActionIconButton title="Buka/Tutup">
+                                        <FiChevronDown
+                                          size={15}
+                                          className={`transition-transform duration-200 ${isProdiOpen(u.id, idx) ? "rotate-180" : ""}`}
+                                        />
+                                      </ActionIconButton>
+                                      <ActionIconButton
+                                        title="Edit Prodi"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditProdi(u.id, idx);
+                                        }}
+                                      >
+                                        <FiEdit2 size={14} />
+                                      </ActionIconButton>
+                                      <ActionIconButton
+                                        title="Hapus Prodi"
+                                        danger
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setDeleteTarget({ unitId: u.id, index: idx });
+                                          setDeleteType("prodi");
+                                          setShowDeleteModal(true);
+                                        }}
+                                      >
+                                        <FiTrash2 size={14} />
+                                      </ActionIconButton>
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-1 flex-shrink-0">
-                                    <ActionIconButton title="Buka/Tutup">
-                                      <FiChevronDown
-                                        size={15}
-                                        className={`transition-transform duration-200 ${isProdiOpen(u.id, idx) ? "rotate-180" : ""}`}
-                                      />
-                                    </ActionIconButton>
-                                    <ActionIconButton
-                                      title="Edit Prodi"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleEditProdi(u.id, idx);
-                                      }}
-                                    >
-                                      <FiEdit2 size={14} />
-                                    </ActionIconButton>
-                                    <ActionIconButton
-                                      title="Hapus Prodi"
-                                      danger
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setDeleteTarget({ unitId: u.id, index: idx });
-                                        setDeleteType("prodi");
-                                        setShowDeleteModal(true);
-                                      }}
-                                    >
-                                      <FiTrash2 size={14} />
-                                    </ActionIconButton>
-                                  </div>
+
+                                  {/* DROPDOWN PRODI */}
+                                  {isProdiOpen(u.id, idx) && (
+                                    <div className="px-3 pb-3 pt-1 border-t border-gray-100">
+                                      <p className="text-sm font-medium text-gray-700">Ketua Program Studi</p>
+                                      <p className="text-xs text-gray-400 mt-0.5">{p.ketua}</p>
+                                      {p.nidn && (
+                                        <p className="text-xs text-gray-400">NIDN: {p.nidn}</p>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
 
-                                {/* DROPDOWN PRODI */}
-                                {isProdiOpen(u.id, idx) && (
-                                  <div className="px-3 pb-3 pt-1 border-t border-gray-100">
-                                    <p className="text-sm font-medium text-gray-700">Ketua Program Studi</p>
-                                    <p className="text-xs text-gray-400 mt-0.5">{p.ketua}</p>
-                                    {p.nidn && (
-                                      <p className="text-xs text-gray-400">NIDN: {p.nidn}</p>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
+                        {u.jenis === "Fakultas" && (
+                          <button
+                            type="button"
+                            onClick={() => openProdiModal(u.id)}
+                            className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[#1F7A6E] border border-[#1F7A6E] px-3 py-1.5 rounded-md hover:bg-[#1F7A6E] hover:text-white transition"
+                          >
+                            <FiPlus size={12} />
+                            Tambah Prodi
+                          </button>
                         )}
                       </div>
-
-                      {u.jenis === "Fakultas" && (
-                        <button
-                          type="button"
-                          onClick={() => openProdiModal(u.id)}
-                          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[#1F7A6E] border border-[#1F7A6E] px-3 py-1.5 rounded-md hover:bg-[#1F7A6E] hover:text-white transition"
-                        >
-                          <FiPlus size={12} />
-                          Tambah Prodi
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                    )}
+                  </div>
+                );
+              })
+          )}
         </div>
 
         {/* MODAL UNIT */}
@@ -494,9 +679,9 @@ const DaftarUnit = () => {
                         <option value="" disabled hidden>Pilih Jenis Unit</option>
                         <option 
                           value="Universitas" 
-                          disabled={universitasSudahAda}
+                          disabled={universitasSudahAda && !editId}
                         >
-                          Universitas {universitasSudahAda ? "(Sudah terisi)" : ""}
+                          Universitas {(universitasSudahAda && !editId) ? "(Sudah terisi)" : ""}
                         </option>
                         <option value="Fakultas">Fakultas</option>
                       </select>
@@ -513,7 +698,7 @@ const DaftarUnit = () => {
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <RequiredLabel>Nama (English)</RequiredLabel>
+                    <RequiredLabel>Nama Unit (English)</RequiredLabel>
                     <input
                       value={form.en}
                       onChange={handleChange("en")}
@@ -547,10 +732,13 @@ const DaftarUnit = () => {
                     <RequiredLabel>{labelTTD}</RequiredLabel>
                     <input
                       type="file"
+                      accept="image/png" 
                       onChange={handleFile("ttdDekan")}
                       className="w-full text-sm text-gray-500 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
                     />
                     {form.ttdDekan?.name && <p className="text-xs text-gray-400 mt-1">{form.ttdDekan.name}</p>}
+
+                 
                   </div>
                 </div>
 
@@ -578,6 +766,7 @@ const DaftarUnit = () => {
                     <RequiredLabel>{labelParafWakil}</RequiredLabel>
                     <input
                       type="file"
+                      accept="image/png" 
                       onChange={handleFile("parafWakil")}
                       className="w-full text-sm text-gray-500 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
                     />
@@ -599,6 +788,7 @@ const DaftarUnit = () => {
                     <RequiredLabel>{labelParafKatu}</RequiredLabel>
                     <input
                       type="file"
+                      accept="image/png" 
                       onChange={handleFile("parafKatu")}
                       className="w-full text-sm text-gray-500 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
                     />
@@ -608,6 +798,7 @@ const DaftarUnit = () => {
                     <RequiredLabel>{labelStempel}</RequiredLabel>
                     <input
                       type="file"
+                      accept="image/png" 
                       onChange={handleFile("stempel")}
                       className="w-full text-sm text-gray-500 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
                     />
@@ -714,6 +905,7 @@ const DaftarUnit = () => {
                     <RequiredLabel>File Paraf Kepala Program Studi</RequiredLabel>
                     <input
                       type="file"
+                       accept="image/png"
                       onChange={handleProdiFile}
                       className="w-full text-sm text-gray-500 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
                     />

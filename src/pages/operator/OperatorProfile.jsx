@@ -1,39 +1,74 @@
-// src/pages/operator/OperatorProfile.jsx
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext"
+import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { FiUser, FiLock, FiCheckCircle, FiEye, FiEyeOff } from "react-icons/fi";
 
 const OperatorProfile = () => {
   const navigate = useNavigate();
-  const { logout, user } = useAuth();
+  // 🔥 AMBIL TOKEN DARI AUTH CONTEXT
+  const { logout, token } = useAuth();
 
+  // State Data User
+  const [userData, setUserData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // State Modal & Form
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const userData = {
-    nama: user?.name || "Operator Data",
-    nidn: user?.nidn || "98765432109876",
-    email: user?.email || "operator@gmail.com",
-    role: user?.role === "operator_data" ? "Operator Data" : "Operator",
-    tanggalBergabung: user?.created_at || "1 Januari 2025",
-  };
+  // 🔥 1. FUNGSI FETCH DATA PROFIL OPERATOR
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setIsLoading(true);
+        // Memanggil rute yang sudah kita buat khusus untuk profil
+        const response = await fetch("/api/profile/me", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        const result = await response.json();
+        
+        if (response.ok && result.data) {
+          const joinDate = result.data.created_at 
+            ? new Date(result.data.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+            : "-";
+
+          setUserData({
+            nama: result.data.nama || "-", 
+            nidn: result.data.nidn || "-", 
+            email: result.data.email || "-",
+            // Rapikan tulisan role
+            role: result.data.role === "operator" ? "Operator Sistem" : result.data.role,
+            tanggalBergabung: joinDate
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching operator profile:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (token) fetchProfile();
+  }, [token]);
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
-  const handlePasswordSubmit = (e) => {
+  // 🔥 2. FUNGSI UBAH SANDI (TERSAMBUNG KE BACKEND)
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
       alert("Konfirmasi kata sandi tidak cocok!");
@@ -43,15 +78,39 @@ const OperatorProfile = () => {
       alert("Kata sandi baru minimal 8 karakter!");
       return;
     }
-    setIsPasswordModalOpen(false);
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setShowCurrentPassword(false);
-    setShowNewPassword(false);
-    setShowConfirmPassword(false);
-    setShowSuccessToast(true);
-    setTimeout(() => setShowSuccessToast(false), 3000);
+
+    try {
+      const response = await fetch("/api/user/changePassword", {
+        method: "PUT", 
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          oldPassword: currentPassword,
+          newPassword: newPassword
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setIsPasswordModalOpen(false);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setShowCurrentPassword(false);
+        setShowNewPassword(false);
+        setShowConfirmPassword(false);
+        
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 3000);
+      } else {
+        alert(result.message || "Gagal mengubah kata sandi.");
+      }
+    } catch (error) {
+      alert("Terjadi kesalahan jaringan.");
+    }
   };
 
   return (
@@ -69,23 +128,33 @@ const OperatorProfile = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-y-10 gap-x-6 mb-12">
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Nama Lengkap</p>
-              <p className="text-lg font-bold text-gray-800">{userData.nama}</p>
+              <p className="text-lg font-bold text-gray-800">
+                {isLoading ? "Memuat..." : userData?.nama}
+              </p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">NIDN</p>
-              <p className="text-lg font-bold text-gray-800 tracking-wider">{userData.nidn}</p>
+              <p className="text-lg font-bold text-gray-800 tracking-wider">
+                {isLoading ? "Memuat..." : userData?.nidn}
+              </p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Email</p>
-              <p className="text-lg font-bold text-gray-800">{userData.email}</p>
+              <p className="text-lg font-bold text-gray-800">
+                {isLoading ? "Memuat..." : userData?.email}
+              </p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Role</p>
-              <p className="text-lg font-bold text-gray-800">{userData.role}</p>
+              <p className="text-lg font-bold text-gray-800">
+                {isLoading ? "Memuat..." : userData?.role}
+              </p>
             </div>
             <div className="col-span-2">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tanggal Bergabung</p>
-              <p className="text-lg font-bold text-gray-800">{userData.tanggalBergabung}</p>
+              <p className="text-lg font-bold text-gray-800">
+                {isLoading ? "Memuat..." : userData?.tanggalBergabung}
+              </p>
             </div>
           </div>
 
@@ -98,7 +167,7 @@ const OperatorProfile = () => {
               </div>
               <div>
                 <p className="text-base font-bold text-gray-800">Kata Sandi</p>
-                <p className="text-xs text-gray-400">Terakhir diubah 5 bulan yang lalu</p>
+                <p className="text-xs text-gray-400">Terakhir diubah belum lama ini</p>
               </div>
               <button
                 onClick={() => setIsPasswordModalOpen(true)}
@@ -119,7 +188,7 @@ const OperatorProfile = () => {
 
       {/* Modal Ubah Kata Sandi */}
       {isPasswordModalOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
             <div className="p-8 pb-6 border-b border-gray-100">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Ubah Kata Sandi</h2>
@@ -193,8 +262,8 @@ const OperatorProfile = () => {
 
       {/* Modal Logout */}
       {isLogoutModalOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-4xl p-8 w-full max-w-md shadow-2xl text-center">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center">
             <div className="mx-auto w-24 h-24 bg-[#FFEAEA] rounded-[28px] flex items-center justify-center mb-6">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-[#D32F2F] ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -218,7 +287,7 @@ const OperatorProfile = () => {
 
       {/* Toast Sukses */}
       {showSuccessToast && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-70">
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[70]">
           <div className="bg-[#0B4B48] text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-3">
             <FiCheckCircle className="text-[#27AE60]" size={20} />
             <span className="text-sm font-medium">Kata sandi berhasil diperbarui!</span>

@@ -1,10 +1,35 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { FiUser, FiLock, FiCheckCircle, FiEye, FiEyeOff } from "react-icons/fi";
 
+// 🔥 IMPORT AUTH CONTEXT
+import { useAuth } from "../context/AuthContext";
+
+// ==================== FUNGSI FORMAT ROLE ====================
+const formatRoleUI = (role) => {
+  if (!role) return "-";
+  const roleMap = {
+    "admin": "Admin",
+    "operator": "Operator",
+    "rektor": "Rektor",
+    "wakil_rektor_1": "Wakil Rektor 1",
+    "tu_rektorat": "TU Rektorat",
+    "dekan": "Dekan",
+    "wakil_dekan_1": "Wakil Dekan 1",
+    "tu_fakultas": "TU Fakultas"
+  };
+  return roleMap[role.toLowerCase()] || role; 
+};
+// ============================================================
+
 const Profile = () => {
   const navigate = useNavigate();
+  const { token, logout } = useAuth();
+
+  // State Data User
+  const [userData, setUserData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   // State untuk Modals
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -23,17 +48,54 @@ const Profile = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // 🔥 1. FUNGSI FETCH DATA PROFIL
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch("/api/profile/me", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        const result = await response.json();
+        console.log("🔍 ISI FULL RESPON BACKEND:", result);        
+        
+        if (response.ok && result.data) {
+          // Format tanggal jika ada dari backend
+          const joinDate = result.data.created_at 
+            ? new Date(result.data.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+            : "-";
+
+          setUserData({
+            nama: result.data.nama || "-", 
+            nidn: result.data.nidn || "-", 
+            email: result.data.email || "-",
+            role: result.data.role || "-",
+            tanggal_bergabung: joinDate
+          });
+        } else {
+           console.warn("Backend tidak mengirimkan result.data", result);
+        }
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (token) fetchProfile();
+  }, [token]);
+
   // Fungsi Logout
   const handleLogout = () => {
-    localStorage.clear();
+    logout(); 
     navigate("/login");
   };
 
-  // Fungsi Submit Ubah Sandi
-  const handlePasswordSubmit = (e) => {
+  // 🔥 2. FUNGSI SUBMIT UBAH SANDI KE API
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     
-    // Validasi Sederhana
     if (newPassword !== confirmPassword) {
       alert("Konfirmasi kata sandi tidak cocok!");
       return;
@@ -43,24 +105,38 @@ const Profile = () => {
       return;
     }
 
-    // Simulasi Berhasil
-    setIsPasswordModalOpen(false);
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    
-    // Reset toggle mata kembali tertutup
-    setShowCurrentPassword(false);
-    setShowNewPassword(false);
-    setShowConfirmPassword(false);
+    try {
+      const response = await fetch("/api/user/changePassword", {
+        method: "PUT", 
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          oldPassword: currentPassword,
+          newPassword: newPassword
+        })
+      });
 
-    // Tampilkan Pop-up Success
-    setShowSuccessToast(true);
-    
-    // Hilangkan pop-up setelah 3 detik
-    setTimeout(() => {
-      setShowSuccessToast(false);
-    }, 3000);
+      const result = await response.json();
+
+      if (response.ok) {
+        setIsPasswordModalOpen(false);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setShowCurrentPassword(false);
+        setShowNewPassword(false);
+        setShowConfirmPassword(false);
+
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 3000);
+      } else {
+        alert(result.message || "Gagal mengubah kata sandi.");
+      }
+    } catch (error) {
+      alert("Terjadi kesalahan jaringan.");
+    }
   };
 
   return (
@@ -80,23 +156,33 @@ const Profile = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-y-10 gap-x-6 mb-12">
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Nama Lengkap</p>
-              <p className="text-lg font-bold text-gray-800">Dr.Richoad,M.Kom</p>
+              <p className="text-lg font-bold text-gray-800">
+                {isLoading ? "Memuat..." : userData?.nama}
+              </p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">NIDN</p>
-              <p className="text-lg font-bold text-gray-800 tracking-wider">12345678912345</p>
+              <p className="text-lg font-bold text-gray-800 tracking-wider">
+                {isLoading ? "Memuat..." : userData?.nidn}
+              </p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Email</p>
-              <p className="text-lg font-bold text-gray-800">richoad138@gmail.com</p>
+              <p className="text-lg font-bold text-gray-800">
+                {isLoading ? "Memuat..." : userData?.email}
+              </p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Role</p>
-              <p className="text-lg font-bold text-gray-800">Wakil Dekan</p>
+              <p className="text-lg font-bold text-gray-800">
+                {isLoading ? "Memuat..." : formatRoleUI(userData?.role)}
+              </p>
             </div>
             <div className="col-span-2">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tanggal Bergabung</p>
-              <p className="text-lg font-bold text-gray-800">15 Desember 2015</p>
+              <p className="text-lg font-bold text-gray-800">
+                {isLoading ? "Memuat..." : userData?.tanggal_bergabung}
+              </p>
             </div>
           </div>
 
@@ -110,7 +196,7 @@ const Profile = () => {
               </div>
               <div>
                 <p className="text-base font-bold text-gray-800">Kata Sandi</p>
-                <p className="text-xs text-gray-400">Terakhir diubah 5 bulan yang lalu</p>
+                <p className="text-xs text-gray-400">Disarankan untuk diperbarui secara berkala</p>
               </div>
               <button 
                 onClick={() => setIsPasswordModalOpen(true)}
