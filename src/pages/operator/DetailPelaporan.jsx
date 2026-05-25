@@ -109,27 +109,30 @@ const DetailPelaporan = () => {
   const statusDescription = getStatusDescription(mahasiswa.status);
   const statusFullDescription = getStatusFullDescription(mahasiswa.status);
 
-  const handleLinkIjazah = () => {
-    navigate(`/operator/ijazah-digital/${mahasiswa.nim}`, { 
-      state: { 
-        nama: mahasiswa.nama,
-        nim: mahasiswa.nim,
-        fakultas: mahasiswa.fakultas,
-        prodi: mahasiswa.prodi,
-        tahunLulus: mahasiswa.tahunLulus,
-        tempatLahir: mahasiswa.tempatLahir,
-        tanggalLahir: mahasiswa.tanggalLahir,
-        batch: mahasiswa.batch,
-        jenisKelamin: mahasiswa.jenisKelamin,
-        email: mahasiswa.email,
-        noTelp: mahasiswa.noTelp,
-        tahunMasuk: mahasiswa.tahunMasuk,
-        ipk: mahasiswa.ipk,
-        totalSks: mahasiswa.totalSks
-      } 
-    });
-  };
+ // src/pages/operator/DetailPelaporan.jsx
+// Kode Anda SUDAH BENAR - handleLinkIjazah sudah mengirim state lengkap
+// Yang perlu dipastikan: navigate ke `/operator/ijazah-digital/${mahasiswa.nim}`
 
+const handleLinkIjazah = () => {
+  navigate(`/operator/ijazah-digital/${mahasiswa.nim}`, { 
+    state: { 
+      nama: mahasiswa.nama,
+      nim: mahasiswa.nim,
+      fakultas: mahasiswa.fakultas,
+      prodi: mahasiswa.prodi,
+      tahunLulus: mahasiswa.tahunLulus,
+      tempatLahir: mahasiswa.tempatLahir,
+      tanggalLahir: mahasiswa.tanggalLahir,
+      batch: mahasiswa.batch,
+      jenisKelamin: mahasiswa.jenisKelamin,
+      email: mahasiswa.email,
+      noTelp: mahasiswa.noTelp,
+      tahunMasuk: mahasiswa.tahunMasuk,
+      ipk: mahasiswa.ipk,
+      totalSks: mahasiswa.totalSks
+    } 
+  });
+};
   return (
     <DashboardLayout title={`Detail Pelaporan - ${mahasiswa.nama}`}>
       <div className="w-full">

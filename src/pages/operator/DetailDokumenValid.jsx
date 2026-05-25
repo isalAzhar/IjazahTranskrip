@@ -38,7 +38,7 @@ const DetailDokumenValid = () => {
     return (
       <DashboardLayout title="Detail Dokumen Valid">
         <div className="w-full text-center py-10">
-          <p className="text-gray-500 mb-3">Data tidak ditemukan</p>
+          <p className="text-gray-500 mb-3">Data tidak ditemukan.</p>
           <button 
             onClick={() => navigate("/operator/dokumen-valid")} 
             className="text-[#115E59] font-bold hover:underline"
@@ -91,26 +91,29 @@ const DetailDokumenValid = () => {
     navigate(-1);
   };
 
-  const handleLinkIjazah = () => {
-    navigate(`/operator/ijazah-digital/${mahasiswa.nim}`, { 
-      state: { 
-        nama: mahasiswa.nama,
-        nim: mahasiswa.nim,
-        fakultas: mahasiswa.fakultas,
-        prodi: mahasiswa.prodi,
-        tahunLulus: mahasiswa.tahunLulus,
-        tempatLahir: mahasiswa.tempatLahir,
-        tanggalLahir: mahasiswa.tanggalLahir,
-        batch: mahasiswa.batch,
-        jenisKelamin: mahasiswa.jenisKelamin,
-        email: mahasiswa.email,
-        noTelp: mahasiswa.noTelp,
-        tahunMasuk: mahasiswa.tahunMasuk,
-        ipk: mahasiswa.ipk,
-        totalSks: mahasiswa.totalSks
-      } 
-    });
-  };
+ // src/pages/operator/DetailDokumenValid.jsx
+// Kode Anda SUDAH BENAR - handleLinkIjazah sudah mengirim state lengkap
+
+const handleLinkIjazah = () => {
+  navigate(`/operator/ijazah-digital/${mahasiswa.nim}`, { 
+    state: { 
+      nama: mahasiswa.nama,
+      nim: mahasiswa.nim,
+      fakultas: mahasiswa.fakultas,
+      prodi: mahasiswa.prodi,
+      tahunLulus: mahasiswa.tahunLulus,
+      tempatLahir: mahasiswa.tempatLahir,
+      tanggalLahir: mahasiswa.tanggalLahir,
+      batch: mahasiswa.batch,
+      jenisKelamin: mahasiswa.jenisKelamin,
+      email: mahasiswa.email,
+      noTelp: mahasiswa.noTelp,
+      tahunMasuk: mahasiswa.tahunMasuk,
+      ipk: mahasiswa.ipk,
+      totalSks: mahasiswa.totalSks
+    } 
+  });
+};
 
   return (
     <DashboardLayout title={`Detail Dokumen Valid - ${mahasiswa.nama}`}>

@@ -110,7 +110,7 @@ const Navbar = () => {
     ],
     operator: [
       { name: "Dashboard",      path: "/operator/dashboard" },
-      { name: "Manajemen Data", path: "/operator/manajemen-data" },
+      { name: "Upload Data", path: "/operator/upload-data" },
       { name: "Pelaporan",      path: "/operator/pelaporan" },
       { name: "Dokumen Valid",  path: "/operator/dokumen-valid" },
     ],

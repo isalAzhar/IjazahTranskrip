@@ -45,6 +45,18 @@ const generateDummyData = () => {
   const tempatLahirList = ["Bogor", "Jakarta", "Bandung", "Depok", "Bekasi", "Tangerang"];
   const bulanList = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
   
+  const getRandomDate = (index) => {
+    const startDate = new Date(2025, 0, 1);
+    const endDate = new Date(2025, 11, 31);
+    const diffDays = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24));
+    const dayOffset = Math.floor((index / 60) * diffDays);
+    const randomDate = new Date(startDate.getTime() + dayOffset * 24 * 60 * 60 * 1000);
+    const day = randomDate.getDate();
+    const month = randomDate.getMonth() + 1;
+    const year = randomDate.getFullYear();
+    return `${day.toString().padStart(2, "0")}/${month.toString().padStart(2, "0")}/${year}`;
+  };
+  
   for (let i = 0; i < 60; i++) {
     const nama = namaList[i % namaList.length] + (i >= namaList.length ? ` ${Math.floor(i / namaList.length) + 1}` : "");
     const batch = batchList[i % batchList.length];
@@ -58,9 +70,9 @@ const generateDummyData = () => {
     const status = statusList[i % statusList.length];
     const tahunLulus = 2024 + (i % 3);
     const tempatLahir = tempatLahirList[i % tempatLahirList.length];
-    const tanggal = Math.floor(Math.random() * 28) + 1;
-    const bulan = bulanList[i % bulanList.length];
-    const tahun = 2004 - Math.floor(i / 15);
+    const tanggalObj = getRandomDate(i);
+    const [tanggal, bulan, tahun] = tanggalObj.split("/");
+    const waktu = `${8 + (i % 10)}.${String(i % 60).padStart(2, "0")} WIB`;
     const jenisKelamin = i % 3 === 0 ? "Perempuan" : "Laki-laki";
     const ipk = (3.0 + (i % 100) / 100).toFixed(2);
     const tahunMasuk = tahunLulus === 2026 ? 2022 : tahunLulus === 2025 ? 2021 : 2020;
@@ -73,22 +85,24 @@ const generateDummyData = () => {
       fakultas: fakultas,
       prodi: prodi,
       tahunLulus: tahunLulus,
-      tanggal: `24/${String((i % 12) + 1).padStart(2, "0")}/2025`,
-      waktu: `${8 + (i % 10)}.${String(i % 60).padStart(2, "0")} WIB`,
+      tanggal: tanggalObj,
+      waktu: waktu,
       status: status,
       ket: ketMap[status],
       tempatLahir: tempatLahir,
-      tanggalLahir: `${tanggal} ${bulan} ${tahun}`,
+      tanggalLahir: `${tanggal} ${bulanList[parseInt(bulan) - 1]} ${tahun}`,
       jenisKelamin: jenisKelamin,
       email: `${nama.toLowerCase().replace(/\s+/g, ".")}@student.uika.ac.id`,
       noTelp: `0812${String(345678900 + i).slice(0, 8)}`,
       tahunMasuk: tahunMasuk,
       ipk: ipk,
-      totalSks: 144
+      totalSks: 144,
+      timestamp: new Date(2025, parseInt(bulan) - 1, parseInt(tanggal)).getTime()
     });
   }
   
-  return data;
+  const sortedData = data.sort((a, b) => b.timestamp - a.timestamp);
+  return sortedData;
 };
 
 export const dummyData = generateDummyData();
@@ -172,7 +186,9 @@ const Pelaporan = () => {
           <p className="text-[#9CA3AF] text-sm mt-1">Kelola dan pantau seluruh pelaporan validasi ijazah mahasiswa.</p>
         </div>
 
+        {/* Search bar di kiri, dropdown status di kanan */}
         <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-wrap items-center gap-4 border border-gray-100">
+          {/* Search Bar - DI KIRI */}
           <div className="flex items-center bg-[#E5E5E5] rounded-lg px-4 h-11 flex-1 min-w-[250px] max-w-md">
             <FiSearch className="text-gray-500 text-lg mr-3" />
             <input 
@@ -184,7 +200,8 @@ const Pelaporan = () => {
             />
           </div>
 
-          <div className="relative">
+          {/* Dropdown Status - DI KANAN */}
+          <div className="relative ml-auto">
             <select 
               value={statusFilter} 
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -198,52 +215,55 @@ const Pelaporan = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden overflow-x-auto">
-          <table className="w-full text-sm text-left whitespace-nowrap">
-            <thead className="bg-[#F3F4F6] text-gray-500 font-bold border-b border-gray-200">
-              <tr>
-                <th className="py-4 px-6 text-center w-16">No.</th>
-                <th className="py-4 px-6">Nama</th>
-                <th className="py-4 px-6 text-center">NIM</th>
-                <th className="py-4 px-6 text-center">Tanggal</th>
-                <th className="py-4 px-6 text-center">Waktu</th>
-                <th className="py-4 px-6 text-center">Status</th>
-                <th className="py-4 px-6">Keterangan</th>
-                <th className="py-4 px-6 text-center w-24">Detail</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginated.map((item, idx) => {
-                const no = (currentPage - 1) * ITEMS_PER_PAGE + idx + 1;
-                return (
-                  <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-6 text-center font-bold text-gray-800">{no}</td>
-                    <td className="py-4 px-6">
-                      <div className="font-bold text-gray-800">{item.nama}</div>
-                      <div className="text-[11px] text-gray-400 mt-0.5">{item.batch}</div>
-                    </td>
-                    <td className="py-4 px-6 text-center font-bold text-gray-700">{item.nim}</td>
-                    <td className="py-4 px-6 text-center text-gray-600">{item.tanggal}</td>
-                    <td className="py-4 px-6 text-center text-gray-600">{item.waktu}</td>
-                    <td className="py-4 px-6 text-center">
-                      <span className={`inline-block px-4 py-1.5 rounded-full text-xs font-bold ${badgeClass(item.status)}`}>
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-gray-700 font-medium">{item.ket}</td>
-                    <td className="py-4 px-6 text-center">
-                      <button
-                        onClick={() => navigate(`/operator/detail-pelaporan/${item.nim}`, { state: item })}
-                        className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition"
-                      >
-                        <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        {/* PERBAIKAN: Tabel dengan lebar kolom tetap dan tidak bergeser */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <div className="min-w-[1000px]">
+            <table className="w-full text-sm text-left table-fixed">
+              <thead className="bg-[#F3F4F6] text-gray-500 font-bold border-b border-gray-200">
+                <tr>
+                  <th className="py-4 px-6 text-center w-16">No.</th>
+                  <th className="py-4 px-6 w-[200px]">Nama</th>
+                  <th className="py-4 px-6 text-center w-[160px]">NIM</th>
+                  <th className="py-4 px-6 text-center w-[120px]">Tanggal</th>
+                  <th className="py-4 px-6 text-center w-[120px]">Waktu</th>
+                  <th className="py-4 px-6 text-center w-[100px]">Status</th>
+                  <th className="py-4 px-6 w-[280px]">Keterangan</th>
+                  <th className="py-4 px-6 text-center w-24">Detail</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginated.map((item, idx) => {
+                  const no = (currentPage - 1) * ITEMS_PER_PAGE + idx + 1;
+                  return (
+                    <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                      <td className="py-4 px-6 text-center font-medium text-gray-800 truncate">{no}</td>
+                      <td className="py-4 px-6">
+                        <div className="font-medium text-gray-900 truncate">{item.nama}</div>
+                        <div className="text-[11px] text-gray-400 mt-0.5 truncate">{item.batch}</div>
+                      </td>
+                      <td className="py-4 px-6 text-center font-medium text-gray-900 truncate">{item.nim}</td>
+                      <td className="py-4 px-6 text-center text-gray-600 truncate">{item.tanggal}</td>
+                      <td className="py-4 px-6 text-center text-gray-600 truncate">{item.waktu}</td>
+                      <td className="py-4 px-6 text-center">
+                        <span className={`inline-block px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${badgeClass(item.status)}`}>
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-gray-600 text-sm truncate">{item.ket}</td>
+                      <td className="py-4 px-6 text-center">
+                        <button
+                          onClick={() => navigate(`/operator/detail-pelaporan/${item.nim}`, { state: item })}
+                          className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
+                        >
+                          <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
 
           {paginated.length === 0 && (
             <div className="py-8 text-center text-gray-500 font-medium">Data tidak ditemukan.</div>
