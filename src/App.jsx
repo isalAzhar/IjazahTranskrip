@@ -124,12 +124,10 @@ function App() {
           <Route path="/verifikator/profile" element={<ProtectedRoute allowedGroup="VERIFIKATOR"><VerifikatorProfile /></ProtectedRoute>} />
           <Route path="/verifikator/daftar-batch" element={<ProtectedRoute allowedGroup="VERIFIKATOR"><VerifikatorDaftarBatch /></ProtectedRoute>} />
           <Route path="/verifikator/pelaporan" element={<ProtectedRoute allowedGroup="VERIFIKATOR"><VerifikatorPelaporan /></ProtectedRoute>} />
-          
-          {/* 🔥 TAMBAHAN: Route untuk halaman Detail Batch Verifikator */}
-          <Route path="/detail-batch/:id" element={<ProtectedRoute allowedGroup="VERIFIKATOR"><VerifikatorDetailBatch /></ProtectedRoute>} />
+          <Route path="/verifikator/detail-batch/:id" element={<ProtectedRoute allowedGroup="VERIFIKATOR"><VerifikatorDetailBatch /></ProtectedRoute>} />    
+                
 
           {/* 🔥 REKTOR ROUTES */}
-          {/* ─── REKTOR ─── */}
           <Route path="/rektor/dashboard"                element={<ProtectedRoute allowedGroup="REKTOR"><RektorDashboard /></ProtectedRoute>} />
           <Route path="/rektor/profile"                  element={<ProtectedRoute allowedGroup="REKTOR"><RektorProfile /></ProtectedRoute>} />
           <Route path="/rektor/daftar-batch"             element={<ProtectedRoute allowedGroup="REKTOR"><RektorDaftarBatch /></ProtectedRoute>} />

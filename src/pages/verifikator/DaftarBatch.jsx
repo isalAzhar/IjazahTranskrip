@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import { FiSearch, FiChevronDown, FiXCircle, FiAlertTriangle, FiCheckCircle } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/ui/DashboardLayout";
+import { useAuth } from "../../pages/context/AuthContext";
 
 // ✅ Ditambahkan properti 'status' agar saat pindah ke halaman Detail Mahasiswa, badge warnanya menyala
 const DUMMY_STUDENTS = [
@@ -20,6 +21,8 @@ const DUMMY_STUDENTS = [
 const DaftarBatch = () => {
   const navigate = useNavigate();
 
+  const { user } = useAuth(); 
+  const userRole = user?.role?.toLowerCase() || "verifikator";
   const [searchQuery, setSearchQuery]       = useState("");
   const [selectedFakultas, setSelectedFakultas] = useState("");
   const [selectedYear, setSelectedYear]     = useState("");
@@ -117,51 +120,51 @@ const DaftarBatch = () => {
           
           {/* Bagian Bar Filter */}
           <div className={`bg-white p-4 shadow-sm border border-gray-100 ${showSuggestions ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`}>
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-            
-            {/* Search */}
-            <div className="w-full lg:max-w-md">
-              <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
-                <FiSearch className="text-gray-400 text-lg mr-3" />
-                <input
-                  type="text"
-                  placeholder="Cari: Nama, NIM Mahasiswa..."
-                  value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); setCurrentPage(1); }}
-                  onFocus={() => setShowSuggestions(true)}
-                  className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
-                />
-              </div>
-            </div>
-
-           {/* Dropdowns */}
-            <div className="flex items-center gap-3 w-full lg:w-auto">
-              <div className="relative w-full lg:w-72">
-               <select value={selectedFakultas} onChange={(e) => { setSelectedFakultas(e.target.value); setCurrentPage(1); }}
-                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left">
-                  <option value="">Semua Fakultas</option>
-                  <option value="Fakultas Agama Islam">Fakultas Agama Islam</option>
-                  <option value="Fakultas Keguruan dan Ilmu Pendidikan">Fakultas Keguruan dan Ilmu Pendidikan</option>
-                  <option value="Fakultas Ekonomi dan Bisnis">Fakultas Ekonomi dan Bisnis</option>
-                  <option value="Fakultas Teknik dan Sains">Fakultas Teknik dan Sains</option>
-                  <option value="Fakultas Hukum">Fakultas Hukum</option>
-                  <option value="Fakultas Ilmu Kesehatan">Fakultas Ilmu Kesehatan</option>
-                </select>
-                <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+              
+              {/* Search */}
+              <div className="w-full lg:max-w-md">
+                <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
+                  <FiSearch className="text-gray-400 text-lg mr-3" />
+                  <input
+                    type="text"
+                    placeholder="Cari: Nama, NIM Mahasiswa..."
+                    value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); setCurrentPage(1); }}
+                    onFocus={() => setShowSuggestions(true)}
+                    className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
+                  />
+                </div>
               </div>
 
-              <div className="relative w-full lg:w-44">
-                <select
-                  value={selectedYear}
-                  onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(1); }}
-                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
-                >
-                  <option value="">Semua Tahun</option>
-                  {years.map((y) => <option key={y} value={y}>{y}</option>)}
-                </select>
-                <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+            {/* Dropdowns */}
+              <div className="flex items-center gap-3 w-full lg:w-auto">
+                <div className="relative w-full lg:w-72">
+                <select value={selectedFakultas} onChange={(e) => { setSelectedFakultas(e.target.value); setCurrentPage(1); }}
+                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left">
+                    <option value="">Semua Fakultas</option>
+                    <option value="Fakultas Agama Islam">Fakultas Agama Islam</option>
+                    <option value="Fakultas Keguruan dan Ilmu Pendidikan">Fakultas Keguruan dan Ilmu Pendidikan</option>
+                    <option value="Fakultas Ekonomi dan Bisnis">Fakultas Ekonomi dan Bisnis</option>
+                    <option value="Fakultas Teknik dan Sains">Fakultas Teknik dan Sains</option>
+                    <option value="Fakultas Hukum">Fakultas Hukum</option>
+                    <option value="Fakultas Ilmu Kesehatan">Fakultas Ilmu Kesehatan</option>
+                  </select>
+                  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+                </div>
+
+                <div className="relative w-full lg:w-44">
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(1); }}
+                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
+                  >
+                    <option value="">Semua Tahun</option>
+                    {years.map((y) => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+                </div>
               </div>
-            </div>
             </div>
           </div>
 
@@ -221,14 +224,24 @@ const DaftarBatch = () => {
                     <td className="py-4 px-6 text-center font-semibold text-gray-700">{item.tahun}</td>
                     <td className="py-4 px-6 text-center font-semibold text-gray-700">{item.periode}</td>
                     <td className="py-4 px-6 text-center font-semibold text-gray-700">{item.total}</td>
+                    
+                    {/* 🔥 1. KOLOM DETAIL (Sudah Dinamis) */}
                     <td className="py-4 px-6 text-center">
                       <button
-                        onClick={() => navigate(`/detail-batch/${item.id}`, { state: item })}
+                        onClick={() => {
+                          if (userRole === "rektor") {
+                            navigate(`/rektor/detail-batch/${item.id}`, { state: item });
+                          } else {
+                            navigate(`/verifikator/detail-batch/${item.id}`, { state: item });
+                          }
+                        }}
                         className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
                       >
                         <DetailIcon />
                       </button>
                     </td>
+
+                    {/* 🔥 2. KOLOM REJECT (Dikembalikan) */}
                     <td className="py-4 px-6 text-center">
                       <button
                         onClick={() => handleOpenReject(item)}
@@ -238,6 +251,7 @@ const DaftarBatch = () => {
                         <FiXCircle size={22} />
                       </button>
                     </td>
+
                   </tr>
                 ))}
                 {currentTableData.length === 0 && (

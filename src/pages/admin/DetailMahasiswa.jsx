@@ -1,18 +1,18 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import DashboardLayout from "../../components/ui/DashboardLayout";
-import { FiUser, FiBook, FiFileText, FiArrowLeft } from "react-icons/fi";
+import { FiUser, FiBook, FiFileText, FiArrowLeft, FiExternalLink } from "react-icons/fi";
+import { useAuth } from "../context/AuthContext"; // 🔥 sesuaikan path
 
 const DetailMahasiswa = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { nim } = useParams();
+  const { user } = useAuth(); // 🔥 ambil user
 
-  // Mengambil data yang dilempar dari navigasi tabel sebelumnya
   const dataDariTabel = location.state?.mahasiswa || location.state;
   const mahasiswa = dataDariTabel;
 
-  // 🔥 LOGIKA DUMMY (DATA PENDUKUNG PROFIL)
   const ceweList = ["Rani", "Siti", "Putri", "Nabila", "Citra", "Dewi", "Aulia", "Zahra"];
   const isCewe = ceweList.some((nama) => mahasiswa?.nama?.includes(nama));
   const email = mahasiswa?.nama?.toLowerCase().replace(/\s+/g, ".") + "@gmail.com";
@@ -37,10 +37,8 @@ const DetailMahasiswa = () => {
     );
   }
 
-  // 🔥 FUNGSI GET MATKUL (Sudah diperbaiki agar tidak ada double return)
   const getMatkul = () => {
     const f = (mahasiswa?.fakultas || "").toLowerCase();
-    
     if (f.includes("teknik") || f.includes("sains")) {
       return [
         "Algoritma dan Pemrograman", "Struktur Data", "Basis Data", "Sistem Operasi",
@@ -53,7 +51,6 @@ const DetailMahasiswa = () => {
         "Parallel Computing", "Kriptografi", "Keamanan Informasi", "Manajemen Basis Data"
       ];
     }
-    
     if (f.includes("ekonomi") || f.includes("bisnis")) {
       return [
         "Pengantar Akuntansi", "Akuntansi Keuangan", "Akuntansi Biaya", "Akuntansi Manajemen",
@@ -65,7 +62,6 @@ const DetailMahasiswa = () => {
         "Perbankan", "Manajemen Risiko", "Bisnis Digital", "E-Commerce", "Pengantar Bisnis"
       ];
     }
-    
     if (f.includes("hukum")) {
       return [
         "Pengantar Ilmu Hukum", "Pengantar Hukum Indonesia", "Hukum Perdata", "Hukum Perdata Lanjutan",
@@ -76,7 +72,6 @@ const DetailMahasiswa = () => {
         "Etika Profesi Hukum", "Advokasi dan Litigasi", "Legal Drafting", "Hukum Perusahaan"
       ];
     }
-    
     if (f.includes("kesehatan")) {
       return [
         "Anatomi dan Fisiologi", "Biokimia", "Mikrobiologi", "Patofisiologi", "Farmakologi",
@@ -87,7 +82,6 @@ const DetailMahasiswa = () => {
         "Manajemen Keperawatan", "Keperawatan Keluarga", "Dasar Kebidanan", "Kesehatan Reproduksi"
       ];
     }
-    
     if (f.includes("agama") || f.includes("islam")) {
       return [
         "Pendidikan Agama Islam", "Pancasila", "Kewarganegaraan", "Bahasa Indonesia", "Bahasa Arab Dasar",
@@ -97,20 +91,17 @@ const DetailMahasiswa = () => {
         "Ilmu Dakwah", "Psikologi Agama", "Sosiologi Agama", "Ilmu Falak", "Perbandingan Madzhab"
       ];
     }
-    
-    // 🔥 DATA PENYELAMAT (Muncul jika fakultas kosong/tidak dikenali)
     return [
-      "Mata Kuliah Umum 1", "Mata Kuliah Umum 2", "Pendidikan Agama", "Pancasila", 
-      "Kewarganegaraan", "Bahasa Indonesia", "Bahasa Inggris", "Matematika Dasar", 
-      "Pengantar Ilmu Komputer", "Ilmu Sosial Budaya Dasar", "Ilmu Kealaman Dasar", 
-      "Kewirausahaan", "Filsafat Ilmu", "Logika dan Penalaran", "Pengantar Manajemen", 
-      "Pengantar Ekonomi", "Sosiologi Umum", "Antropologi Dasar", "Metodologi Penelitian", 
-      "Statistika Dasar", "Etika Profesi", "Kesehatan dan Keselamatan Kerja", 
+      "Mata Kuliah Umum 1", "Mata Kuliah Umum 2", "Pendidikan Agama", "Pancasila",
+      "Kewarganegaraan", "Bahasa Indonesia", "Bahasa Inggris", "Matematika Dasar",
+      "Pengantar Ilmu Komputer", "Ilmu Sosial Budaya Dasar", "Ilmu Kealaman Dasar",
+      "Kewirausahaan", "Filsafat Ilmu", "Logika dan Penalaran", "Pengantar Manajemen",
+      "Pengantar Ekonomi", "Sosiologi Umum", "Antropologi Dasar", "Metodologi Penelitian",
+      "Statistika Dasar", "Etika Profesi", "Kesehatan dan Keselamatan Kerja",
       "Literasi Digital", "Skripsi"
     ];
   };
 
-  // Nilai Data
   const nilaiData = useMemo(() => {
     const getRandomNilai = () => {
       const list = ["A", "A-", "B+", "B"];
@@ -125,18 +116,15 @@ const DetailMahasiswa = () => {
     return getMatkul().map((nama, i) => {
       const grade = getRandomNilai();
       const mutu = getMutu(grade);
-      return { 
-        kode: `MK${String(i + 101).padStart(3, '0')}`, 
-        nama, 
-        sks: 3, 
-        grade, 
-        mutu: mutu.toFixed(2), 
-        bobot: (mutu * 3).toFixed(0) 
+      return {
+        kode: `MK${String(i + 101).padStart(3, '0')}`,
+        nama, sks: 3, grade,
+        mutu: mutu.toFixed(2),
+        bobot: (mutu * 3).toFixed(0)
       };
     });
   }, [mahasiswa]);
 
-  // Fungsi getStatusUI
   const getStatusUI = (status) => {
     const s = (status || "terbit").toLowerCase();
     if (s.includes("terbit")) return { bg: "bg-[#22C55E]", text: "Terbit", sub1: "Di Validasi oleh Rektor", sub2: "Data terverifikasi sah dalam pangkalan data universitas" };
@@ -148,10 +136,13 @@ const DetailMahasiswa = () => {
 
   const statusUI = getStatusUI(mahasiswa?.status);
 
+  // 🔥 Cek apakah user adalah rektor
+  const isRektor = user?.role === "rektor";
+
   return (
     <DashboardLayout>
       <div className="w-full">
-        {/* PROFILE CARD DINAMIS */}
+        {/* PROFILE CARD */}
         <div className="bg-white rounded-xl px-8 py-6 flex justify-between items-center mb-6 shadow-sm border border-gray-200">
           <div className="flex items-center gap-6">
             <div className="w-22 h-22 rounded-full bg-[#E5F3EB] overflow-hidden flex items-center justify-center border-4 border-[#E5F3EB]">
@@ -165,7 +156,7 @@ const DetailMahasiswa = () => {
                 </g>
               </svg>
             </div>
-            
+
             <div className="flex flex-col gap-1.5">
               <h2 className="font-bold text-[20px] text-gray-900">{mahasiswa.nama}</h2>
               <p className="text-[14px] text-gray-600">NIM: {mahasiswa.nim}</p>
@@ -183,10 +174,25 @@ const DetailMahasiswa = () => {
             </span>
             <p className="text-[12px] text-gray-800 font-bold mt-1">{statusUI.sub1}</p>
             <p className="text-[11px] text-gray-400">{statusUI.sub2}</p>
+
+            {/* 🔥 Link Dokumen Valid — HANYA MUNCUL UNTUK REKTOR */}
+           {isRektor && (
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate(`/rektor/dokumen-valid`);
+              }}
+              className="mt-2 flex items-center gap-1.5 text-[#117065] text-[12px] font-bold hover:underline hover:text-teal-800 transition-colors"
+            >
+              Link Dokumen Valid
+              <FiExternalLink size={13} />
+            </a>
+          )}
           </div>
         </div>
 
-        {/* INFO GRID DINAMIS */}
+        {/* INFO GRID */}
         <div className="grid grid-cols-2 gap-6 mb-6">
           {/* INFORMASI PRIBADI */}
           <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
@@ -227,8 +233,6 @@ const DetailMahasiswa = () => {
             <FiFileText size={16} className="text-gray-800" />
             <h3 className="text-[15px] font-bold text-gray-800">Transkrip Nilai</h3>
           </div>
-          
-          {/* 🔥 Disesuaikan max-height nya jadi 320px agar scrollbar langsung aktif */}
           <div className="max-h-[320px] overflow-y-auto">
             <table className="w-full text-[14px] text-gray-800 relative">
               <thead className="sticky top-0 bg-[#F9FAFB] border-b border-gray-200 text-gray-500 z-10">
@@ -250,7 +254,9 @@ const DetailMahasiswa = () => {
                     <td className="px-6 py-4 font-semibold text-center">{n.mutu}</td>
                     <td className="px-6 py-4 font-semibold text-center">{n.bobot}</td>
                     <td className="px-6 py-4 text-center">
-                      <span className="inline-block bg-[#115E59] text-white px-4 py-1 rounded-full font-bold text-[12px]">{n.grade}</span>
+                      <span className="inline-block bg-[#115E59] text-white px-4 py-1 rounded-full font-bold text-[12px]">
+                        {n.grade}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -258,6 +264,7 @@ const DetailMahasiswa = () => {
             </table>
           </div>
         </div>
+
       </div>
     </DashboardLayout>
   );
