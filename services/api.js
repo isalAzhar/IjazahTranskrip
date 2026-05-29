@@ -2,7 +2,7 @@ import {
   getUnits,
   createUnit,
   deleteUnit,
-} from "../../services/unit.service";
+} from "../services/unit.service";
 
 const API_BASE_URL = "/api";
 

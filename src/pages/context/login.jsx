@@ -1,4 +1,3 @@
-// src/pages/context/login.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
@@ -16,7 +15,7 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-const handleLogin = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
@@ -27,9 +26,6 @@ const handleLogin = async (e) => {
 
     setLoading(true);
     try {
-      console.log("POS 1: Menembak ke Server (via Proxy)...");
-      
-      // 🔥 PAKSA MENGGUNAKAN RELATIVE PATH AGAR PROXY BEKERJA
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { 
@@ -40,12 +36,7 @@ const handleLogin = async (e) => {
         body: JSON.stringify({ email, password }),
       });
 
-      console.log("POS 2: Tembakan Berhasil. Status HTTP:", response.status);
-
-      // Baca dulu sebagai teks mentah untuk mengamankan data
       const responseText = await response.text();
-      console.log("POS 3: Balasan Mentah Server:", responseText);
-
       let data;
       try {
         data = JSON.parse(responseText);
@@ -53,45 +44,38 @@ const handleLogin = async (e) => {
         throw new Error("Gagal menerjemahkan JSON. Balasan server: " + responseText.substring(0, 50));
       }
 
-      console.log("POS 4: Data JSON Sukses Dibaca:", data);
-
       if (response.ok && data.status === "success") {
         
-        console.log("POS 5: Menyaring Role...");
         if (data.data && data.data.role) {
-          let rawRole = data.data.role.toLowerCase().trim();
-          if (rawRole === "wakil_dekan_1") rawRole = "wakil_dekan";
-          if (rawRole === "wakil_rektor_1") rawRole = "wakil_rektor";
-          if (rawRole === "admin_sistem") rawRole = "admin";
-          data.data.role = rawRole;
+          data.data.role = data.data.role.toLowerCase().trim();
         }
 
         const accessToken = data.access_token; 
         const userData = data.data;
 
-        console.log("POS 6: Menyimpan ke AuthContext...");
         await login(userData, accessToken);
         
-        console.log("POS 7: Penyimpanan Sukses! Bersiap Pindah Halaman...");
-        
-        // PENGALIHAN HALAMAN
         const role = userData.role;
         let target = "/dashboard";
           
-        if (role === "admin") target = "/admin/dashboard";
-        else if (role === "operator" || role === "operator_data") target = "/operator/dashboard";
-        else if (role === "rektor") target = "/rektor/dashboard";
-        else target = "/verifikator/dashboard";
+        // 🔥 LOGIKA DINAMIS: Admin & Operator masuk ke jalurnya, sisanya otomatis ke Verifikator
+        if (["admin", "admin_sistem"].includes(role)) {
+          target = "/admin/dashboard";
+        } else if (["operator", "operator_data"].includes(role)) {
+          target = "/operator/dashboard";
+        } else if (role === "rektor") {
+          target = "/rektor/dashboard";
+        } else {
+          // Bebas! Apapun nama role yang dibikin Admin, akan ditangkap di sini
+          target = "/verifikator/dashboard";
+        }
 
-        console.log("POS 8: Berpindah ke:", target);
         navigate(target, { replace: true });
 
       } else {
         setError(data.message || "Email atau password salah");
       }
     } catch (err) {
-      // 🔥 ERROR ASLINYA AKAN DITAMPILKAN DI SINI!
-      console.error("🚨 LEDAKAN TERJADI:", err);
       setError("CRASH: " + err.message); 
     } finally {
       setLoading(false);
@@ -163,7 +147,6 @@ const handleLogin = async (e) => {
             {loading ? <FiLoader className="animate-spin" size={18} /> : "Masuk"}
           </button>
         </form>
-
       </div>
     </div>
   );

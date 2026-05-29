@@ -6,47 +6,13 @@ import { FiUser, FiBook, FiFileText, FiArrowLeft } from "react-icons/fi";
 const DetailMahasiswa = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { nim } = useParams(); // ← ROUTE DARI KODE 1 (menggunakan param NIM)
-
-  // ==========================================================================
-  // 🟢 TODO [API] LANGKAH 1: BUKA STATE INI JIKA API SUDAH SIAP
-  // ==========================================================================
-  // const [dataAPI, setDataAPI] = useState(null);
-  // const [isLoading, setIsLoading] = useState(false);
+  const { nim } = useParams();
 
   // Mengambil data yang dilempar dari navigasi tabel sebelumnya
-  // Kode 1: state: item (langsung), Kode 2: state: { mahasiswa: item }
-  // Supaya kompatibel dengan kedua cara
   const dataDariTabel = location.state?.mahasiswa || location.state;
   const mahasiswa = dataDariTabel;
 
-  // ==========================================================================
-  // 🟢 TODO [API] LANGKAH 2: BUKA USE-EFFECT INI UNTUK HIT API DETAIL
-  // ==========================================================================
-  /*
-  useEffect(() => {
-    const fetchDetailMahasiswa = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch(`https://API_BACKEND_ANDA/api/mahasiswa/${nim}`, {
-          headers: { "Authorization": `Bearer ${localStorage.getItem("authToken")}` }
-        });
-        const result = await response.json();
-        
-        if (result.status === "success") {
-          setDataAPI(result.data); 
-        }
-      } catch (error) {
-        console.error("Gagal mengambil data detail:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchDetailMahasiswa();
-  }, [nim]);
-  */
-
-  // 🔥 LOGIKA DUMMY (DATA PENDUKUNG PROFIL) - dari Kode 1 (lebih lengkap)
+  // 🔥 LOGIKA DUMMY (DATA PENDUKUNG PROFIL)
   const ceweList = ["Rani", "Siti", "Putri", "Nabila", "Citra", "Dewi", "Aulia", "Zahra"];
   const isCewe = ceweList.some((nama) => mahasiswa?.nama?.includes(nama));
   const email = mahasiswa?.nama?.toLowerCase().replace(/\s+/g, ".") + "@gmail.com";
@@ -71,9 +37,9 @@ const DetailMahasiswa = () => {
     );
   }
 
-  // 🔥 FUNGSI GET MATKUL (dari Kode 2 - lebih terstruktur dan lengkap per fakultas)
+  // 🔥 FUNGSI GET MATKUL (Sudah diperbaiki agar tidak ada double return)
   const getMatkul = () => {
-    const f = (mahasiswa.fakultas || "").toLowerCase();
+    const f = (mahasiswa?.fakultas || "").toLowerCase();
     
     if (f.includes("teknik") || f.includes("sains")) {
       return [
@@ -84,11 +50,7 @@ const DetailMahasiswa = () => {
         "Pemrograman Mobile", "Kecerdasan Buatan", "Machine Learning", "Data Mining", "Big Data",
         "Cloud Computing", "Internet of Things", "Interaksi Manusia dan Komputer", "Grafika Komputer",
         "Pengolahan Citra Digital", "Pengolahan Sinyal Digital", "Sistem Tertanam", "Sistem Terdistribusi",
-        "Parallel Computing", "Kriptografi", "Keamanan Informasi", "Manajemen Basis Data",
-        "Administrasi Jaringan", "Etika Profesi", "Metode Penelitian", "Statistika", "Matematika Diskrit",
-        "Aljabar Linear", "Kalkulus", "Kapita Selekta", "Manajemen Proyek", "Technopreneurship",
-        "Sistem Pendukung Keputusan", "Sistem Pakar", "Enterprise Resource Planning", "E-Commerce",
-        "Audit Sistem Informasi", "Tata Kelola TI", "Data Warehouse", "Business Intelligence",
+        "Parallel Computing", "Kriptografi", "Keamanan Informasi", "Manajemen Basis Data"
       ];
     }
     
@@ -100,12 +62,7 @@ const DetailMahasiswa = () => {
         "Manajemen Strategi", "Perilaku Organisasi", "Ekonomi Mikro", "Ekonomi Makro",
         "Ekonomi Internasional", "Ekonometrika", "Statistika Bisnis", "Matematika Ekonomi",
         "Kewirausahaan", "Studi Kelayakan Bisnis", "Pasar Modal", "Investasi dan Portofolio",
-        "Perbankan", "Manajemen Risiko", "Bisnis Digital", "E-Commerce", "Pengantar Bisnis",
-        "Etika Bisnis", "Komunikasi Bisnis", "Hukum Bisnis", "Perpajakan", "Riset Operasi",
-        "Manajemen Proyek", "Business Intelligence", "Analisis Laporan Keuangan",
-        "Pengambilan Keputusan Bisnis", "Supply Chain Management", "Corporate Finance",
-        "Ekonomi Syariah", "Manajemen Retail", "Leadership", "Financial Technology",
-        "Data Analytics Bisnis", "Metode Penelitian", "Skripsi",
+        "Perbankan", "Manajemen Risiko", "Bisnis Digital", "E-Commerce", "Pengantar Bisnis"
       ];
     }
     
@@ -116,13 +73,7 @@ const DetailMahasiswa = () => {
         "Hukum Internasional", "Hukum Islam", "Hukum Adat", "Hukum Dagang", "Hukum Pajak",
         "Hukum Acara Perdata", "Hukum Acara Pidana", "Hukum Lingkungan", "Hukum Ketenagakerjaan",
         "Hukum Agraria", "Hukum Laut", "Hukum Udara", "Hukum Hak Asasi Manusia", "Kriminologi",
-        "Etika Profesi Hukum", "Advokasi dan Litigasi", "Legal Drafting", "Hukum Perusahaan",
-        "Hukum Perlindungan Konsumen", "Hukum Cyber", "Hukum Bisnis", "Hukum Konstitusi",
-        "Sosiologi Hukum", "Filsafat Hukum", "Politik Hukum", "Metode Penelitian Hukum",
-        "Perbandingan Hukum", "Hukum Pembuktian", "Teknik Perancangan Peraturan", "Moot Court",
-        "Hukum Acara Mahkamah Konstitusi", "Hukum Keuangan Negara", "Tindak Pidana Korupsi",
-        "Hukum Perbankan", "Hukum Asuransi", "Hukum Investasi", "Arbitrase dan Alternatif Penyelesaian Sengketa",
-        "Hukum Teknologi Informasi", "Magang Profesi Hukum", "Skripsi",
+        "Etika Profesi Hukum", "Advokasi dan Litigasi", "Legal Drafting", "Hukum Perusahaan"
       ];
     }
     
@@ -133,11 +84,7 @@ const DetailMahasiswa = () => {
         "Keperawatan Maternitas", "Keperawatan Jiwa", "Keperawatan Komunitas", "Keperawatan Gawat Darurat",
         "Keperawatan Gerontik", "Kesehatan Masyarakat", "Epidemiologi", "Promosi Kesehatan",
         "Keselamatan dan Kesehatan Kerja", "Etika Keperawatan", "Komunikasi Keperawatan",
-        "Manajemen Keperawatan", "Keperawatan Keluarga", "Dasar Kebidanan", "Kesehatan Reproduksi",
-        "Kesehatan Lingkungan", "Statistika Kesehatan", "Metodologi Penelitian", "Sistem Informasi Kesehatan",
-        "Administrasi Rumah Sakit", "Keperawatan ICU", "Keperawatan Hemodialisa", "Ilmu Penyakit Dalam",
-        "Ilmu Bedah Dasar", "Psikologi Kesehatan", "Pendidikan Kesehatan", "Kesehatan Mental",
-        "Praktik Klinik", "Praktik Profesi", "Seminar Kesehatan", "Skripsi",
+        "Manajemen Keperawatan", "Keperawatan Keluarga", "Dasar Kebidanan", "Kesehatan Reproduksi"
       ];
     }
     
@@ -147,19 +94,23 @@ const DetailMahasiswa = () => {
         "Bahasa Inggris Dasar", "Ulumul Qur'an", "Ulumul Hadits", "Sejarah Peradaban Islam",
         "Pengantar Studi Islam", "Fiqh Ibadah", "Tauhid / Ilmu Kalam", "Akhlak Tasawuf", "Filsafat Ilmu",
         "Bahasa Arab Lanjut", "Ushul Fiqh", "Tafsir Ahkam", "Hadits Ahkam", "Metodologi Penelitian Agama",
-        "Ilmu Dakwah", "Psikologi Agama", "Sosiologi Agama", "Ilmu Falak", "Perbandingan Madzhab",
-        "Hukum Keluarga Islam", "Ekonomi Islam", "Lembaga Keuangan Syariah", "Akuntansi Syariah",
-        "Manajemen Zakat dan Wakaf", "Pendidikan Agama Islam Transformatif", "Komunikasi Penyiaran Islam",
-        "Jurnalistik Islam", "Bimbingan Konseling Islam", "Psikoterapi Islam", "Manajemen Pendidikan Islam",
-        "Strategi Pembelajaran", "Media dan Teknologi Pendidikan", "Evaluasi Pendidikan", "Microteaching",
-        "Praktik Pengalaman Lapangan (PPL)", "Kuliah Kerja Nyata (KKN)", "Skripsi",
+        "Ilmu Dakwah", "Psikologi Agama", "Sosiologi Agama", "Ilmu Falak", "Perbandingan Madzhab"
       ];
     }
     
-    return ["Mata Kuliah Umum 1", "Mata Kuliah Umum 2", "Pendidikan Agama", "Pancasila", "Kewarganegaraan", "Bahasa Indonesia", "Bahasa Inggris"];
+    // 🔥 DATA PENYELAMAT (Muncul jika fakultas kosong/tidak dikenali)
+    return [
+      "Mata Kuliah Umum 1", "Mata Kuliah Umum 2", "Pendidikan Agama", "Pancasila", 
+      "Kewarganegaraan", "Bahasa Indonesia", "Bahasa Inggris", "Matematika Dasar", 
+      "Pengantar Ilmu Komputer", "Ilmu Sosial Budaya Dasar", "Ilmu Kealaman Dasar", 
+      "Kewirausahaan", "Filsafat Ilmu", "Logika dan Penalaran", "Pengantar Manajemen", 
+      "Pengantar Ekonomi", "Sosiologi Umum", "Antropologi Dasar", "Metodologi Penelitian", 
+      "Statistika Dasar", "Etika Profesi", "Kesehatan dan Keselamatan Kerja", 
+      "Literasi Digital", "Skripsi"
+    ];
   };
 
-  // Nilai Data - menggunakan useMemo dari kedua kode
+  // Nilai Data
   const nilaiData = useMemo(() => {
     const getRandomNilai = () => {
       const list = ["A", "A-", "B+", "B"];
@@ -185,7 +136,7 @@ const DetailMahasiswa = () => {
     });
   }, [mahasiswa]);
 
-  // Fungsi getStatusUI - dari Kode 1 (lebih lengkap informasinya)
+  // Fungsi getStatusUI
   const getStatusUI = (status) => {
     const s = (status || "terbit").toLowerCase();
     if (s.includes("terbit")) return { bg: "bg-[#22C55E]", text: "Terbit", sub1: "Di Validasi oleh Rektor", sub2: "Data terverifikasi sah dalam pangkalan data universitas" };
@@ -200,7 +151,7 @@ const DetailMahasiswa = () => {
   return (
     <DashboardLayout>
       <div className="w-full">
-        {/* PROFILE CARD DINAMIS - dari Kode 1 */}
+        {/* PROFILE CARD DINAMIS */}
         <div className="bg-white rounded-xl px-8 py-6 flex justify-between items-center mb-6 shadow-sm border border-gray-200">
           <div className="flex items-center gap-6">
             <div className="w-22 h-22 rounded-full bg-[#E5F3EB] overflow-hidden flex items-center justify-center border-4 border-[#E5F3EB]">
@@ -235,7 +186,7 @@ const DetailMahasiswa = () => {
           </div>
         </div>
 
-        {/* INFO GRID DINAMIS - dari Kode 1 */}
+        {/* INFO GRID DINAMIS */}
         <div className="grid grid-cols-2 gap-6 mb-6">
           {/* INFORMASI PRIBADI */}
           <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
@@ -260,8 +211,8 @@ const DetailMahasiswa = () => {
               <h3 className="text-[14px] font-bold text-gray-800">Informasi Akademik</h3>
             </div>
             <div className="p-6 grid grid-cols-2 gap-y-6 gap-x-8 text-[14px]">
-              <div><p className="text-gray-500 mb-1.5">Fakultas</p><p className="font-bold text-gray-800">{mahasiswa.fakultas}</p></div>
-              <div><p className="text-gray-500 mb-1.5">Program Studi</p><p className="font-bold text-gray-800">{mahasiswa.prodi}</p></div>
+              <div><p className="text-gray-500 mb-1.5">Fakultas</p><p className="font-bold text-gray-800">{mahasiswa.fakultas || "-"}</p></div>
+              <div><p className="text-gray-500 mb-1.5">Program Studi</p><p className="font-bold text-gray-800">{mahasiswa.prodi || "-"}</p></div>
               <div><p className="text-gray-500 mb-1.5">Tahun Masuk</p><p className="font-bold text-gray-800">2022</p></div>
               <div><p className="text-gray-500 mb-1.5">IPK</p><p className="font-bold text-[#115E59]">{ipk} <span className="text-gray-800">/ 4.00</span></p></div>
               <div><p className="text-gray-500 mb-1.5">Tahun Lulus</p><p className="font-bold text-gray-800">{mahasiswa.tahun || "2025"}</p></div>
@@ -270,16 +221,17 @@ const DetailMahasiswa = () => {
           </div>
         </div>
 
-        {/* TRANSKRIP NILAI - dari Kode 1 */}
+        {/* TRANSKRIP NILAI */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
           <div className="bg-[#F3F4F6] px-6 py-4 flex items-center gap-2 border-b border-gray-200">
             <FiFileText size={16} className="text-gray-800" />
             <h3 className="text-[15px] font-bold text-gray-800">Transkrip Nilai</h3>
           </div>
           
-          <div className="max-h-[500px] overflow-y-auto">
-            <table className="w-full text-[14px] text-gray-800">
-              <thead className="sticky top-0 bg-[#F9FAFB] border-b border-gray-200 text-gray-500">
+          {/* 🔥 Disesuaikan max-height nya jadi 320px agar scrollbar langsung aktif */}
+          <div className="max-h-[320px] overflow-y-auto">
+            <table className="w-full text-[14px] text-gray-800 relative">
+              <thead className="sticky top-0 bg-[#F9FAFB] border-b border-gray-200 text-gray-500 z-10">
                 <tr>
                   <th className="px-6 py-4 font-bold text-center">Kode</th>
                   <th className="px-6 py-4 font-bold text-left">Nama Mata Kuliah</th>

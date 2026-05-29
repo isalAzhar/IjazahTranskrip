@@ -252,7 +252,8 @@ const Profile = () => {
                       onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
                     >
-                      {showCurrentPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                      {/* 🔥 Ikon diperbaiki: true = FiEye (terbuka), false = FiEyeOff (tertutup) */}
+                      {showCurrentPassword ? <FiEye size={20} /> : <FiEyeOff size={20} />}
                     </button>
                   </div>
                 </div>
@@ -277,7 +278,8 @@ const Profile = () => {
                       onClick={() => setShowNewPassword(!showNewPassword)}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
                     >
-                      {showNewPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                      {/* 🔥 Ikon sudah benar: true = FiEye (terbuka), false = FiEyeOff (tertutup) */}
+                      {showNewPassword ? <FiEye size={20} /> : <FiEyeOff size={20} />}
                     </button>
                   </div>
                   <p className="text-right text-xs text-gray-500 mt-1">Min 8 Karakter</p>
@@ -302,7 +304,8 @@ const Profile = () => {
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
                     >
-                      {showConfirmPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                      {/* 🔥 Ikon sudah benar: true = FiEye (terbuka), false = FiEyeOff (tertutup) */}
+                      {showConfirmPassword ? <FiEye size={20} /> : <FiEyeOff size={20} />}
                     </button>
                   </div>
                 </div>

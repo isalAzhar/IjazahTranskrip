@@ -44,7 +44,7 @@ const Dashboard = () => {
   ];
 
   const statusOptions = ["Semua Status", "Proses", "Terbit", "Reject", "Revoke", "Approved"];
-  const tahunOptions = ["Semua Tahun", "2021", "2024", "2025", "2026"];
+  const tahunOptions = ["Semua Tahun", "2021", "2022", "2023", "2024", "2025", "2026"];
 
   // 🔥 4. OPERASI PENYEDOTAN DATA DARI BACKEND DENGAN TEMBAKAN GANDA
   useEffect(() => {
@@ -116,21 +116,22 @@ const Dashboard = () => {
     }
   }, [token, logout]);
 
-  // 5. FILTERING DATA SECARA LOKAL
+ // 5. FILTERING DATA SECARA LOKAL
   const filteredData = tableData
     .filter((item) => {
       const searchLower = searchQuery.toLowerCase();
-      // Asumsi key dari API: nama, nim, prodi, fakultas, tahun_lulus, status
       const matchesSearch =
         (item.nama?.toLowerCase().includes(searchLower) || false) ||
         (item.nim?.toLowerCase().includes(searchLower) || false) ||
         (item.prodi?.toLowerCase().includes(searchLower) || false) ||
         (item.fakultas?.toLowerCase().includes(searchLower) || false) ||
-        (item.tahun_lulus?.toString().toLowerCase().includes(searchLower) || false) ||
         (item.status?.toLowerCase().includes(searchLower) || false);
 
       const matchesFakultas = selectedFakultas === "Semua Fakultas" || item.fakultas === selectedFakultas;
-      const matchesStatus = selectedStatus === "Semua Status" || item.status === selectedStatus;
+      
+      // 🔥 FIX: Tambahkan toLowerCase() agar "proses" dari API sama dengan "Proses" dari Dropdown
+      const matchesStatus = selectedStatus === "Semua Status" || item.status?.toLowerCase() === selectedStatus.toLowerCase();
+      
       const matchesTahun = selectedTahun === "Semua Tahun" || item.tahun_lulus?.toString() === selectedTahun;
 
       return matchesSearch && matchesFakultas && matchesStatus && matchesTahun;
