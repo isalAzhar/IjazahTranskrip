@@ -1,17 +1,18 @@
 // src/pages/operator/Pelaporan.jsx
-
 import React, { useState, useEffect } from "react";
 import { FiSearch, FiChevronDown } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import DashboardLayout from "../../components/ui/DashboardLayout";
-import { getApprovalLaporan } from "../../../services/api";
+
+// Gunakan @ untuk langsung menunjuk ke folder src
+import DashboardLayout from "@/components/ui/DashboardLayout";
+import { getApprovalLaporan } from "@/services/api";
 
 const ITEMS_PER_PAGE = 10;
 
 const badgeClass = (status) => {
   const map = {
     Proses: "bg-[#3B82F6] text-white",
-    Terbit: "bg-[#16A36B] text-white",
+    Terbit: "bg-[#16A36B] text-white",  
     Revoke: "bg-[#F59E0B] text-white",
     Reject: "bg-[#EF4444] text-white",
   };

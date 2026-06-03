@@ -2,11 +2,12 @@ import React, { useState, useEffect } from "react";
 import { FiSearch, FiChevronDown } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/ui/DashboardLayout";
-import { getApprovalLaporan } from "../../../services/api";
+import { getApprovalLaporan } from "@/services/api";
+// 1. IMPORT USEAUTH DI SINI
+import { useAuth } from "../../pages/context/AuthContext"; 
 
 const ITEMS_PER_PAGE = 10;
 
-// 🔥 REVISI: Penanganan status yang kebal terhadap huruf besar/kecil
 const badgeClass = (status) => {
   const normalizedStatus = status?.toLowerCase().trim() || "";
   
@@ -38,6 +39,10 @@ const formatWaktu = (value) => {
 
 const PelaporanVerivikator = () => {
   const navigate = useNavigate();
+  
+  // 2. DEKLARASI ROLE USER DI SINI (Di dalam fungsi komponen, di bawah navigate)
+  const { user } = useAuth();
+  const userRole = user?.role?.toLowerCase() || "";
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -54,7 +59,7 @@ const PelaporanVerivikator = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const statusOptions = ["Semua Status", "Proses", "Terbit", "Revoke", "Reject"];
+  const statusOptions = ["Semua Status", "Proses", "Terbit", "Revoked", "Rejected"];
 
   const fetchLaporan = async () => {
     try {
@@ -112,7 +117,6 @@ const PelaporanVerivikator = () => {
     }
   };
 
-  // 🔥 REVISI: Pagination UI ala Figma yang sudah kita kerjakan sebelumnya
   const renderPaginationButtons = () => {
     let pages = [];
 
@@ -159,41 +163,39 @@ const PelaporanVerivikator = () => {
           </p>
         </div>
 
-        {/* Filter Bar - samain dengan DaftarBatch */}
-      <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-4 border border-gray-100">
-        
-        {/* Search */}
-        <div className="w-full lg:max-w-md">
-          <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
-            <FiSearch className="text-gray-400 text-lg mr-3" />
-            <input
-              type="text"
-              placeholder="Cari: Nama, NIM"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
-            />
+        {/* Filter Bar */}
+        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-4 border border-gray-100">
+          
+          <div className="w-full lg:max-w-md">
+            <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
+              <FiSearch className="text-gray-400 text-lg mr-3" />
+              <input
+                type="text"
+                placeholder="Cari: Nama, NIM"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
+              />
+            </div>
           </div>
-        </div>
 
-        {/* Dropdown Status */}
-        <div className="flex items-center gap-3 w-full lg:w-auto">
-          <div className="relative w-full lg:w-52">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-center"
-            >
-              {statusOptions.map((item) => (
-                <option key={item} value={item === "Semua Status" ? "" : item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+          <div className="flex items-center gap-3 w-full lg:w-auto">
+            <div className="relative w-full lg:w-52">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-center"
+              >
+                {statusOptions.map((item) => (
+                  <option key={item} value={item === "Semua Status" ? "" : item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+              <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+            </div>
           </div>
         </div>
-      </div>
 
         {error && (
           <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm font-medium">
@@ -267,14 +269,18 @@ const PelaporanVerivikator = () => {
                           {item.keterangan || "-"}
                         </td>
 
+                        {/* 3. TOMBOL NAVIGASI DINAMIS ADA DI SINI */}
                         <td className="py-4 px-6 text-center">
-                          {/* 🔥 REVISI: Mengarahkan ke rute Shared Detail Mahasiswa */}
                           <button
-                            onClick={() =>
-                              navigate(`/detail-mahasiswa/${item.nim}`, {
-                                state: item,
-                              })
-                            }
+                            onClick={() => {
+                              if (userRole === "operator") {
+                                navigate(`/operator/detail-mahasiswa/${item.nim}`, { state: { mahasiswa: item } });
+                              } else if (userRole.includes("rektor")) {
+                                navigate(`/rektor/detail-mahasiswa/${item.nim}`, { state: { mahasiswa: item } });
+                              } else {
+                                navigate(`/verifikator/detail-mahasiswa/${item.nim}`, { state: { mahasiswa: item } });
+                              }
+                            }}
                             className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
                           >
                             <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>
@@ -300,7 +306,6 @@ const PelaporanVerivikator = () => {
             </div>
           )}
 
-          {/* 🔥 REVISI: Pagination Container UI */}
           <div className="p-6 bg-white border-t border-gray-100 flex justify-between items-center">
             <p className="text-sm text-gray-500 font-medium">
               Menampilkan {laporanList.length} dari {pagination.total_data || 0} Data

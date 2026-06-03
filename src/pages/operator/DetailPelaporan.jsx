@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FiUser, FiBook, FiFileText, FiArrowLeft } from "react-icons/fi";
 import DashboardLayout from "../../components/ui/DashboardLayout";
-import { getAkademikProfile } from "../../../services/api";
+import { getAkademikProfile } from "@/services/api";
 
 const badgeClass = (status) => {
   const map = {

@@ -3,12 +3,13 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { FiSearch, FiUpload, FiDownload } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import DashboardLayout from "../../components/ui/DashboardLayout";
-import ImportDataModal from "./ImportDataModal";
+
+import DashboardLayout from "@/components/ui/DashboardLayout";
+import ImportDataModal from "./ImportDataModal"; // Biarkan ./ karena di folder yang sama
 import {
   getInboundMahasiswaByBatches,
   downloadInboundTemplate,
-} from "../../../services/api";
+} from "@/services/api";
 
 const UPLOADED_DATA_KEY = "inbound_uploaded_data";
 const UPLOADED_BATCH_IDS_KEY = "inbound_uploaded_batch_ids";

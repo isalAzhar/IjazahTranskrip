@@ -1,6 +1,6 @@
 // src/pages/operator/ImportDataModal.jsx
 import React, { useState } from "react";
-import { uploadInboundExcel } from "../../../services/api";
+import { uploadInboundExcel } from "@/services/api";
 import {
   FiChevronDown,
   FiInfo,

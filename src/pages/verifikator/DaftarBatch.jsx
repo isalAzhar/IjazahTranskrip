@@ -1,94 +1,112 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FiSearch, FiChevronDown, FiXCircle, FiAlertTriangle, FiCheckCircle } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { useAuth } from "../../pages/context/AuthContext";
+import { getPendingBatches, rejectBatch } from "@/services/api";
 
-// ✅ Ditambahkan properti 'status' agar saat pindah ke halaman Detail Mahasiswa, badge warnanya menyala
-const DUMMY_STUDENTS = [
-  { nama: "Adi Saputra",       nim: "231106040900", prodi: "Teknik Informatika",          fakultas: "Fakultas Teknik dan Sains",              batch: "Batch 1 - FTS",   status: "Proses" },
-  { nama: "Rani Maharani",     nim: "231106040901", prodi: "Teknik Mesin",                fakultas: "Fakultas Teknik dan Sains",              batch: "Batch 1 - FTS",   status: "Terbit" },
-  { nama: "Siti Nurhaliza",    nim: "231106040905", prodi: "Pendidikan Agama Islam",      fakultas: "Fakultas Agama Islam",                   batch: "Batch 1 - FAI",   status: "Revoke" },
-  { nama: "Ahmad Fauzi",       nim: "231106040906", prodi: "Ekonomi Syariah",             fakultas: "Fakultas Agama Islam",                   batch: "Batch 2 - FAI",   status: "Reject" },
-  { nama: "Dimas Anggara",     nim: "231106040907", prodi: "Manajemen",                  fakultas: "Fakultas Ekonomi dan Bisnis",             batch: "Batch 1 - FEB",   status: "Proses" },
-  { nama: "Chelsea Islan",     nim: "231106040908", prodi: "Akuntansi",                  fakultas: "Fakultas Ekonomi dan Bisnis",             batch: "Batch 2 - FEB",   status: "Terbit" },
-  { nama: "Reza Firmansyah",   nim: "231106040910", prodi: "Ilmu Hukum",                 fakultas: "Fakultas Hukum",                         batch: "Batch 1 - FH",    status: "Proses" },
-  { nama: "Putri Andini",      nim: "231106040911", prodi: "Pendidikan Matematika",      fakultas: "Fakultas Keguruan dan Ilmu Pendidikan",   batch: "Batch 1 - FKIP",  status: "Revoke" },
-  { nama: "Bagas Saputro",     nim: "231106040912", prodi: "Kesehatan Masyarakat",       fakultas: "Fakultas Ilmu Kesehatan",                batch: "Batch 1 - FIKES", status: "Reject" },
-  { nama: "Nicholas Saputra",  nim: "231106040909", prodi: "Sistem Informasi",            fakultas: "Fakultas Teknik dan Sains",              batch: "Batch 3 - FTS",   status: "Proses" },
-];
+// Role-role yang termasuk level fakultas (filter by id_unit, backend handle)
+const FAKULTAS_ROLES = ["tu_fakultas", "wakil_dekan_1", "dekan"];
+// Role-role yang bisa lihat semua fakultas (level rektorat)
+const REKTORAT_ROLES = ["tu_rektorat", "wakil_rektor_1", "rektor"];
 
 const DaftarBatch = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const userRole = user?.role?.toLowerCase() || "";
 
-  const { user } = useAuth(); 
-  const userRole = user?.role?.toLowerCase() || "verifikator";
-  const [searchQuery, setSearchQuery]       = useState("");
+  // States Filter & Search
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedFakultas, setSelectedFakultas] = useState("");
-  const [selectedYear, setSelectedYear]     = useState("");
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  
-  const filterBarRef = useRef(null);
+  const [selectedYear, setSelectedYear] = useState("");
 
+  // Autocomplete States
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchContainerRef = useRef(null);
+
+  // States Pagination & API
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [realBatchData, setRealBatchData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const [showRejectReason, setShowRejectReason]   = useState(false);
+  // States Modal Reject
+  const [showRejectReason, setShowRejectReason] = useState(false);
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
   const [showRejectSuccess, setShowRejectSuccess] = useState(false);
-  const [rejectReason, setRejectReason]           = useState("");
-  const [selectedBatch, setSelectedBatch]         = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [selectedBatch, setSelectedBatch] = useState(null);
+  const [isRejecting, setIsRejecting] = useState(false);
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 2021 + 1 }, (_, i) => currentYear - i);
 
-  const dummyBatchData = useMemo(() => {
-    const fakultasList = [
-      { nama: "Fakultas Agama Islam",                   kode: "FAI"   },
-      { nama: "Fakultas Keguruan dan Ilmu Pendidikan",  kode: "FKIP"  },
-      { nama: "Fakultas Ekonomi dan Bisnis",            kode: "FEB"   },
-      { nama: "Fakultas Teknik dan Sains",              kode: "FTS"   },
-      { nama: "Fakultas Hukum",                         kode: "FH"    },
-      { nama: "Fakultas Ilmu Kesehatan",                kode: "FIKES" },
-    ];
-    const list = [];
-    for (let i = 1; i <= 45; i++) {
-      const f = fakultasList[i % fakultasList.length];
-      list.push({
-        id: i,
-        batch: `Batch ${i} - ${f.kode}`,
-        fakultas: f.nama,
-        tahun: 2026 - (i % 3),
-        periode: i % 2 === 0 ? "Semester Genap" : "Semester Ganjil",
-        total: 10,
+  const renderFakultas = (fakultas) => {
+    if (Array.isArray(fakultas)) return fakultas.join(", ") || "-";
+    return fakultas || "-";
+  };
+
+  // Fetch data batch pending dari backend
+  const fetchBatchData = async () => {
+    setIsLoading(true);
+    try {
+      const response = await getPendingBatches({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchQuery,
+        fakultas: selectedFakultas,
+        tahun: selectedYear,
       });
+
+      let data = response.data || [];
+
+      // Filter search di frontend
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        data = data.filter((item) => {
+          const matchBatch = String(item.nomor_batch_upload || "").toLowerCase().includes(q);
+          const matchMahasiswa = Array.isArray(item.mahasiswa) && item.mahasiswa.some((mhs) =>
+            String(mhs.nama_mahasiswa || "").toLowerCase().includes(q) ||
+            String(mhs.nim || "").toLowerCase().includes(q)
+          );
+          return matchBatch || matchMahasiswa;
+        });
+      }
+
+      // Filter tahun di frontend
+      if (selectedYear) {
+        data = data.filter((item) => String(item.tahun_lulus) === String(selectedYear));
+      }
+
+      // Filter fakultas di frontend
+      if (selectedFakultas) {
+        const selFak = selectedFakultas.toLowerCase();
+        data = data.filter((item) =>
+          Array.isArray(item.fakultas)
+            ? item.fakultas.some((f) => String(f || "").toLowerCase().includes(selFak))
+            : String(item.fakultas || "").toLowerCase().includes(selFak)
+        );
+      }
+
+      setRealBatchData(data);
+      setTotalPages(Math.ceil(data.length / itemsPerPage) || 1);
+    } catch (error) {
+      console.error("Gagal load data batch pending:", error);
+    } finally {
+      setIsLoading(false);
     }
-    return list;
-  }, []);
-
-  const filteredData = useMemo(() => {
-    return dummyBatchData.filter((item) => {
-      const matchSearch   = item.batch.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchFakultas = selectedFakultas === "" || item.fakultas === selectedFakultas;
-      const matchYear     = selectedYear === "" || item.tahun.toString() === selectedYear;
-      return matchSearch && matchFakultas && matchYear;
-    });
-  }, [searchQuery, selectedFakultas, selectedYear, dummyBatchData]);
-
-  const searchSuggestions = useMemo(() => {
-    if (!searchQuery.trim()) return DUMMY_STUDENTS;
-    return DUMMY_STUDENTS.filter(
-      (s) => s.nama.toLowerCase().includes(searchQuery.toLowerCase()) || s.nim.includes(searchQuery)
-    );
-  }, [searchQuery]);
-
-  const totalPages      = Math.ceil(filteredData.length / itemsPerPage) || 1;
-  const currentTableData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  };
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      // Jika user klik di luar kotak Filter dan Sugesti, tutup dropdown sugesti
-      if (filterBarRef.current && !filterBarRef.current.contains(e.target)) {
+    fetchBatchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, searchQuery, selectedFakultas, selectedYear]);
+
+  // Handle Click Outside untuk menutup suggestion dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
         setShowSuggestions(false);
       }
     };
@@ -96,12 +114,84 @@ const DaftarBatch = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleOpenReject   = (batch) => { setSelectedBatch(batch); setRejectReason(""); setShowRejectReason(true); };
-  const handleSubmitReason = ()      => { setShowRejectReason(false); setShowRejectConfirm(true); };
-  const handleConfirmReject = ()     => { setShowRejectConfirm(false); setShowRejectSuccess(true); };
-  const handleFinishReject  = ()     => { setShowRejectSuccess(false); setSelectedBatch(null); };
+  // Mengekstrak data mahasiswa dari batch untuk ditampilkan di dropdown suggestion
+  const getSuggestions = () => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase();
+    let suggestions = [];
+    
+    realBatchData.forEach((batch) => {
+      if (Array.isArray(batch.mahasiswa)) {
+        batch.mahasiswa.forEach((mhs) => {
+          const nama = String(mhs.nama_mahasiswa || "").toLowerCase();
+          const nim = String(mhs.nim || "").toLowerCase();
 
-  const DetailIcon = () => <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>;
+          if (nama.includes(q) || nim.includes(q)) {
+            suggestions.push({
+              id: mhs.nim || Math.random().toString(),
+              nama: mhs.nama_mahasiswa || "-",
+              nim: mhs.nim || "-",
+              prodi: mhs.prodi || mhs.nama_prodi || "Program Studi",
+              fakultas: renderFakultas(batch.fakultas),
+              batchName: batch.nomor_batch_upload || "-",
+              batchData: batch, 
+              mahasiswaData: mhs
+            });
+          }
+        });
+      }
+    });
+    
+    return suggestions.filter((v, i, a) => a.findIndex(t => t.nim === v.nim) === i);
+  };
+
+  const currentSuggestions = getSuggestions();
+
+  const handleNavigateDetail = (item) => {
+    if (REKTORAT_ROLES.includes(userRole)) {
+      navigate(`/rektor/detail-batch/${item.id_batch_upload}`, { state: item });
+    } else {
+      navigate(`/verifikator/detail-batch/${item.id_batch_upload}`, { state: item });
+    }
+  };
+
+  // Handler Modal Reject
+  const handleOpenReject = (batch) => {
+    setSelectedBatch(batch);
+    setRejectReason("");
+    setShowRejectReason(true);
+  };
+  
+  const handleSubmitReason = () => {
+    setShowRejectReason(false);
+    setShowRejectConfirm(true);
+  };
+  
+  const handleConfirmReject = async () => {
+    if (!selectedBatch) return;
+    setIsRejecting(true); // 🔥 Loading dimulai
+    try {
+      await rejectBatch(selectedBatch.id_batch_upload, rejectReason);
+      setShowRejectConfirm(false);
+      setShowRejectSuccess(true);
+    } catch (error) {
+      console.error("Gagal reject batch:", error);
+      alert(error.message || "Gagal melakukan reject batch.");
+      setShowRejectConfirm(false);
+    } finally {
+      setIsRejecting(false); // 🔥 Loading selesai
+    }
+  };
+  
+  const handleFinishReject = () => {
+    setShowRejectSuccess(false);
+    setSelectedBatch(null);
+    fetchBatchData(); // refresh tabel
+  };
+
+  const DetailIcon = () => (
+    <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>
+  );
 
   return (
     <DashboardLayout title="Manajemen Data">
@@ -111,53 +201,60 @@ const DaftarBatch = () => {
         <div className="mb-6">
           <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">Manajemen Data</h1>
           <p className="text-[#9CA3AF] text-[14px] font-medium mt-1">
-            Kelola validasi dan kirim data mahasiswa ke Wakil Dekan Fakultas
+            Kelola validasi dan kirim data mahasiswa ke tahap berikutnya
           </p>
         </div>
 
-        {/* 🔥 KOTAK FILTER & SUGESTI (Dibungkus 1 Ref agar bisa diklik dan mendorong tabel) */}
-        <div ref={filterBarRef} className="mb-6">
-          
-          {/* Bagian Bar Filter */}
-          <div className={`bg-white p-4 shadow-sm border border-gray-100 ${showSuggestions ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`}>
+        {/* BAGIAN FILTER & SEARCH */}
+        <div className="mb-6" ref={searchContainerRef}>
+          <div className="bg-white p-4 shadow-sm border border-gray-100 rounded-xl">
             <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
               
               {/* Search */}
               <div className="w-full lg:max-w-md">
-                <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
+                <div className="flex items-center bg-gray-50 border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
                   <FiSearch className="text-gray-400 text-lg mr-3" />
                   <input
                     type="text"
-                    placeholder="Cari: Nama, NIM Mahasiswa..."
+                    placeholder="Cari: Nama Mahasiswa atau NIM..."
                     value={searchQuery}
-                    onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); setCurrentPage(1); }}
                     onFocus={() => setShowSuggestions(true)}
+                    onChange={(e) => { 
+                      setSearchQuery(e.target.value); 
+                      setCurrentPage(1); 
+                      setShowSuggestions(true);
+                    }}
                     className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
                   />
                 </div>
               </div>
 
-            {/* Dropdowns */}
               <div className="flex items-center gap-3 w-full lg:w-auto">
-                <div className="relative w-full lg:w-72">
-                <select value={selectedFakultas} onChange={(e) => { setSelectedFakultas(e.target.value); setCurrentPage(1); }}
-                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left">
-                    <option value="">Semua Fakultas</option>
-                    <option value="Fakultas Agama Islam">Fakultas Agama Islam</option>
-                    <option value="Fakultas Keguruan dan Ilmu Pendidikan">Fakultas Keguruan dan Ilmu Pendidikan</option>
-                    <option value="Fakultas Ekonomi dan Bisnis">Fakultas Ekonomi dan Bisnis</option>
-                    <option value="Fakultas Teknik dan Sains">Fakultas Teknik dan Sains</option>
-                    <option value="Fakultas Hukum">Fakultas Hukum</option>
-                    <option value="Fakultas Ilmu Kesehatan">Fakultas Ilmu Kesehatan</option>
-                  </select>
-                  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
-                </div>
+                {REKTORAT_ROLES.includes(userRole) && (
+                  <div className="relative w-full lg:w-72">
+                    <select
+                      value={selectedFakultas}
+                      onChange={(e) => { setSelectedFakultas(e.target.value); setCurrentPage(1); }}
+                      className="appearance-none bg-gray-50 border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
+                    >
+                      <option value="">Semua Fakultas</option>
+                      <option value="Fakultas Agama Islam">Fakultas Agama Islam</option>
+                      <option value="Fakultas Keguruan dan Ilmu Pendidikan">Fakultas Keguruan dan Ilmu Pendidikan</option>
+                      <option value="Fakultas Ekonomi dan Bisnis">Fakultas Ekonomi dan Bisnis</option>
+                      <option value="Fakultas Teknik dan Sains">Fakultas Teknik dan Sains</option>
+                      <option value="Fakultas Hukum">Fakultas Hukum</option>
+                      <option value="Fakultas Ilmu Kesehatan">Fakultas Ilmu Kesehatan</option>
+                    </select>
+                    <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+                  </div>
+                )}
 
+                {/* Filter Tahun */}
                 <div className="relative w-full lg:w-44">
                   <select
                     value={selectedYear}
                     onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(1); }}
-                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
+                    className="appearance-none bg-gray-50 border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
                   >
                     <option value="">Semua Tahun</option>
                     {years.map((y) => <option key={y} value={y}>{y}</option>)}
@@ -168,45 +265,54 @@ const DaftarBatch = () => {
             </div>
           </div>
 
-          {/* Bagian Sugesti (Normal flow, mendorong tabel ke bawah) */}
-          {showSuggestions && (
-            <div className="bg-white border-x border-b border-gray-100 shadow-md rounded-b-xl max-h-[420px] overflow-y-auto w-full">
-              {searchSuggestions.length > 0 ? (
-                searchSuggestions.map((student, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => {
-                      setShowSuggestions(false);
-                      // ✅ Langsung pindah ke Detail Mahasiswa
-                      navigate(`/detail-mahasiswa/${student.nim}`, { state: student });
-                    }}
-                    className="px-6 py-4 border-b border-gray-50 hover:bg-teal-50 cursor-pointer flex justify-between items-center transition-colors last:border-b-0"
-                  >
-                    <div className="flex flex-col gap-0.5">
-                      <div className="font-bold text-[#1F2937] text-[14px] mb-1">{student.nama}</div>
-                      <div className="text-[12px] font-normal text-gray-500">{student.nim} • {student.prodi}</div>
-                      <div className="text-[12px] font-normal text-gray-400">{student.fakultas}</div>
-                    </div>
-                    <div className="text-[11px] font-semibold bg-[#F3F4F6] text-gray-500 px-3 py-1.5 rounded-md h-fit whitespace-nowrap ml-4">
-                      {student.batch}
-                    </div>
+          {/* AUTOCOMPLETE SUGGESTION LIST */}
+          {showSuggestions && searchQuery.trim() && currentSuggestions.length > 0 && (
+            <div className="mt-4 w-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden max-h-[400px] overflow-y-auto">
+              {currentSuggestions.map((item, index) => (
+               <div
+                  key={item.id}
+                  onClick={() => {
+                    setShowSuggestions(false); 
+                    const safeNim = encodeURIComponent(item.nim);
+                    
+                    if (REKTORAT_ROLES.includes(userRole)) {
+                      navigate(`/rektor/detail-mahasiswa/${safeNim}`, { state: { mahasiswa: item.mahasiswaData, batch: item.batchData } });
+                    } else if (userRole === "operator" || userRole === "operator_data") {
+                      navigate(`/operator/detail-mahasiswa/${safeNim}`, { state: { mahasiswa: item.mahasiswaData, batch: item.batchData } });
+                    } else {
+                      navigate(`/verifikator/detail-mahasiswa/${safeNim}`, { state: { mahasiswa: item.mahasiswaData, batch: item.batchData } });
+                    }
+                  }}
+                  className={`px-6 py-4 cursor-pointer hover:bg-gray-50 transition-colors flex justify-between items-center ${
+                    index !== currentSuggestions.length - 1 ? 'border-b border-gray-100' : ''
+                  }`}
+                >
+                  <div className="flex flex-col">
+                    <span className="text-[14px] font-bold text-gray-800">{item.nama}</span>
+                    <span className="text-[13px] text-gray-400 mt-0.5">
+                      {item.nim} • {item.prodi}
+                    </span>
+                    <span className="text-[13px] text-gray-400 mt-0.5">{item.fakultas}</span>
                   </div>
-                ))
-              ) : (
-                <div className="p-6 text-center text-sm text-gray-400">Mahasiswa tidak ditemukan</div>
-              )}
+                  <div className="flex-shrink-0 ml-4">
+                    <span className="bg-[#F3F4F6] text-gray-500 text-[12px] font-bold px-3 py-1.5 rounded-lg border border-gray-100">
+                      {item.batchName}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
 
-        {/* TABLE */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* TABEL BATCH */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden relative z-10">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left whitespace-nowrap">
               <thead className="bg-[#F9FAFB] text-gray-500 font-bold border-b border-gray-200">
                 <tr>
                   <th className="py-4 px-6 text-center w-16">No.</th>
-                  <th className="py-4 px-6 w-[200px]">List Batch</th>
+                  <th className="py-4 px-6 w-[220px]">List Batch</th>
                   <th className="py-4 px-6">Fakultas</th>
                   <th className="py-4 px-6 text-center">Tahun Lulus</th>
                   <th className="py-4 px-6 text-center">Periode</th>
@@ -215,33 +321,29 @@ const DaftarBatch = () => {
                   <th className="py-4 px-6 text-center w-20">Reject</th>
                 </tr>
               </thead>
-              <tbody>
-                {currentTableData.map((item, i) => (
-                  <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-6 text-center font-bold text-gray-800">{(currentPage - 1) * itemsPerPage + i + 1}.</td>
-                    <td className="py-4 px-6 font-bold text-gray-900">{item.batch}</td>
-                    <td className="py-4 px-6 font-normal text-gray-800">{item.fakultas}</td>
-                    <td className="py-4 px-6 text-center font-semibold text-gray-700">{item.tahun}</td>
-                    <td className="py-4 px-6 text-center font-semibold text-gray-700">{item.periode}</td>
-                    <td className="py-4 px-6 text-center font-semibold text-gray-700">{item.total}</td>
-                    
-                    {/* 🔥 1. KOLOM DETAIL (Sudah Dinamis) */}
+              <tbody className={`${isLoading ? "opacity-50" : ""} transition-opacity duration-200`}>
+                {realBatchData.map((item, i) => (
+                  <tr key={item.id_batch_upload} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td className="py-4 px-6 text-center font-bold text-gray-800">
+                      {(currentPage - 1) * itemsPerPage + i + 1}.
+                    </td>
+                    <td className="py-4 px-6 font-bold text-gray-900">{item.nomor_batch_upload}</td>
+                    <td className="py-4 px-6 font-normal text-gray-800">{renderFakultas(item.fakultas)}</td>
+                    <td className="py-4 px-6 text-center font-semibold text-gray-700">{item.tahun_lulus}</td>
+                    <td className="py-4 px-6 text-center font-semibold text-gray-700">{item.periode || "-"}</td>
+                    <td className="py-4 px-6 text-center">
+                      <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-[12px] font-bold bg-amber-100 text-amber-700">
+                        {item.pending_count} Mahasiswa
+                      </span>
+                    </td>
                     <td className="py-4 px-6 text-center">
                       <button
-                        onClick={() => {
-                          if (userRole === "rektor") {
-                            navigate(`/rektor/detail-batch/${item.id}`, { state: item });
-                          } else {
-                            navigate(`/verifikator/detail-batch/${item.id}`, { state: item });
-                          }
-                        }}
+                        onClick={() => handleNavigateDetail(item)}
                         className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
                       >
                         <DetailIcon />
                       </button>
                     </td>
-
-                    {/* 🔥 2. KOLOM REJECT (Dikembalikan) */}
                     <td className="py-4 px-6 text-center">
                       <button
                         onClick={() => handleOpenReject(item)}
@@ -251,10 +353,10 @@ const DaftarBatch = () => {
                         <FiXCircle size={22} />
                       </button>
                     </td>
-
                   </tr>
                 ))}
-                {currentTableData.length === 0 && (
+
+                {realBatchData.length === 0 && !isLoading && (
                   <tr>
                     <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
                       <div className="flex flex-col items-center justify-center">
@@ -271,12 +373,23 @@ const DaftarBatch = () => {
           {/* PAGINATION */}
           {totalPages > 1 && (
             <div className="flex justify-end items-center px-6 py-5 gap-2 border-t border-gray-100 bg-white">
-              <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1} className="flex items-center justify-center px-2 text-[18px] font-bold text-gray-400 hover:text-gray-800 disabled:opacity-30 transition-colors cursor-pointer">&lt;</button>
-              <button onClick={() => setCurrentPage(1)} className={`w-8 h-8 flex items-center justify-center rounded text-sm font-bold shadow-sm transition-colors ${currentPage === 1 ? 'bg-[#117065] text-white' : 'bg-[#E5E7EB] text-gray-500 hover:bg-gray-300'}`}>1</button>
-              {totalPages >= 2 && <button onClick={() => setCurrentPage(2)} className={`w-8 h-8 flex items-center justify-center rounded text-sm font-bold shadow-sm transition-colors ${currentPage === 2 ? 'bg-[#117065] text-white' : 'bg-[#E5E7EB] text-gray-500 hover:bg-gray-300'}`}>2</button>}
-              {totalPages > 3 && <span className="w-8 h-8 flex items-center justify-center rounded bg-[#E5E7EB] text-gray-400 text-sm font-bold">...</span>}
-              {totalPages > 2 && <button onClick={() => setCurrentPage(totalPages)} className={`w-8 h-8 flex items-center justify-center rounded text-sm font-bold shadow-sm transition-colors ${currentPage === totalPages ? 'bg-[#117065] text-white' : 'bg-[#E5E7EB] text-gray-500 hover:bg-gray-300'}`}>{totalPages}</button>}
-              <button onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages} className="flex items-center justify-center px-2 text-[18px] font-bold text-gray-400 hover:text-gray-800 disabled:opacity-30 transition-colors cursor-pointer">&gt;</button>
+              <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1}
+                className="flex items-center justify-center px-2 text-[18px] font-bold text-gray-400 hover:text-gray-800 disabled:opacity-30 transition-colors cursor-pointer">&lt;</button>
+              <button onClick={() => setCurrentPage(1)}
+                className={`w-8 h-8 flex items-center justify-center rounded text-sm font-bold shadow-sm transition-colors ${currentPage === 1 ? "bg-[#117065] text-white" : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"}`}>1</button>
+              {totalPages >= 2 && (
+                <button onClick={() => setCurrentPage(2)}
+                  className={`w-8 h-8 flex items-center justify-center rounded text-sm font-bold shadow-sm transition-colors ${currentPage === 2 ? "bg-[#117065] text-white" : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"}`}>2</button>
+              )}
+              {totalPages > 3 && (
+                <span className="w-8 h-8 flex items-center justify-center rounded bg-[#E5E7EB] text-gray-400 text-sm font-bold">...</span>
+              )}
+              {totalPages > 2 && (
+                <button onClick={() => setCurrentPage(totalPages)}
+                  className={`w-8 h-8 flex items-center justify-center rounded text-sm font-bold shadow-sm transition-colors ${currentPage === totalPages ? "bg-[#117065] text-white" : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"}`}>{totalPages}</button>
+              )}
+              <button onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages}
+                className="flex items-center justify-center px-2 text-[18px] font-bold text-gray-400 hover:text-gray-800 disabled:opacity-30 transition-colors cursor-pointer">&gt;</button>
             </div>
           )}
         </div>
@@ -285,17 +398,25 @@ const DaftarBatch = () => {
         {showRejectReason && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-xl w-[90%] max-w-md p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Alasan Reject</h2>
-              <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Kesalahan pada penulisan nama Fakultas..." className="w-full bg-[#F3F4F6] border border-transparent focus:border-red-500 focus:bg-white rounded-xl p-4 text-sm font-medium outline-none resize-none h-32 transition-colors placeholder-gray-400" />
+              <h2 className="text-xl font-bold text-gray-800 mb-1">Alasan Reject</h2>
+              <p className="text-sm text-gray-400 mb-4">Batch: <span className="font-semibold text-gray-600">{selectedBatch?.nomor_batch_upload}</span></p>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Tuliskan alasan reject batch ini..."
+                className="w-full bg-[#F3F4F6] border border-transparent focus:border-red-500 focus:bg-white rounded-xl p-4 text-sm font-medium outline-none resize-none h-32 transition-colors placeholder-gray-400"
+              />
               <div className="flex justify-end gap-3 mt-6">
-                <button onClick={() => setShowRejectReason(false)} className="px-6 py-2.5 rounded-lg font-bold text-gray-600 border border-gray-300 hover:bg-gray-50 transition-colors">Batal</button>
-                <button onClick={handleSubmitReason} disabled={!rejectReason.trim()} className="px-6 py-2.5 rounded-lg font-bold text-white bg-[#117065] hover:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Konfirmasi</button>
+                <button onClick={() => setShowRejectReason(false)}
+                  className="px-6 py-2.5 rounded-lg font-bold text-gray-600 border border-gray-300 hover:bg-gray-50 transition-colors">Batal</button>
+                <button onClick={handleSubmitReason} disabled={!rejectReason.trim()}
+                  className="px-6 py-2.5 rounded-lg font-bold text-white bg-[#117065] hover:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Konfirmasi</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* MODAL 2: KONFIRMASI REJECT */}
+        {/* 🔥 MODAL 2: KONFIRMASI REJECT (DENGAN SPINNER LOADING) */}
         {showRejectConfirm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-xl w-[90%] max-w-sm p-6 text-center">
@@ -304,8 +425,27 @@ const DaftarBatch = () => {
               </div>
               <h2 className="text-lg font-bold text-gray-800 mb-1">Apakah Anda yakin ingin melakukan reject?</h2>
               <div className="flex justify-center gap-3 mt-8">
-                <button onClick={() => setShowRejectConfirm(false)} className="flex-1 px-4 py-2.5 rounded-lg font-bold text-gray-600 border border-gray-300 hover:bg-gray-50 transition-colors">Batal</button>
-                <button onClick={handleConfirmReject} className="flex-1 px-4 py-2.5 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 transition-colors">Reject</button>
+                <button 
+                  onClick={() => setShowRejectConfirm(false)} 
+                  disabled={isRejecting}
+                  className="flex-1 px-4 py-2.5 rounded-lg font-bold text-gray-600 border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Batal
+                </button>
+                <button 
+                  onClick={handleConfirmReject} 
+                  disabled={isRejecting}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-75 disabled:cursor-wait"
+                >
+                  {isRejecting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Memproses...</span>
+                    </>
+                  ) : (
+                    <span>Reject</span>
+                  )}
+                </button>
               </div>
             </div>
           </div>
@@ -319,8 +459,11 @@ const DaftarBatch = () => {
                 <FiCheckCircle className="text-[#117065] text-5xl" />
               </div>
               <h2 className="text-2xl font-bold text-gray-800 mb-2">Reject Berhasil</h2>
-              <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8">Data telah berhasil ditolak dan status telah diperbarui</p>
-              <button onClick={handleFinishReject} className="w-full px-4 py-3 rounded-xl font-bold text-white bg-[#117065] hover:bg-teal-800 transition-colors">Selesai</button>
+              <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8">
+                Data telah berhasil ditolak dan status telah diperbarui
+              </p>
+              <button onClick={handleFinishReject}
+                className="w-full px-4 py-3 rounded-xl font-bold text-white bg-[#117065] hover:bg-teal-800 transition-colors">Selesai</button>
             </div>
           </div>
         )}

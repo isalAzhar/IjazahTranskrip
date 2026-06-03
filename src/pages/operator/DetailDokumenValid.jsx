@@ -3,7 +3,7 @@
 import React, { useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { FiUser, FiBook, FiFileText, FiArrowLeft, FiExternalLink } from "react-icons/fi";
-import DashboardLayout from "../../components/ui/DashboardLayout";
+import DashboardLayout from "@/components/ui/DashboardLayout";
 
 const getMatkulByProdi = (prodi) => {
   const matkulUmum = ["Pendidikan Agama", "Pancasila", "Kewarganegaraan", "Bahasa Indonesia", "Bahasa Inggris"];
