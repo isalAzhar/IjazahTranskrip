@@ -1,11 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import DashboardLayout from "../../components/ui/DashboardLayout";
-import ijazahBg from "../../assets/img/Templateijazah.jpeg";
-import transkipBg from "../../assets/img/Templatetranskip.jpeg";
+import ijazahBg from "../../assets/img/Ijazahfiks.png";
+import transkipBg from "../../assets/img/transkripfiks.jpeg";
+import { FiUpload, FiX, FiTrash2 } from "react-icons/fi";
 
-// =====================================================
-// CONFIG
-// =====================================================
+const TEMPLATE_SESSION_KEY = "template_builder_session_data";
 
 const ROW_H = 16;
 
@@ -18,10 +17,6 @@ const kualData = [
   ["CD", "1.5", "Kurang dari Cukup"],
   ["D", "1.0", "Kurang"],
 ];
-
-// =====================================================
-// IJAZAH — FIELD LIST
-// =====================================================
 
 const ijazahFields = [
   "Nama",
@@ -56,10 +51,6 @@ const ijazahFields = [
   "Stempel Dekan",
 ];
 
-// =====================================================
-// TRANSKRIP — FIELD LIST
-// =====================================================
-
 const transkipFields = [
   "Nomor",
   "Nama",
@@ -82,10 +73,6 @@ const transkipFields = [
   "Paraf Kaprodi",
 ];
 
-// =====================================================
-// FIELD RENDER CATEGORIES
-// =====================================================
-
 const boxOnlyFields = [
   "Foto",
   "QR Code",
@@ -100,45 +87,28 @@ const boxOnlyFields = [
   "Stempel Dekan",
 ];
 
-const verticalFields = [
-  "Tanggal Kelulusan",
-  "PISN",
-  "Nomor Seri Ijazah",
-  "Akreditasi AIPT",
-];
-
 const signatureFields = ["TTD Rektor", "TTD Dekan"];
-
 const nameLineFields = ["Nama Rektor", "Nama Dekan"];
-
 const nidnFields = ["NIDN Rektor", "NIDN Dekan"];
 
-// =====================================================
-// IJAZAH — FIELD SUBTITLES
-// =====================================================
+const englishSmallFields = [
+  "Fakultas (English)",
+  "Program Studi (English)",
+  "Program (English)",
+];
 
-const fieldSubtitle = {
-  Nama: "Name",
-  "Tempat & Tanggal Lahir": "Place And Date Of Birth",
-  "Nomor Pokok Mahasiswa": "Student ID",
-  NIK: "National ID",
-  Fakultas: "Faculty",
-  "Fakultas (English)": "Faculty",
-  "Program Studi": "Study Program",
-  "Program Studi (English)": "Study Program",
-  Program: "Degree",
-  "Program (English)": "Degree",
-  "Tanggal Kelulusan": "Date of Graduation",
-  PISN: "",
-  "Nomor Seri Ijazah": "Certificate Number",
-  "Akreditasi AIPT": "",
-  "TTD Rektor": "Rector",
-  "TTD Dekan": "Dean",
-};
-
-// =====================================================
-// SHARED — HELPERS
-// =====================================================
+const ijazahLeftAlignFields = [
+  "Nama",
+  "Tempat & Tanggal Lahir",
+  "Nomor Pokok Mahasiswa",
+  "NIK",
+  "Fakultas",
+  "Fakultas (English)",
+  "Program Studi",
+  "Program Studi (English)",
+  "Program",
+  "Program (English)",
+];
 
 const makePlaceholder = (label) =>
   `{{${label
@@ -148,43 +118,101 @@ const makePlaceholder = (label) =>
     .replaceAll("(", "")
     .replaceAll(")", "")}}}`;
 
+const getActiveTemplateName = (type) => {
+  return type === "ijazah" ? "Template Ijazah" : "Template Transkrip";
+};
+
 const getFieldSize = (field) => {
+  if (field === "Tanggal Kelulusan") return { width: 95, height: 14 };
+  if (field === "PISN") return { width: 95, height: 14 };
+  if (field === "Nomor Seri Ijazah") return { width: 95, height: 14 };
+
+  // Akreditasi dibuat sama seperti PISN
+  if (field === "Akreditasi AIPT") return { width: 75, height: 21 };
+
+  if (
+    field === "Fakultas (English)" ||
+    field === "Program Studi (English)" ||
+    field === "Program (English)"
+  ) {
+    return { width: 145, height: 13 };
+  }
+  if (
+    field === "Fakultas" ||
+    field === "Program Studi" ||
+    field === "Program"
+  ) {
+    return { width: 145, height: 16 };
+  }
+
   if (field === "Foto") return { width: 95, height: 125 };
   if (field === "QR Code") return { width: 72, height: 72 };
-  if (field.includes("TTD")) return { width: 100, height: 45 };
   if (field.includes("Stempel")) return { width: 85, height: 85 };
+
+  if (field === "TTD Rektor") return { width: 78, height: 55 };
+  if (field === "TTD Dekan") return { width: 78, height: 55 };
   if (field.includes("Paraf")) return { width: 28, height: 28 };
-  if (field === "Gelar") return { width: 455, height: 22 };
-  if (field === "Tanggal Terbit") return { width: 155, height: 22 };
+
+  if (field === "Gelar") return { width: 330, height: 18 };
+  if (field === "Tanggal Terbit") return { width: 145, height: 18 };
 
   if (field === "Nama Rektor" || field === "Nama Dekan") {
-    return { width: 176, height: 18 };
+    return { width: 18, height: 16 };
   }
 
   if (field === "NIDN Rektor" || field === "NIDN Dekan") {
-    return { width: 130, height: 16 };
+    return { width: 95, height: 16 };
   }
 
-  return { width: 150, height: 18 };
+  return { width: 145, height: 17 };
 };
 
-// =====================================================
-// WAITING DATA TEXT COMPONENT
-// =====================================================
+const getInitialSessionData = () => {
+  try {
+    const saved = sessionStorage.getItem(TEMPLATE_SESSION_KEY);
+    if (!saved) return null;
+    return JSON.parse(saved);
+  } catch (error) {
+    console.error("Gagal membaca session template:", error);
+    return null;
+  }
+};
 
-const WaitingDataText = ({ small = false }) => (
-  <div
-    className={`w-full h-full flex items-center justify-center text-center text-gray-500 font-medium leading-tight px-1 ${
-      small ? "text-[6px]" : "text-[8px]"
-    }`}
-  >
-    Menunggu Data
-  </div>
-);
+const fileToBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
 
-// =====================================================
-// SHARED — RENDER DRAGGABLE ELEMENTS
-// =====================================================
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+const WaitingDataText = ({
+  small = false,
+  value = "",
+  align = "center",
+  label = "",
+}) => {
+  const alignClass =
+    align === "left"
+      ? "justify-start text-left"
+      : "justify-center text-center";
+
+  const textSize =
+    label === "Akreditasi AIPT"
+      ? "text-[8px]"
+      : small
+      ? "text-[9px]"
+      : "text-[12px]";
+
+  return (
+    <div
+      className={`w-full h-full flex items-center ${alignClass} text-gray-800 font-semibold leading-none px-1 whitespace-nowrap ${textSize}`}
+    >
+      {value || "Menunggu Data"}
+    </div>
+  );
+};
 
 const renderElements = (
   elements,
@@ -192,28 +220,43 @@ const renderElements = (
   isLocked,
   handleMouseDownElement,
   documentType,
-  isPreview = false
+  isPreview = false,
+  previewData = {}
 ) =>
   elements.map((el) => {
     const isBoxOnly = boxOnlyFields.includes(el.label);
     const isSignature = signatureFields.includes(el.label);
     const isNameLine = nameLineFields.includes(el.label);
     const isNidn = nidnFields.includes(el.label);
-    const isVertical = verticalFields.includes(el.label);
+    const isEnglishSmall = englishSmallFields.includes(el.label);
 
-    const subtitle = documentType === "ijazah" ? fieldSubtitle[el.label] : "";
+    const fieldValue =
+      previewData?.[el.label] || previewData?.[el.placeholder] || "";
 
-    const labelTextSize =
-      documentType === "transkip" ? "text-[11px]" : "text-[11px]";
+    const displayValue = isPreview ? fieldValue || "Menunggu Data" : "";
 
-    const colonTextSize =
-      documentType === "transkip" ? "text-[11px]" : "text-[11px]";
+    const textAlign =
+      documentType === "transkip"
+        ? "left"
+        : ijazahLeftAlignFields.includes(el.label)
+        ? "left"
+        : "center";
+
+    const size = getFieldSize(el.label);
+    const renderWidth = size.width;
+    const renderHeight = size.height;
 
     const isSmallBox =
-      el.width <= 40 ||
-      el.height <= 18 ||
+      renderWidth <= 45 ||
+      renderHeight <= 16 ||
       el.label.includes("Paraf") ||
-      el.label.includes("NIDN");
+      isEnglishSmall;
+
+    const fieldBoxClass = `rounded-sm ${
+      isPreview
+        ? "border border-transparent bg-transparent"
+        : "border border-gray-500 bg-transparent"
+    }`;
 
     return (
       <div
@@ -222,143 +265,135 @@ const renderElements = (
         className={`absolute z-20 ${
           !isSaved && !isLocked ? "cursor-move" : "cursor-default"
         }`}
-        style={{ left: el.x, top: el.y }}
+        style={{
+          left: el.x,
+          top: el.y,
+        }}
         title={el.placeholder}
       >
-        {isBoxOnly && (
+        {/* NAMA REKTOR / NAMA DEKAN */}
+        {isNameLine && (
           <div
-            className="border border-gray-500 bg-white/70 rounded-sm overflow-hidden"
-            style={{ width: el.width, height: el.height }}
+            className="flex flex-col items-center"
+            style={{
+              width: isPreview ? "auto" : renderWidth,
+              height: isPreview ? "auto" : renderHeight + 4,
+            }}
           >
-            {isPreview && <WaitingDataText small={isSmallBox} />}
+            {isPreview ? (
+              <div className="inline-flex flex-col items-left text-left">
+                <span className="inline-block text-gray-800 font-semibold text-[12px] leading-none whitespace-nowrap px-1 text-center">
+                  {displayValue}
+                </span>
+
+                <div className="w-full border-t border-black mt-[2px]" />
+              </div>
+            ) : (
+              <>
+                <div
+                  className={fieldBoxClass}
+                  style={{
+                    width: renderWidth,
+                    height: renderHeight,
+                  }}
+                />
+
+                <div
+                  className="border-t border-black mt-[2px]"
+                  style={{
+                    width: renderWidth,
+                  }}
+                />
+              </>
+            )}
           </div>
         )}
 
         {isSignature && (
-          <div className="flex flex-col items-center">
-            <span
-              className={`${labelTextSize} font-bold text-gray-800 leading-none text-center`}
-            >
-              {el.label === "TTD Rektor" ? "Rektor" : "Dekan"}
-            </span>
-
-            {subtitle && (
-              <span className="text-[9px] italic text-gray-600 leading-none mt-[2px] text-center">
-                {subtitle}
-              </span>
+          <div
+            className={fieldBoxClass}
+            style={{
+              width: renderWidth,
+              height: renderHeight,
+            }}
+          >
+            {isPreview && (
+              <WaitingDataText
+                value={displayValue}
+                align={textAlign}
+                label={el.label}
+              />
             )}
-
-            <div
-              className="border border-gray-500 bg-white/70 mt-[6px] rounded-sm overflow-hidden"
-              style={{ width: el.width, height: el.height }}
-            >
-              {isPreview && <WaitingDataText />}
-            </div>
-          </div>
-        )}
-
-        {isNameLine && (
-          <div className="flex flex-col items-center">
-            <div
-              className="border border-gray-500 bg-white/70 rounded-sm overflow-hidden"
-              style={{ width: el.width, height: el.height }}
-            >
-              {isPreview && <WaitingDataText small />}
-            </div>
-
-            <div
-              className="border-t border-black mt-[2px]"
-              style={{ width: el.width + 8 }}
-            />
           </div>
         )}
 
         {isNidn && (
-          <div className="flex items-center gap-0">
-            <span
-              className={`${
-                documentType === "transkip" ? "text-[7px]" : "text-[10px]"
-              } text-gray-800 leading-none`}
-            >
+          <div
+            className="flex items-center gap-[3px]"
+            style={{
+              height: renderHeight,
+            }}
+          >
+            <span className="font-semibold text-gray-800 whitespace-nowrap text-[10px] leading-none">
               NIDN.
             </span>
 
-            <div
-              className="border border-gray-500 bg-white/70 rounded-sm overflow-hidden"
-              style={{ width: el.width, height: el.height }}
-            >
-              {isPreview && <WaitingDataText small />}
-            </div>
-          </div>
-        )}
-
-        {!isBoxOnly && !isSignature && !isNameLine && !isNidn && isVertical && (
-          <div className="flex flex-col items-center">
-            <span
-              className={`${labelTextSize} font-bold text-gray-800 leading-none text-center`}
-            >
-              {el.label}
-            </span>
-
-            {subtitle && (
-              <span className="text-[9px] italic text-gray-600 leading-none mt-[2px] text-center">
-                {subtitle}
+            {isPreview ? (
+              <span className="inline-block text-gray-800 font-semibold text-[10px] leading-none whitespace-nowrap">
+                {displayValue}
               </span>
+            ) : (
+              <div
+                className={fieldBoxClass}
+                style={{
+                  width: renderWidth,
+                  height: renderHeight,
+                }}
+              />
             )}
-
-            <div
-              className="border border-gray-500 bg-white/70 mt-[6px] rounded-sm overflow-hidden"
-              style={{ width: el.width, height: el.height }}
-            >
-              {isPreview && <WaitingDataText small={isSmallBox} />}
-            </div>
           </div>
         )}
 
-        {!isBoxOnly && !isSignature && !isNameLine && !isNidn && !isVertical && (
+        {isBoxOnly && (
           <div
-            className={`grid ${
-              documentType === "transkip"
-                ? "grid-cols-[130px_8px_auto]"
-                : "grid-cols-[200px_12px_auto]"
-            } items-center`}
+            className={fieldBoxClass}
+            style={{
+              width: renderWidth,
+              height: renderHeight,
+            }}
           >
-            <div className="flex flex-col">
-              <span
-                className={`${labelTextSize} font-bold text-gray-800 leading-none whitespace-nowrap`}
-              >
-                {el.label}
-              </span>
+            {isPreview && (
+              <WaitingDataText
+                small={isSmallBox}
+                value={displayValue}
+                align={textAlign}
+                label={el.label}
+              />
+            )}
+          </div>
+        )}
 
-              {subtitle && (
-                <span className="text-[9px] italic text-gray-600 leading-none mt-[2px] whitespace-nowrap">
-                  {subtitle}
-                </span>
-              )}
-            </div>
-
-            <span
-              className={`${colonTextSize} font-bold text-gray-700 text-center`}
-            >
-              :
-            </span>
-
-            <div
-              className="border border-gray-500 bg-white/70 rounded-sm overflow-hidden"
-              style={{ width: el.width, height: el.height }}
-            >
-              {isPreview && <WaitingDataText small={isSmallBox} />}
-            </div>
+        {!isNameLine && !isSignature && !isNidn && !isBoxOnly && (
+          <div
+            className={fieldBoxClass}
+            style={{
+              width: renderWidth,
+              height: renderHeight,
+            }}
+          >
+            {isPreview && (
+              <WaitingDataText
+                small={isSmallBox}
+                value={displayValue}
+                align={textAlign}
+                label={el.label}
+              />
+            )}
           </div>
         )}
       </div>
     );
   });
-
-// =====================================================
-// TRANSKRIP — DYNAMIC TABLE OVERLAY
-// Menggunakan struktur tabel dari Kode 2 (dengan kolom BOBOT terpisah)
-// =====================================================
 
 const TranskipTableOverlay = ({ elements, mataKuliahData = [] }) => {
   const isActive = (label) => elements.some((el) => el.label === label);
@@ -378,12 +413,15 @@ const TranskipTableOverlay = ({ elements, mataKuliahData = [] }) => {
         <td className="border border-[#707070] text-center">
           {startNumber + i}
         </td>
+
         <td className="border border-[#707070] text-center">
           {mk.kode || mk.kode_mk || ""}
         </td>
+
         <td className="border border-[#707070] px-1">
           {mk.mata_kuliah || mk.nama_mk || mk.nama_mata_kuliah || ""}
         </td>
+
         <td className="border border-[#707070] text-center">{mk.hm || ""}</td>
         <td className="border border-[#707070] text-center">{mk.am || ""}</td>
         <td className="border border-[#707070] text-center">{mk.k || ""}</td>
@@ -394,10 +432,9 @@ const TranskipTableOverlay = ({ elements, mataKuliahData = [] }) => {
   return (
     <div
       className="absolute inset-x-0 z-10 pointer-events-none"
-      style={{ top: "43%", paddingLeft: "3.5%", paddingRight: "3.5%" }}
+      style={{ top: "27%", paddingLeft: "3.5%", paddingRight: "3.5%" }}
     >
       <div className="flex justify-between items-start">
-        {/* TABEL NILAI — KIRI */}
         <div style={{ width: "46%" }}>
           <table className="w-full border-collapse text-[8px] bg-[#F2F2F2]">
             <thead>
@@ -411,10 +448,16 @@ const TranskipTableOverlay = ({ elements, mataKuliahData = [] }) => {
                 <th className="border border-[#707070] font-semibold">
                   MATA KULIAH
                 </th>
-                <th colSpan={2} className="border border-[#707070] font-semibold">
+                <th
+                  colSpan={2}
+                  className="border border-[#707070] font-semibold"
+                >
                   NILAI
                 </th>
-                <th colSpan={2} className="border border-[#707070] font-semibold">
+                <th
+                  colSpan={2}
+                  className="border border-[#707070] font-semibold"
+                >
                   BOBOT
                 </th>
               </tr>
@@ -434,7 +477,6 @@ const TranskipTableOverlay = ({ elements, mataKuliahData = [] }) => {
           </table>
         </div>
 
-        {/* TABEL NILAI — KANAN */}
         <div style={{ width: "46%" }}>
           <table className="w-full border-collapse text-[8px] bg-[#F2F2F2]">
             <thead>
@@ -448,10 +490,16 @@ const TranskipTableOverlay = ({ elements, mataKuliahData = [] }) => {
                 <th className="border border-[#707070] font-semibold">
                   MATA KULIAH
                 </th>
-                <th colSpan={2} className="border border-[#707070] font-semibold">
+                <th
+                  colSpan={2}
+                  className="border border-[#707070] font-semibold"
+                >
                   NILAI
                 </th>
-                <th colSpan={2} className="border border-[#707070] font-semibold">
+                <th
+                  colSpan={2}
+                  className="border border-[#707070] font-semibold"
+                >
                   BOBOT
                 </th>
               </tr>
@@ -470,7 +518,6 @@ const TranskipTableOverlay = ({ elements, mataKuliahData = [] }) => {
             <tbody>{renderNilaiRows(rightRows, splitIndex + 1)}</tbody>
           </table>
 
-          {/* SUMMARY */}
           <table className="w-full border-collapse text-[7px] bg-[#F2F2F2]">
             <tbody>
               <tr>
@@ -516,7 +563,6 @@ const TranskipTableOverlay = ({ elements, mataKuliahData = [] }) => {
         </div>
       </div>
 
-      {/* FOOTER */}
       <div className="mt-[10px]">
         <div
           className="text-[7px] leading-[11px] mb-[4px]"
@@ -557,9 +603,11 @@ const TranskipTableOverlay = ({ elements, mataKuliahData = [] }) => {
                     <td className="border border-[#707070] text-center py-[1px]">
                       {item[0]}
                     </td>
+
                     <td className="border border-[#707070] text-center py-[1px]">
                       {item[1]}
                     </td>
+
                     <td className="border border-[#707070] px-2 py-[1px]">
                       {item[2]}
                     </td>
@@ -574,29 +622,100 @@ const TranskipTableOverlay = ({ elements, mataKuliahData = [] }) => {
   );
 };
 
-// =====================================================
-// MAIN COMPONENT (menggunakan flow dari Kode 2)
-// =====================================================
-
 const Template = () => {
-  const [activeTab, setActiveTab] = useState("ijazah");
+  const sessionData = getInitialSessionData();
 
-  const [ijazahElements, setIjazahElements] = useState([]);
-  const [ijazahSaved, setIjazahSaved] = useState(false);
-  const [ijazahLocked, setIjazahLocked] = useState(false);
+  const [activeTab, setActiveTab] = useState(
+    sessionData?.activeTab || "ijazah"
+  );
+
+  const [templateImages, setTemplateImages] = useState(
+    sessionData?.templateImages || {
+      ijazah: ijazahBg,
+      transkip: transkipBg,
+    }
+  );
+
+  const [templateAssets, setTemplateAssets] = useState(
+    sessionData?.templateAssets || {
+      ijazah: [
+        {
+          id: "default-ijazah",
+          originalName: "ijazahfiks.png",
+          name: "Template Ijazah",
+          src: ijazahBg,
+          isActive: true,
+        },
+      ],
+      transkip: [
+        {
+          id: "default-transkip",
+          originalName: "transkripfiks.jpeg",
+          name: "Template Transkrip",
+          src: transkipBg,
+          isActive: true,
+        },
+      ],
+    }
+  );
+
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [showConfirmUploadModal, setShowConfirmUploadModal] = useState(false);
+
+  const [selectedTemplateType, setSelectedTemplateType] = useState(
+    sessionData?.selectedTemplateType || "ijazah"
+  );
+
+  const [selectedTemplateFile, setSelectedTemplateFile] = useState(null);
+  const [selectedTemplatePreview, setSelectedTemplatePreview] = useState("");
+  const [pendingSelectedAssetId, setPendingSelectedAssetId] = useState(null);
+
+  const [imagePreviewModal, setImagePreviewModal] = useState({
+    open: false,
+    src: "",
+    name: "",
+  });
+
+  const [deleteAssetModal, setDeleteAssetModal] = useState({
+    open: false,
+    asset: null,
+  });
+
+  const [ijazahElements, setIjazahElements] = useState(
+    sessionData?.ijazahElements || []
+  );
+  const [ijazahSaved, setIjazahSaved] = useState(
+    sessionData?.ijazahSaved || false
+  );
+  const [ijazahLocked, setIjazahLocked] = useState(
+    sessionData?.ijazahLocked || false
+  );
   const [ijazahPreview, setIjazahPreview] = useState(false);
-  const [ijazahHasPreviewed, setIjazahHasPreviewed] = useState(false);
+  const [ijazahHasPreviewed, setIjazahHasPreviewed] = useState(
+    sessionData?.ijazahHasPreviewed || false
+  );
 
-  const [transkipElements, setTranskipElements] = useState([]);
-  const [transkipSaved, setTranskipSaved] = useState(false);
-  const [transkipLocked, setTranskipLocked] = useState(false);
+  const [transkipElements, setTranskipElements] = useState(
+    sessionData?.transkipElements || []
+  );
+  const [transkipSaved, setTranskipSaved] = useState(
+    sessionData?.transkipSaved || false
+  );
+  const [transkipLocked, setTranskipLocked] = useState(
+    sessionData?.transkipLocked || false
+  );
   const [transkipPreview, setTranskipPreview] = useState(false);
-  const [transkipHasPreviewed, setTranskipHasPreviewed] = useState(false);
+  const [transkipHasPreviewed, setTranskipHasPreviewed] = useState(
+    sessionData?.transkipHasPreviewed || false
+  );
 
   const [draggingElement, setDraggingElement] = useState(null);
   const [showSavedModal, setShowSavedModal] = useState(false);
+  const [showConfirmSaveModal, setShowConfirmSaveModal] = useState(false);
 
-  const [mataKuliahData, setMataKuliahData] = useState([]);
+  const [mataKuliahData, setMataKuliahData] = useState(
+    sessionData?.mataKuliahData || []
+  );
 
   const currentFields = activeTab === "ijazah" ? ijazahFields : transkipFields;
   const currentElements =
@@ -612,6 +731,40 @@ const Template = () => {
   const isFieldActive = (field) =>
     currentElements.some((el) => el.label === field);
 
+  useEffect(() => {
+    const payload = {
+      activeTab,
+      selectedTemplateType,
+      templateImages,
+      templateAssets,
+      ijazahElements,
+      ijazahSaved,
+      ijazahLocked,
+      ijazahHasPreviewed,
+      transkipElements,
+      transkipSaved,
+      transkipLocked,
+      transkipHasPreviewed,
+      mataKuliahData,
+    };
+
+    sessionStorage.setItem(TEMPLATE_SESSION_KEY, JSON.stringify(payload));
+  }, [
+    activeTab,
+    selectedTemplateType,
+    templateImages,
+    templateAssets,
+    ijazahElements,
+    ijazahSaved,
+    ijazahLocked,
+    ijazahHasPreviewed,
+    transkipElements,
+    transkipSaved,
+    transkipLocked,
+    transkipHasPreviewed,
+    mataKuliahData,
+  ]);
+
   const resetPreviewState = () => {
     if (activeTab === "ijazah") {
       setIjazahSaved(false);
@@ -622,8 +775,161 @@ const Template = () => {
     }
   };
 
+  const handleOpenUploadModal = () => {
+    setSelectedTemplateType(activeTab);
+    setSelectedTemplateFile(null);
+    setSelectedTemplatePreview("");
+
+    const activeAsset = templateAssets[activeTab]?.find(
+      (asset) => asset.isActive
+    );
+
+    setPendingSelectedAssetId(activeAsset?.id || null);
+    setUploadModalOpen(true);
+  };
+
+  const handleTemplateImageChange = async (e) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("File harus berupa gambar.");
+      return;
+    }
+
+    try {
+      const base64Image = await fileToBase64(file);
+      const activeName = getActiveTemplateName(selectedTemplateType);
+
+      const newAsset = {
+        id: Date.now(),
+        originalName: file.name,
+        name: activeName,
+        src: base64Image,
+        isActive: true,
+      };
+
+      setTemplateAssets((prev) => ({
+        ...prev,
+        [selectedTemplateType]: [
+          ...prev[selectedTemplateType].map((asset) => ({
+            ...asset,
+            name: "xxx",
+            isActive: false,
+          })),
+          newAsset,
+        ],
+      }));
+
+      setPendingSelectedAssetId(newAsset.id);
+      setSelectedTemplateFile(null);
+      setSelectedTemplatePreview("");
+
+      e.target.value = "";
+    } catch (error) {
+      console.error("Gagal membaca file gambar:", error);
+      alert("Gagal membaca file gambar.");
+    }
+  };
+
+  const handleUseTemplateAsset = (asset) => {
+    const activeName = getActiveTemplateName(selectedTemplateType);
+
+    setPendingSelectedAssetId(asset.id);
+
+    setTemplateAssets((prev) => ({
+      ...prev,
+      [selectedTemplateType]: prev[selectedTemplateType].map((item) => ({
+        ...item,
+        name: item.id === asset.id ? activeName : "xxx",
+        isActive: item.id === asset.id,
+      })),
+    }));
+  };
+
+  const handleDeleteTemplateAsset = (asset) => {
+    if (asset.isActive) {
+      alert("Gambar yang sedang aktif tidak bisa dihapus.");
+      return;
+    }
+
+    setDeleteAssetModal({
+      open: true,
+      asset,
+    });
+  };
+
+  const confirmDeleteTemplateAsset = () => {
+    const asset = deleteAssetModal.asset;
+
+    if (!asset) return;
+
+    setTemplateAssets((prev) => ({
+      ...prev,
+      [selectedTemplateType]: prev[selectedTemplateType].filter(
+        (item) => item.id !== asset.id
+      ),
+    }));
+
+    if (pendingSelectedAssetId === asset.id) {
+      setPendingSelectedAssetId(null);
+    }
+
+    setDeleteAssetModal({
+      open: false,
+      asset: null,
+    });
+  };
+
+  const handleSaveAssetChanges = () => {
+    if (!pendingSelectedAssetId) {
+      alert("Pilih salah satu gambar template terlebih dahulu.");
+      return;
+    }
+
+    setShowConfirmUploadModal(true);
+  };
+
+  const confirmSaveTemplateImage = () => {
+    const selectedAsset = templateAssets[selectedTemplateType].find(
+      (asset) => asset.id === pendingSelectedAssetId
+    );
+
+    if (!selectedAsset) {
+      alert("Gambar yang dipilih tidak ditemukan.");
+      return;
+    }
+
+    setTemplateImages((prev) => ({
+      ...prev,
+      [selectedTemplateType]: selectedAsset.src,
+    }));
+
+    setShowConfirmUploadModal(false);
+    setUploadModalOpen(false);
+    setSelectedTemplateFile(null);
+    setSelectedTemplatePreview("");
+    setPendingSelectedAssetId(null);
+    setSelectedTemplateType(activeTab);
+  };
+
+  const handleCloseUploadModal = () => {
+    setUploadModalOpen(false);
+    setShowConfirmUploadModal(false);
+    setSelectedTemplateFile(null);
+    setSelectedTemplatePreview("");
+    setPendingSelectedAssetId(null);
+    setDeleteAssetModal({
+      open: false,
+      asset: null,
+    });
+    setSelectedTemplateType(activeTab);
+  };
+
   const handleDragStart = (e, field) => {
     if (isSaved || isLocked || isFieldActive(field)) return;
+
     e.dataTransfer.setData("field", field);
   };
 
@@ -676,6 +982,7 @@ const Template = () => {
 
   const handleMouseDownElement = (e, el) => {
     if (isSaved || isLocked) return;
+
     e.preventDefault();
 
     const templateArea = e.currentTarget.closest(".template-drop-area");
@@ -766,30 +1073,20 @@ const Template = () => {
   const handleSave = () => {
     if (!hasFields || !isLocked || !hasPreviewed) return;
 
-    const payload = {
-      jenis_template: activeTab,
-      elements: currentElements.map((el) => ({
-        label: el.label,
-        placeholder: el.placeholder,
-        x: el.x,
-        y: el.y,
-        width: el.width,
-        height: el.height,
-      })),
-    };
+    setShowConfirmSaveModal(true);
+  };
 
-    console.log("DATA TEMPLATE SIAP DIKIRIM KE DATABASE:", payload);
-
+  const confirmSaveTemplate = () => {
     if (activeTab === "ijazah") {
       setIjazahSaved(true);
     } else {
       setTranskipSaved(true);
     }
 
+    setShowConfirmSaveModal(false);
     setShowSavedModal(true);
   };
 
-  // PREVIEW MODE
   if (ijazahPreview) {
     return (
       <div className="min-h-screen bg-[#d9d9d9] p-6 overflow-auto">
@@ -802,9 +1099,21 @@ const Template = () => {
           </button>
         </div>
 
-        <div className="relative w-fit mx-auto bg-white p-6 rounded-xl shadow-lg">
-          <img src={ijazahBg} alt="Preview Ijazah" className="w-[780px]" />
-          {renderElements(ijazahElements, true, true, () => {}, "ijazah", true)}
+        <div className="relative w-fit mx-auto">
+          <img
+            src={templateImages.ijazah}
+            alt="Preview Ijazah"
+            className="w-[780px]"
+          />
+
+          {renderElements(
+            ijazahElements,
+            true,
+            true,
+            () => {},
+            "ijazah",
+            true
+          )}
         </div>
       </div>
     );
@@ -822,8 +1131,12 @@ const Template = () => {
           </button>
         </div>
 
-        <div className="relative w-fit mx-auto bg-white p-6 rounded-xl shadow-lg">
-          <img src={transkipBg} alt="Preview Transkrip" className="w-[780px]" />
+        <div className="relative w-fit mx-auto">
+          <img
+            src={templateImages.transkip}
+            alt="Preview Transkrip"
+            className="w-[780px]"
+          />
 
           {renderElements(
             transkipElements,
@@ -843,10 +1156,9 @@ const Template = () => {
     );
   }
 
-  // MAIN EDIT MODE
   return (
     <DashboardLayout>
-      <div className="bg-white min-h-screen -mt-6 -mb-6 -mx-4 md:-mx-8 px-4 md:px-8 pt-6 pb-6">
+      <div className="min-h-screen pb-6">
         <div className="flex items-start justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">
@@ -880,22 +1192,31 @@ const Template = () => {
             </div>
           </div>
 
-          <button
-            onClick={handlePreview}
-            disabled={!hasFields || !isLocked}
-            className={`border border-gray-300 shadow-sm rounded-xl px-5 py-3 font-semibold text-sm transition ${
-              !hasFields || !isLocked
-                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                : "bg-white hover:bg-gray-50 text-black"
-            }`}
-          >
-            🖨 Pratinjau Cetak
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleOpenUploadModal}
+              className="flex items-center gap-2 border border-gray-300 shadow-sm rounded-xl px-5 py-3 font-semibold text-sm bg-white hover:bg-gray-50 text-black transition"
+            >
+              <FiUpload size={16} />
+              Unggah Gambar Template
+            </button>
+
+            <button
+              onClick={handlePreview}
+              disabled={!hasFields || !isLocked}
+              className={`border border-gray-300 shadow-sm rounded-xl px-5 py-3 font-semibold text-sm transition ${
+                !hasFields || !isLocked
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-white hover:bg-gray-50 text-black"
+              }`}
+            >
+              🖨 Pratinjau Cetak
+            </button>
+          </div>
         </div>
 
         <div className="border-t border-gray-300 pt-4">
           <div className="flex gap-4">
-            {/* LEFT PANEL - DATA FIELDS */}
             <div className="w-[260px] bg-[#e5e5e5] p-2 rounded-lg h-[760px] overflow-y-auto flex-shrink-0">
               <div className="px-2 py-2 mb-1">
                 <h2 className="text-md font-black text-gray-700 uppercase tracking-wide">
@@ -933,7 +1254,6 @@ const Template = () => {
               </div>
             </div>
 
-            {/* RIGHT PANEL - TEMPLATE AREA */}
             <div className="flex-1 bg-[#d9d9d9] p-6 rounded-lg">
               <div
                 onDrop={handleDropToTemplate}
@@ -941,12 +1261,12 @@ const Template = () => {
                 onMouseMove={handleMouseMoveTemplate}
                 onMouseUp={handleMouseUpTemplate}
                 onMouseLeave={handleMouseUpTemplate}
-                className="template-drop-area relative w-fit mx-auto bg-[#f4f4f4] p-6 rounded-xl shadow-lg"
+                className="template-drop-area relative w-fit mx-auto"
               >
                 {activeTab === "ijazah" && (
                   <>
                     <img
-                      src={ijazahBg}
+                      src={templateImages.ijazah}
                       alt="Template Ijazah"
                       className="w-[780px]"
                     />
@@ -964,7 +1284,7 @@ const Template = () => {
                 {activeTab === "transkip" && (
                   <>
                     <img
-                      src={transkipBg}
+                      src={templateImages.transkip}
                       alt="Template Transkrip"
                       className="w-[780px]"
                     />
@@ -985,7 +1305,6 @@ const Template = () => {
                 )}
               </div>
 
-              {/* ACTION BUTTONS */}
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   onClick={handleSave}
@@ -1017,9 +1336,378 @@ const Template = () => {
           </div>
         </div>
 
-        {/* SUCCESS MODAL */}
+        {uploadModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="bg-white w-[880px] max-h-[90vh] rounded-2xl shadow-xl overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 flex-shrink-0">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-800">
+                    Menu Asset Template
+                  </h2>
+
+                  <p className="text-sm text-gray-400 mt-1">
+                    Pilih file gambar, lalu gambar akan otomatis masuk ke tabel.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCloseUploadModal}
+                  className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 text-gray-500"
+                >
+                  <FiX size={20} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-5 overflow-y-auto">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-semibold text-gray-800">
+                    Gunakan gambar untuk
+                  </label>
+
+                  <select
+                    value={selectedTemplateType}
+                    onChange={(e) => {
+                      const type = e.target.value;
+
+                      setSelectedTemplateType(type);
+                      setSelectedTemplateFile(null);
+                      setSelectedTemplatePreview("");
+
+                      const activeAsset = templateAssets[type]?.find(
+                        (asset) => asset.isActive
+                      );
+
+                      setPendingSelectedAssetId(activeAsset?.id || null);
+                    }}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm bg-gray-50 outline-none focus:border-[#0B6B63]"
+                  >
+                    <option value="ijazah">Template Ijazah</option>
+                    <option value="transkip">Template Transkrip</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-semibold text-gray-800">
+                    Pilih File Gambar
+                  </label>
+
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleTemplateImageChange}
+                    className="w-full text-sm text-gray-500 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+                  />
+
+                  <p className="text-xs text-gray-400">
+                    Setelah pilih file, gambar akan otomatis masuk ke tabel.
+                  </p>
+                </div>
+
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                    <h3 className="text-sm font-bold text-gray-800">
+                      Daftar Gambar Template
+                    </h3>
+                  </div>
+
+                  <table className="w-full text-sm table-fixed">
+                    <thead className="bg-[#F7F7F7] text-gray-500 border-b border-gray-200">
+                      <tr>
+                        <th className="px-3 py-3 text-center w-[60px]">
+                          
+                        </th>
+                        <th className="px-3 py-3 text-center w-[100px]">
+                          Preview
+                        </th>
+                        <th className="px-3 py-3 text-left w-[145px]">
+                          Nama Gambar
+                        </th>
+                        <th className="px-3 py-3 text-center w-[90px]">
+                          Jenis
+                        </th>
+                        <th className="px-3 py-3 text-center w-[110px]">
+                          Status
+                        </th>
+                        <th className="px-3 py-3 text-center w-[70px]">
+                          Aksi
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {templateAssets[selectedTemplateType].map((asset) => (
+                        <tr
+                          key={asset.id}
+                          className="border-t border-gray-200 hover:bg-gray-50"
+                        >
+                          <td className="px-3 py-3 text-center w-[60px]">
+                            <input
+                              type="radio"
+                              name={`template-asset-${selectedTemplateType}`}
+                              checked={pendingSelectedAssetId === asset.id}
+                              onChange={() => handleUseTemplateAsset(asset)}
+                              className="w-4 h-4 accent-[#0B6B63] cursor-pointer"
+                            />
+                          </td>
+
+                          <td className="px-3 py-3 text-center w-[110px]">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setImagePreviewModal({
+                                  open: true,
+                                  src: asset.src,
+                                  name: asset.name,
+                                })
+                              }
+                              className="w-14 h-14 mx-auto rounded-lg overflow-hidden border border-gray-200 bg-gray-100 hover:scale-105 transition"
+                              title="Lihat gambar template"
+                            >
+                              <img
+                                src={asset.src}
+                                alt={asset.name}
+                                className="w-full h-full object-cover"
+                              />
+                            </button>
+                          </td>
+
+                          <td className="px-3 py-3 font-semibold text-gray-800 text-left">
+                            {asset.name}
+                          </td>
+
+                          <td className="px-3 py-3 text-center capitalize">
+                            {selectedTemplateType}
+                          </td>
+
+                          <td className="px-3 py-3 text-center">
+                            <span
+                              className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
+                                asset.isActive
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-gray-100 text-gray-500"
+                              }`}
+                            >
+                              {asset.isActive ? "Aktif" : "Tidak Aktif"}
+                            </span>
+                          </td>
+
+                          <td className="px-3 py-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteTemplateAsset(asset)}
+                              disabled={asset.isActive}
+                              title="Hapus gambar"
+                              className={`w-8 h-8 rounded-md flex items-center justify-center mx-auto transition ${
+                                asset.isActive
+                                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                  : "bg-red-100 text-red-600 hover:bg-red-200 cursor-pointer"
+                              }`}
+                            >
+                              <FiTrash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+
+                      {templateAssets[selectedTemplateType].length === 0 && (
+                        <tr>
+                          <td
+                            colSpan="6"
+                            className="px-4 py-8 text-center text-gray-400"
+                          >
+                            Belum ada gambar template.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 px-6 py-5 bg-gray-100 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={handleCloseUploadModal}
+                  className="px-6 py-2 rounded-xl bg-white border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50"
+                >
+                  Batal
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveAssetChanges}
+                  disabled={!pendingSelectedAssetId}
+                  className={`px-6 py-2 rounded-xl font-semibold transition ${
+                    !pendingSelectedAssetId
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-[#0B6B63] hover:bg-[#09544e] text-white"
+                  }`}
+                >
+                  Simpan Perubahan
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {imagePreviewModal.open && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-[720px] max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-800">
+                    Preview Gambar Template
+                  </h2>
+
+                  <p className="text-sm text-gray-400 mt-1">
+                    {imagePreviewModal.name}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setImagePreviewModal({
+                      open: false,
+                      src: "",
+                      name: "",
+                    })
+                  }
+                  className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 text-gray-500"
+                >
+                  <FiX size={20} />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-auto bg-gray-50 flex justify-center">
+                <img
+                  src={imagePreviewModal.src}
+                  alt={imagePreviewModal.name}
+                  className="max-w-full max-h-[70vh] object-contain rounded-xl border border-gray-200 bg-white"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {deleteAssetModal.open && (
+          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-[390px] p-6 text-center">
+              <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+                <span className="text-red-600 text-3xl font-bold">!</span>
+              </div>
+
+              <h2 className="text-lg font-bold text-gray-800 mb-2">
+                Hapus Gambar Template?
+              </h2>
+
+              <p className="text-sm text-gray-500 mb-6">
+                Gambar ini akan dihapus dari daftar template. Tindakan ini tidak
+                bisa dibatalkan.
+              </p>
+
+              <div className="flex justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDeleteAssetModal({
+                      open: false,
+                      asset: null,
+                    })
+                  }
+                  className="px-6 py-2 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200"
+                >
+                  Batal
+                </button>
+
+                <button
+                  type="button"
+                  onClick={confirmDeleteTemplateAsset}
+                  className="px-6 py-2 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700"
+                >
+                  Ya, Hapus
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showConfirmUploadModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-[390px] p-6 text-center">
+              <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-yellow-100 flex items-center justify-center">
+                <span className="text-yellow-600 text-3xl font-bold">!</span>
+              </div>
+
+              <h2 className="text-lg font-bold text-gray-800 mb-2">
+                Simpan Perubahan Gambar?
+              </h2>
+
+              <p className="text-sm text-gray-500 mb-6">
+                Gambar yang dipilih akan digunakan sebagai template aktif.
+              </p>
+
+              <div className="flex justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmUploadModal(false)}
+                  className="px-6 py-2 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200"
+                >
+                  Batal
+                </button>
+
+                <button
+                  type="button"
+                  onClick={confirmSaveTemplateImage}
+                  className="px-6 py-2 rounded-xl bg-[#0B6B63] text-white font-bold hover:bg-[#09544e]"
+                >
+                  Ya, Simpan
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showConfirmSaveModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-[390px] p-6 text-center">
+              <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-yellow-100 flex items-center justify-center">
+                <span className="text-yellow-600 text-3xl font-bold">!</span>
+              </div>
+
+              <h2 className="text-lg font-bold text-gray-800 mb-2">
+                Simpan Template?
+              </h2>
+
+              <p className="text-sm text-gray-500 mb-6">
+                Pastikan posisi field sudah sesuai. Template akan disimpan ke
+                session browser.
+              </p>
+
+              <div className="flex justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmSaveModal(false)}
+                  className="px-6 py-2 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200"
+                >
+                  Batal
+                </button>
+
+                <button
+                  type="button"
+                  onClick={confirmSaveTemplate}
+                  className="px-6 py-2 rounded-xl bg-[#0B6B63] text-white font-bold hover:bg-[#09544e]"
+                >
+                  Ya, Simpan
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showSavedModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
             <div className="bg-white rounded-2xl shadow-xl w-[360px] p-6 text-center">
               <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
                 <span className="text-green-600 text-3xl font-bold">✓</span>
@@ -1030,7 +1718,7 @@ const Template = () => {
               </h2>
 
               <p className="text-sm text-gray-500 mb-5">
-                Template berhasil disimpan ke database.
+                Template berhasil disimpan ke session browser.
               </p>
 
               <button
