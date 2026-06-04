@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import DashboardLayout from "../../components/ui/DashboardLayout";
-import { FiSearch, FiChevronDown, FiFileText, FiCheckCircle, FiXCircle, FiClock, FiRefreshCw, FiArrowLeft } from "react-icons/fi";
+import { FiSearch, FiChevronDown, FiFileText, FiCheckCircle, FiXCircle, FiClock, FiRefreshCw } from "react-icons/fi"; // FiArrowLeft dihapus
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 
 const DetailBatchDokumenValid = () => {
@@ -45,7 +45,6 @@ const DetailBatchDokumenValid = () => {
       { id: 10, nama: "Pas Foto", keterangan: "Pas foto terbaru 3x4", required: true },
     ];
 
-    // Generate status random untuk demo
     return dokumen.map((doc, i) => {
       const statusRandom = Math.random();
       let status = "";
@@ -186,21 +185,12 @@ const DetailBatchDokumenValid = () => {
     navigate(`/operator/detail-dokumen-valid/${mhs.nim}`, { state: mhs });
   };
 
-  const handleBack = () => {
-    navigate(-1);
-  };
+  // handleBack sudah dihapus
 
   return (
     <DashboardLayout title="Detail Validasi Dokumen">
       <div className="w-full">
-        {/* Tombol Kembali */}
-        <button 
-          onClick={handleBack}
-          className="flex items-center gap-2 text-gray-500 hover:text-[#0B6B63] mb-4 transition-colors"
-        >
-          <FiArrowLeft size={18} />
-          <span className="text-sm font-medium">Kembali</span>
-        </button>
+        {/* TOMBOL KEMBALI SUDAH DIHAPUS */}
 
         {/* HEADER */}
         <div className="mb-6">

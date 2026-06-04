@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { FiUser, FiBook, FiFileText, FiArrowLeft, FiExternalLink } from "react-icons/fi";
+import { FiUser, FiBook, FiFileText, FiExternalLink } from "react-icons/fi";
 import DashboardLayout from "@/components/ui/DashboardLayout";
 
 const getMatkulByProdi = (prodi) => {
@@ -87,44 +87,31 @@ const DetailDokumenValid = () => {
   const totalSks = mahasiswa.totalSks || "144";
   const batch = mahasiswa.batch || "Batch";
 
-  const handleBack = () => {
-    navigate(-1);
+  const handleLinkIjazah = () => {
+    navigate(`/operator/ijazah-digital/${mahasiswa.nim}`, { 
+      state: { 
+        nama: mahasiswa.nama,
+        nim: mahasiswa.nim,
+        fakultas: mahasiswa.fakultas,
+        prodi: mahasiswa.prodi,
+        tahunLulus: mahasiswa.tahunLulus,
+        tempatLahir: mahasiswa.tempatLahir,
+        tanggalLahir: mahasiswa.tanggalLahir,
+        batch: mahasiswa.batch,
+        jenisKelamin: mahasiswa.jenisKelamin,
+        email: mahasiswa.email,
+        noTelp: mahasiswa.noTelp,
+        tahunMasuk: mahasiswa.tahunMasuk,
+        ipk: mahasiswa.ipk,
+        totalSks: mahasiswa.totalSks
+      } 
+    });
   };
-
- // src/pages/operator/DetailDokumenValid.jsx
-// Kode Anda SUDAH BENAR - handleLinkIjazah sudah mengirim state lengkap
-
-const handleLinkIjazah = () => {
-  navigate(`/operator/ijazah-digital/${mahasiswa.nim}`, { 
-    state: { 
-      nama: mahasiswa.nama,
-      nim: mahasiswa.nim,
-      fakultas: mahasiswa.fakultas,
-      prodi: mahasiswa.prodi,
-      tahunLulus: mahasiswa.tahunLulus,
-      tempatLahir: mahasiswa.tempatLahir,
-      tanggalLahir: mahasiswa.tanggalLahir,
-      batch: mahasiswa.batch,
-      jenisKelamin: mahasiswa.jenisKelamin,
-      email: mahasiswa.email,
-      noTelp: mahasiswa.noTelp,
-      tahunMasuk: mahasiswa.tahunMasuk,
-      ipk: mahasiswa.ipk,
-      totalSks: mahasiswa.totalSks
-    } 
-  });
-};
 
   return (
     <DashboardLayout title={`Detail Dokumen Valid - ${mahasiswa.nama}`}>
       <div className="w-full">
-        <button 
-          onClick={handleBack}
-          className="flex items-center gap-2 text-gray-500 hover:text-[#0B6B63] mb-4 transition-colors"
-        >
-          <FiArrowLeft size={18} />
-          <span className="text-sm font-medium">Kembali</span>
-        </button>
+        {/* TOMBOL KEMBALI SUDAH DIHAPUS */}
 
         <div className="bg-white rounded-xl px-8 py-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 shadow-sm border border-gray-200">
           <div className="flex items-center gap-6">

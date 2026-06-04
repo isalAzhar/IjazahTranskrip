@@ -1,8 +1,6 @@
-// src/pages/operator/IjazahDigital.jsx
-
 import React, { useRef, useState, useEffect } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { FiArrowLeft, FiPrinter, FiDownload } from "react-icons/fi";
+import { FiPrinter, FiDownload } from "react-icons/fi"; // FiArrowLeft dihapus
 import DashboardLayout from "../../components/ui/DashboardLayout";
 
 const IjazahDigital = () => {
@@ -69,7 +67,6 @@ const IjazahDigital = () => {
   const handlePrint = () => window.print();
 
   const handleDownload = () => {
-    // Notifikasi fitur masih dalam pengembangan
     alert("🚀 Fitur download sedang dalam tahap pengembangan. Mohon bersabar, akan segera tersedia!");
   };
 
@@ -86,13 +83,8 @@ const IjazahDigital = () => {
   return (
     <DashboardLayout title="Ijazah Digital">
       <div className="w-full">
-        <div className="flex items-center justify-between mb-5">
-          <button 
-            onClick={() => navigate(-1)} 
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50"
-          >
-            <FiArrowLeft size={15} /> Kembali
-          </button>
+        <div className="flex items-center justify-end mb-5">
+          {/* TOMBOL KEMBALI SUDAH DIHAPUS, hanya tombol Print & Download yang tersisa */}
           <div className="flex items-center gap-3">
             <button 
               onClick={handlePrint} 

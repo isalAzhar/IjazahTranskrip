@@ -1,6 +1,7 @@
 // src/pages/operator/ImportDataModal.jsx
 import React, { useState } from "react";
 import { uploadInboundExcel } from "@/services/api";
+import * as XLSX from "xlsx";
 import {
   FiChevronDown,
   FiInfo,
@@ -8,6 +9,7 @@ import {
   FiAlertCircle,
   FiX,
   FiFileText,
+  FiDownload,
 } from "react-icons/fi";
 
 const initialImportResult = {
@@ -40,6 +42,92 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
   const [progress, setProgress] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [importResult, setImportResult] = useState(initialImportResult);
+
+  // Fungsi untuk download data gagal sebagai Excel
+  const downloadFailedData = () => {
+    if (importResult.failed.length === 0) return;
+    
+    // Siapkan data untuk Excel
+    const failedDataForExcel = importResult.failed.map(item => {
+      return {
+        "No": item.nomor,
+        "NIM": item.nim || "-",
+        "NIK": item.nik || "-",
+        "Nomor Seri Ijazah": item.nomor_seri_ijazah || "-",
+        "PISN": item.pisn || "-",
+        "Nama Mahasiswa": item.nama || "-",
+        "Program Studi": item.nama_prodi || "-",
+        "Tempat Lahir": item.tempat_lahir || "-",
+        "Tanggal Lahir": item.tanggal_lahir || "-",
+        "Jenis Kelamin": item.jenis_kelamin || "-",
+        "Email": item.email || "-",
+        "IPK": item.ipk || "-",
+        "Judul Skripsi": item.judul_skripsi || "-",
+        "Tahun Masuk": item.tahun_masuk || "-",
+        "Tahun Lulus": item.tahun_lulus || "-",
+        "Status Kelulusan": item.status_kelulusan || "-",
+        "Tanggal Kelulusan": item.tanggal_kelulusan || "-",
+        "Field Error": item.field || "-",
+        "Keterangan Error": item.errors ? item.errors.join("; ") : (item.message || "-")
+      };
+    });
+    
+    // Buat worksheet
+    const worksheet = XLSX.utils.json_to_sheet(failedDataForExcel);
+    
+    // Atur lebar kolom
+    const colWidths = [
+      { wch: 6 },   // No
+      { wch: 14 },  // NIM
+      { wch: 18 },  // NIK
+      { wch: 22 },  // Nomor Seri Ijazah
+      { wch: 14 },  // PISN
+      { wch: 28 },  // Nama Mahasiswa
+      { wch: 25 },  // Program Studi
+      { wch: 18 },  // Tempat Lahir
+      { wch: 15 },  // Tanggal Lahir
+      { wch: 14 },  // Jenis Kelamin
+      { wch: 28 },  // Email
+      { wch: 10 },  // IPK
+      { wch: 45 },  // Judul Skripsi
+      { wch: 12 },  // Tahun Masuk
+      { wch: 12 },  // Tahun Lulus
+      { wch: 18 },  // Status Kelulusan
+      { wch: 18 },  // Tanggal Kelulusan
+      { wch: 20 },  // Field Error
+      { wch: 55 }   // Keterangan Error
+    ];
+    worksheet['!cols'] = colWidths;
+    
+    // Buat workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Data Gagal Import");
+    
+    // Tambahkan sheet petunjuk
+    const petunjukData = [
+      ["PETUNJUK PERBAIKAN DATA"],
+      [""],
+      ["1. Perbaiki data berdasarkan keterangan error pada kolom 'Keterangan Error'"],
+      ["2. Perhatikan kolom 'Field Error' untuk mengetahui field mana yang bermasalah"],
+      ["3. Pastikan semua field wajib terisi dengan benar"],
+      ["4. Format NIM: 10 digit angka"],
+      ["5. Format NIK: 16 digit angka (jika diisi)"],
+      ["6. Format Email: contoh@domain.com"],
+      ["7. Pastikan Tahun Lulus sesuai dengan pilihan saat import"],
+      ["8. NIM, NIK, Nomor Seri Ijazah, dan PISN tidak boleh duplikat dalam file Excel yang sama"],
+      [""],
+      [`Total data gagal: ${importResult.failed.length} dari ${importResult.totalData} data`],
+      [`Waktu export: ${new Date().toLocaleString()}`]
+    ];
+    
+    const petunjukSheet = XLSX.utils.aoa_to_sheet(petunjukData);
+    petunjukSheet['!cols'] = [{ wch: 80 }];
+    XLSX.utils.book_append_sheet(workbook, petunjukSheet, "Petunjuk Perbaikan");
+    
+    // Download file
+    const fileName = `data_gagal_import_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+  };
 
   const getPayloadData = (response) => {
     return response?.data?.data || response?.data || response || {};
@@ -85,6 +173,22 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
       nama: err?.nama_mahasiswa || err?.nama || "-",
       field: err?.field || "-",
       errors: [err?.message || err?.alasan || JSON.stringify(err)],
+      // Simpan data lengkap untuk keperluan download
+      nik: err?.nik || "-",
+      nomor_seri_ijazah: err?.nomor_seri_ijazah || "-",
+      pisn: err?.pisn || "-",
+      nama_prodi: err?.nama_prodi || "-",
+      tempat_lahir: err?.tempat_lahir || "-",
+      tanggal_lahir: err?.tanggal_lahir || "-",
+      jenis_kelamin: err?.jenis_kelamin || "-",
+      email: err?.email || "-",
+      ipk: err?.ipk || "-",
+      judul_skripsi: err?.judul_skripsi || "-",
+      tahun_masuk: err?.tahun_masuk || "-",
+      tahun_lulus: err?.tahun_lulus || "-",
+      status_kelulusan: err?.status_kelulusan || "-",
+      tanggal_kelulusan: err?.tanggal_kelulusan || "-",
+      message: err?.message || err?.alasan,
     };
   };
 
@@ -446,6 +550,19 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
                 </div>
               </div>
             </div>
+
+            {/* Tombol Download Data Gagal - FITUR BARU */}
+            {failed.length > 0 && (
+              <div className="mb-4 flex justify-end">
+                <button
+                  onClick={downloadFailedData}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-all shadow-sm"
+                >
+                  <FiDownload size={14} />
+                  Download Data Gagal ({failed.length})
+                </button>
+              </div>
+            )}
 
             {failed.length > 0 && (
               <div>
