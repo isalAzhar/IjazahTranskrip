@@ -18,8 +18,8 @@ const Dashboard = () => {
   const [statsData, setStatsData] = useState({
     terbit: 0,
     proses: 0,
-    reject: 0,
-    revoke: 0
+    rejected: 0,
+    revoked: 0
   });
   const [tableData, setTableData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,14 +46,12 @@ const Dashboard = () => {
   const statusOptions = ["Semua Status", "Proses", "Terbit", "Reject", "Revoke", "Approved"];
   const tahunOptions = ["Semua Tahun", "2021", "2022", "2023", "2024", "2025", "2026"];
 
-  // 🔥 4. OPERASI PENYEDOTAN DATA DARI BACKEND DENGAN TEMBAKAN GANDA
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setIsLoading(true);
         setApiError("");
 
-        // 🎯 Tembak dua endpoint sekaligus!
         const [resSummary, resTable] = await Promise.all([
           fetch("/api/dashboard/summary", {
             method: "GET",
@@ -71,7 +69,6 @@ const Dashboard = () => {
           })
         ]);
 
-        // Cek jika token mati
         if (resSummary.status === 401 || resTable.status === 401) {
           console.error("Token kedaluwarsa! Menendang keluar...");
           logout();
@@ -81,7 +78,6 @@ const Dashboard = () => {
         const dataSummary = await resSummary.json();
         const dataTable = await resTable.json();
 
-        // 📡 RADAR: Tampilkan data asli dari backend di Console (F12) untuk investigasi jika tabel kosong
         console.log("DATA SUMMARY DARI BACKEND:", dataSummary);
         console.log("DATA TABEL DARI BACKEND:", dataTable);
 
@@ -90,14 +86,12 @@ const Dashboard = () => {
           setStatsData({
             terbit: dataSummary.data.terbit || dataSummary.data.total_terbit || 0,
             proses: dataSummary.data.proses || dataSummary.data.total_proses || 0,
-            reject: dataSummary.data.reject || dataSummary.data.total_reject || 0,
-            revoke: dataSummary.data.revoke || dataSummary.data.total_revoke || 0
+            rejected: dataSummary.data.rejected || dataSummary.data.total_rejected || 0,
+            revoked: dataSummary.data.revoked || dataSummary.data.total_revoked || 0
           });
         }
 
-        // 📦 SIMPAN DATA TABEL (Aktivitas Terbaru)
         if (resTable.ok && dataTable.data) {
-          // Pastikan data yang masuk adalah array
           setTableData(Array.isArray(dataTable.data) ? dataTable.data : []);
         } else {
           setApiError("Gagal mengambil data tabel dari server.");
@@ -129,7 +123,6 @@ const Dashboard = () => {
 
       const matchesFakultas = selectedFakultas === "Semua Fakultas" || item.fakultas === selectedFakultas;
       
-      // 🔥 FIX: Tambahkan toLowerCase() agar "proses" dari API sama dengan "Proses" dari Dropdown
       const matchesStatus = selectedStatus === "Semua Status" || item.status?.toLowerCase() === selectedStatus.toLowerCase();
       
       const matchesTahun = selectedTahun === "Semua Tahun" || item.tahun_lulus?.toString() === selectedTahun;
@@ -242,7 +235,7 @@ const Dashboard = () => {
         <div onClick={() => navigate("/ijazah/reject")} className="cursor-pointer">
           <StatCard
             title="Jumlah Ijazah di Reject"
-            value={statsData.reject.toLocaleString('id-ID')}
+            value={statsData.rejected.toLocaleString('id-ID')}
             sub="Statistik Terkini"
             subColor="text-[#F97316]"
             icon={Icons.Close}
@@ -252,7 +245,7 @@ const Dashboard = () => {
         <div onClick={() => navigate("/ijazah/revoke")} className="cursor-pointer">
           <StatCard
             title="Jumlah Ijazah di Revoke"
-            value={statsData.revoke.toLocaleString('id-ID')}
+            value={statsData.revoked.toLocaleString('id-ID')}
             sub="Statistik Terkini"
             subColor="text-[#F59E0B]"
             icon={Icons.List}
@@ -267,7 +260,7 @@ const Dashboard = () => {
           <IssuanceChart />
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="font-bold text-gray-800 mb-4 text-lg">Status Data Ijazah Tahun 2026</h2>
+          <h2 className="font-bold text-gray-800 mb-4 text-lg">  Status Data Ijazah Tahun {new Date().getFullYear()}</h2>
           <VerificationStatusChart />
         </div>
       </div>

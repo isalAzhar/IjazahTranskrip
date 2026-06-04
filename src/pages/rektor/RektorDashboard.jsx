@@ -18,8 +18,8 @@ const Dashboard = () => {
   const [statsData, setStatsData] = useState({
     terbit: 0,
     proses: 0,
-    reject: 0,
-    revoke: 0
+    rejected: 0,
+    revoked: 0
   });
   const [tableData, setTableData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,14 +46,12 @@ const Dashboard = () => {
   const statusOptions = ["Semua Status", "Proses", "Terbit", "Reject", "Revoke", "Approved"];
   const tahunOptions = ["Semua Tahun", "2021", "2022", "2023", "2024", "2025", "2026"];
 
-  // 🔥 4. OPERASI PENYEDOTAN DATA DARI BACKEND DENGAN TEMBAKAN GANDA
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setIsLoading(true);
         setApiError("");
 
-        // 🎯 Tembak dua endpoint sekaligus!
         const [resSummary, resTable] = await Promise.all([
           fetch("/api/dashboard/summary", {
             method: "GET",
@@ -81,17 +79,15 @@ const Dashboard = () => {
         const dataSummary = await resSummary.json();
         const dataTable = await resTable.json();
 
-        // 📡 RADAR: Tampilkan data asli dari backend di Console (F12) untuk investigasi jika tabel kosong
         console.log("DATA SUMMARY DARI BACKEND:", dataSummary);
         console.log("DATA TABEL DARI BACKEND:", dataTable);
 
-        // 📦 SIMPAN DATA STATISTIK
         if (resSummary.ok && dataSummary.data) {
           setStatsData({
             terbit: dataSummary.data.terbit || dataSummary.data.total_terbit || 0,
             proses: dataSummary.data.proses || dataSummary.data.total_proses || 0,
-            reject: dataSummary.data.reject || dataSummary.data.total_reject || 0,
-            revoke: dataSummary.data.revoke || dataSummary.data.total_revoke || 0
+            rejected: dataSummary.data.rejected || dataSummary.data.total_rejected || 0,
+            revoked: dataSummary.data.revoked || dataSummary.data.total_revoked || 0
           });
         }
 
@@ -241,7 +237,7 @@ const Dashboard = () => {
         <div onClick={() => navigate("/ijazah/reject")} className="cursor-pointer">
           <StatCard
             title="Jumlah Ijazah di Reject"
-            value={statsData.reject.toLocaleString('id-ID')}
+            value={statsData.rejected.toLocaleString('id-ID')}
             sub="Statistik Terkini"
             subColor="text-[#F97316]"
             icon={Icons.Close}
@@ -251,7 +247,7 @@ const Dashboard = () => {
         <div onClick={() => navigate("/ijazah/revoke")} className="cursor-pointer">
           <StatCard
             title="Jumlah Ijazah di Revoke"
-            value={statsData.revoke.toLocaleString('id-ID')}
+            value={statsData.revoked.toLocaleString('id-ID')}
             sub="Statistik Terkini"
             subColor="text-[#F59E0B]"
             icon={Icons.List}

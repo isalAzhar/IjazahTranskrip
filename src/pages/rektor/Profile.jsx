@@ -1,12 +1,33 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { FiUser, FiLock, FiCheckCircle, FiEye, FiEyeOff } from "react-icons/fi";
 
+// 🔥 FUNGSI FORMAT ROLE AGAR TAMPIL RAPI DI LAYAR
+const formatRoleUI = (role) => {
+  if (!role) return "-";
+  const roleMap = {
+    "admin": "Administrator",
+    "operator": "Operator",
+    "rektor": "Rektor",
+    "wakil_rektor_1": "Wakil Rektor 1",
+    "tu_rektorat": "TU Rektorat",
+    "dekan": "Dekan",
+    "wakil_dekan_1": "Wakil Dekan 1",
+    "tu_fakultas": "TU Fakultas"
+  };
+  return roleMap[role.toLowerCase()] || role; 
+};
+
 const Profile = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  // 🔥 AMBIL TOKEN DARI CONTEXT UNTUK KUNCI API
+  const { logout, token } = useAuth();
+
+  // 🔥 STATE UNTUK MENYIMPAN DATA DARI BACKEND
+  const [userData, setUserData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -18,11 +39,52 @@ const Profile = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // 🔥 FUNGSI FETCH DATA PROFIL SAAT HALAMAN DIBUKA
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setIsLoading(true);
+        // Tembak rute backend yang sudah kita buat sebelumnya
+        const response = await fetch("/api/profile/me", {
+          headers: { 
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
+        });
+
+        const result = await response.json();
+        
+        if (response.ok && result.data) {
+          // Format tanggal menjadi cantik (ex: 15 Desember 2025)
+          const joinDate = result.data.created_at 
+            ? new Date(result.data.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+            : "-";
+
+          setUserData({
+            nama: result.data.nama || "-", 
+            nidn: result.data.nidn || "-", 
+            email: result.data.email || "-",
+            role: result.data.role || "-",
+            tanggal_bergabung: joinDate
+          });
+        }
+      } catch (error) {
+        console.error("Gagal mengambil data profil:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (token) fetchProfile();
+  }, [token]);
+
   const handleLogout = () => {
     logout();
+    navigate("/login"); // Pastikan diredirect setelah logout
   };
 
-  const handlePasswordSubmit = (e) => {
+  // 🔥 UBAH KATA SANDI (DENGAN KONEKSI API)
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
       alert("Konfirmasi kata sandi tidak cocok!");
@@ -32,15 +94,40 @@ const Profile = () => {
       alert("Kata sandi baru minimal 8 karakter!");
       return;
     }
-    setIsPasswordModalOpen(false);
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setShowCurrentPassword(false);
-    setShowNewPassword(false);
-    setShowConfirmPassword(false);
-    setShowSuccessToast(true);
-    setTimeout(() => setShowSuccessToast(false), 3000);
+
+    try {
+      // Sesuaikan rute ini jika di backend namanya beda (misal: /api/user/changePassword)
+      const response = await fetch("/api/user/changePassword", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          oldPassword: currentPassword,
+          newPassword: newPassword
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setIsPasswordModalOpen(false);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setShowCurrentPassword(false);
+        setShowNewPassword(false);
+        setShowConfirmPassword(false);
+        
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 3000);
+      } else {
+        alert(result.message || "Gagal mengubah kata sandi.");
+      }
+    } catch (error) {
+      alert("Terjadi kesalahan jaringan.");
+    }
   };
 
   return (
@@ -55,26 +142,37 @@ const Profile = () => {
             <h2 className="text-xl font-bold text-gray-800">Informasi Pribadi</h2>
           </div>
 
+          {/* 🔥 GRID INFORMASI (SUDAH DI-BINDING DENGAN STATE) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-y-10 gap-x-6 mb-12">
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Nama Lengkap</p>
-              <p className="text-lg font-bold text-gray-800">Dr. Subagja</p>
+              <p className="text-lg font-bold text-gray-800">
+                {isLoading ? "Memuat..." : userData?.nama}
+              </p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">NIDN</p>
-              <p className="text-lg font-bold text-gray-800 tracking-wider">12345678912345</p>
+              <p className="text-lg font-bold text-gray-800 tracking-wider">
+                {isLoading ? "Memuat..." : userData?.nidn}
+              </p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Email</p>
-              <p className="text-lg font-bold text-gray-800">rektor@gmail.com</p>
+              <p className="text-lg font-bold text-gray-800">
+                {isLoading ? "Memuat..." : userData?.email}
+              </p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Role</p>
-              <p className="text-lg font-bold text-gray-800">Rektor</p>
+              <p className="text-lg font-bold text-gray-800">
+                {isLoading ? "Memuat..." : formatRoleUI(userData?.role)}
+              </p>
             </div>
             <div className="col-span-2">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tanggal Bergabung</p>
-              <p className="text-lg font-bold text-gray-800">15 Desember 2015</p>
+              <p className="text-lg font-bold text-gray-800">
+                {isLoading ? "Memuat..." : userData?.tanggal_bergabung}
+              </p>
             </div>
           </div>
 
@@ -87,7 +185,7 @@ const Profile = () => {
               </div>
               <div>
                 <p className="text-base font-bold text-gray-800">Kata Sandi</p>
-                <p className="text-xs text-gray-400">Terakhir diubah 5 bulan yang lalu</p>
+                <p className="text-xs text-gray-400">Terakhir diubah belum lama ini</p>
               </div>
               <button
                 onClick={() => setIsPasswordModalOpen(true)}
@@ -106,9 +204,10 @@ const Profile = () => {
         </div>
       </div>
 
+      {/* Modal Ubah Kata Sandi */}
       {isPasswordModalOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl w-full max-w-125 overflow-hidden shadow-2xl">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl w-full max-w-[500px] overflow-hidden shadow-2xl">
             <div className="p-8 pb-6 border-b border-gray-100">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Ubah Kata Sandi</h2>
               <p className="text-sm text-gray-600">Demi keamanan akun Anda, harap lakukan pembaruan kata sandi secara berkala.</p>
@@ -179,9 +278,10 @@ const Profile = () => {
         </div>
       )}
 
+      {/* Modal Logout */}
       {isLogoutModalOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-4xl p-8 w-full max-w-105 shadow-2xl text-center">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-[420px] shadow-2xl text-center">
             <div className="mx-auto w-24 h-24 bg-[#FFEAEA] rounded-[28px] flex items-center justify-center mb-6">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-[#D32F2F] ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -203,8 +303,9 @@ const Profile = () => {
         </div>
       )}
 
+      {/* Toast Sukses */}
       {showSuccessToast && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-70">
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[70]">
           <div className="bg-[#0B4B48] text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-3">
             <FiCheckCircle className="text-[#27AE60]" size={20} />
             <span className="text-sm font-medium">Kata sandi berhasil diperbarui!</span>
