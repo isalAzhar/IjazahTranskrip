@@ -83,13 +83,9 @@ const DataMahasiswa = () => {
     return match ? Number(match[1]) : 0;
   };
 
-  // Tempat lahir options
   const tempatLahirList = ["Bogor", "Jakarta", "Bandung", "Depok", "Bekasi", "Tangerang"];
-  
-  // Tanggal lahir options
   const tanggalLahirList = ["15 Januari 2004", "20 Maret 2004", "10 Februari 2004", "22 April 2004", "12 Mei 2004", "18 Oktober 2004", "21 Januari 2003", "9 Agustus 2004", "5 Februari 2003"];
 
-  // DUMMY DATA
   const dummyData = useMemo(() => {
     let result = [];
     let id = 1;
@@ -137,7 +133,6 @@ const DataMahasiswa = () => {
     return result;
   }, []);
 
-  // SEARCH RESULT
   const searchResult = useMemo(() => {
     if (!search) return [];
 
@@ -167,7 +162,6 @@ const DataMahasiswa = () => {
     return result;
   }, [search, dummyData]);
 
-  // FILTER DATA
   const filtered = dummyData
     .filter((item) => {
       const keyword = search.toLowerCase();
@@ -214,7 +208,6 @@ const DataMahasiswa = () => {
     }
   };
 
-  // PAGINATION STYLE
   const renderPaginationButtons = () => {
     const pages = [];
 
@@ -245,7 +238,7 @@ const DataMahasiswa = () => {
             ? "bg-[#00897B] text-white"
             : page === "..."
             ? "bg-transparent text-gray-400 cursor-default shadow-none"
-            : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"
+            : "bg-white border border-gray-300 text-gray-500 hover:bg-gray-100" // ✅ DIUBAH: dari bg-[#E5E7EB] jadi bg-white border
         }`}
       >
         {page}
@@ -253,7 +246,6 @@ const DataMahasiswa = () => {
     ));
   };
 
-  // Handler untuk klik mahasiswa dari hasil pencarian
   const handleMahasiswaClick = (item) => {
     navigate(`/admin/detail-mahasiswa/${item.nim}`, {
       state: {
@@ -273,63 +265,63 @@ const DataMahasiswa = () => {
   return (
     <DashboardLayout title="Daftar Batch">
       <div className="w-full">
-        {/* HEADER */}
         <div className="mb-7">
           <h1 className="text-[28px] font-bold text-[#111827] leading-tight">
             Daftar Batch
           </h1>
-
           <p className="text-[#9CA3AF] text-sm mt-1">
             Melihat data yang sedang di proses validasi
           </p>
         </div>
 
-        {/* FILTER BOX */}
-        <div className="bg-white border border-[#E5E7EB] p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 mb-5 shadow-sm">
-          <div className="flex items-center bg-[#E5E5E5] rounded-lg px-3 h-10 w-72">
-            <FiSearch className="text-gray-500 text-sm mr-2 flex-shrink-0" />
-            <input
-              type="text"
-              placeholder="Cari: Nama, NIM, Prodi"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="bg-transparent outline-none text-sm w-full"
-            />
-          </div>
-
-          <div className="flex items-center gap-3 ml-auto">
-            {/* FAKULTAS */}
-            <div className="relative">
-              <select
-                value={fakultas}
-                onChange={(e) => setFakultas(e.target.value)}
-                className="appearance-none bg-[#E5E5E5] text-sm px-4 h-10 rounded-lg pr-10 min-w-[260px] outline-none cursor-pointer"
-              >
-                <option value="">Semua Fakultas</option>
-                {fakultasList.map((f, i) => (
-                  <option key={i} value={f.nama}>
-                    {f.nama}
-                  </option>
-                ))}
-              </select>
-              <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
+        {/* FILTER BOX - DIUBAH jadi putih seperti RektorDokumenValid */}
+        <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm mb-6">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+            <div className="w-full lg:max-w-md">
+              <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
+                <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Cari: Nama, NIM, Prodi..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
+                />
+              </div>
             </div>
 
-            {/* TAHUN */}
-            <div className="relative">
-              <select
-                value={tahun}
-                onChange={(e) => setTahun(e.target.value)}
-                className="appearance-none bg-[#E5E5E5] text-sm px-4 h-10 rounded-lg pr-10 min-w-[160px] outline-none cursor-pointer"
-              >
-                <option value="">Semua lulus</option>
-                {years.map((y, i) => (
-                  <option key={i} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-              <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none" />
+            <div className="flex items-center gap-3 w-full lg:w-auto">
+              <div className="relative w-full lg:w-72">
+                <select
+                  value={fakultas}
+                  onChange={(e) => setFakultas(e.target.value)}
+                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-center"
+                >
+                  <option value="">Semua Fakultas</option>
+                  {fakultasList.map((f, i) => (
+                    <option key={i} value={f.nama}>
+                      {f.nama}
+                    </option>
+                  ))}
+                </select>
+                <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+              </div>
+
+              <div className="relative w-full lg:w-44">
+                <select
+                  value={tahun}
+                  onChange={(e) => setTahun(e.target.value)}
+                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-center"
+                >
+                  <option value="">Semua Tahun</option>
+                  {years.map((y, i) => (
+                    <option key={i} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </select>
+                <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+              </div>
             </div>
           </div>
         </div>
@@ -398,11 +390,9 @@ const DataMahasiswa = () => {
                     <td className="px-4 py-4 text-center align-middle">
                       {actualIndex}
                     </td>
-
                     <td className="px-4 py-4 font-semibold text-gray-800 align-middle">
                       {item.batch}
                     </td>
-
                     <td className="py-4 px-4 text-center text-gray-600 font-semibold align-middle">
                       <div
                         className="whitespace-normal leading-snug overflow-hidden max-w-[260px] mx-auto"
@@ -415,32 +405,28 @@ const DataMahasiswa = () => {
                         {item.fakultas}
                       </div>
                     </td>
-
                     <td className="px-4 py-4 text-center align-middle">
                       {item.tahun}
                     </td>
-
                     <td className="px-4 py-4 text-center align-middle">
                       {item.periode}
                     </td>
-
                     <td className="px-4 py-4 text-center font-semibold align-middle">
                       {item.total}
                     </td>
-
                     <td className="px-4 py-3 text-center align-middle">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        navigate(`/admin/detail-batch/${item.id}`, {
-                          state: item,
-                        })
-                      }
-                      className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-100 transition"
-                      title="Lihat detail batch"
-                    >
-                      <div className="w-3 h-3 border-t-2 border-b-2 border-gray-400" />
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate(`/admin/detail-batch/${item.id}`, {
+                            state: item,
+                          })
+                        }
+                        className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-100 transition"
+                        title="Lihat detail batch"
+                      >
+                        <div className="w-3 h-3 border-t-2 border-b-2 border-gray-400" />
+                      </button>
                     </td>
                   </tr>
                 );

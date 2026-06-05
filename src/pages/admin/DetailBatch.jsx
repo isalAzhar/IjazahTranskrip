@@ -135,17 +135,16 @@ const DetailBatch = () => {
           </div>
         </div>
 
-        {/* FILTER BOX - gaya seperti BatchProses */}
-        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-100">
-          <div className="flex items-center bg-[#F3F4F6] rounded-lg px-4 h-[44px] w-full">
-            <FiSearch className="text-gray-500 text-lg mr-3" />
-
+        {/* FILTER BOX - DIUBAH JADI PUTIH seperti RektorDokumenValid */}
+        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-200">
+          <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-[44px] w-full transition-all shadow-sm">
+            <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
             <input
               type="text"
               placeholder="Cari: Nama, NIM, Prodi"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-transparent outline-none text-sm w-full font-medium text-gray-700 placeholder-gray-500"
+              className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
             />
           </div>
         </div>

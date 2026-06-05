@@ -190,7 +190,7 @@ const Dashboard = () => {
             ? "bg-[#00897B] text-white"
             : page === "..."
             ? "bg-transparent text-gray-400 cursor-default shadow-none"
-            : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"
+            : "bg-white border border-gray-300 text-gray-500 hover:bg-gray-100"
         }`}
       >
         {page}
@@ -279,23 +279,23 @@ const Dashboard = () => {
             <h2 className="text-xl font-bold text-gray-800">Aktivitas Verifikasi Terbaru</h2>
             <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto xl:justify-end">
               
-              {/* SEARCH */}
+              {/* SEARCH - DIUBAH JADI PUTIH */}
               <div className="relative w-full sm:w-72">
                 <FiSearch className="absolute left-3 top-2.5 text-gray-400" size={16} />
                 <input
                   type="text"
                   placeholder="Cari: Nama, NIM, Prodi"
-                  className="w-full pl-9 pr-4 py-2 rounded-md bg-[#f3f4f6] text-sm outline-none border border-transparent focus:border-teal-500 transition-colors"
+                  className="w-full pl-9 pr-4 py-2 rounded-md bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm outline-none transition-all"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
 
-              {/* FILTERS */}
+              {/* FILTERS - DIUBAH JADI PUTIH */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:ml-auto">
                 <div className="relative w-full sm:w-64">
                   <select
-                    className="w-full appearance-none bg-[#f3f4f6] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-transparent focus:border-teal-500 cursor-pointer transition-colors"
+                    className="w-full appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none cursor-pointer transition-all"
                     value={selectedFakultas}
                     onChange={(e) => setSelectedFakultas(e.target.value)}
                   >
@@ -303,14 +303,14 @@ const Dashboard = () => {
                       <option key={index} value={fakultas}>{fakultas}</option>
                     ))}
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-600">
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
                     {Icons.DropdownArrow}
                   </div>
                 </div>
 
                 <div className="relative w-full sm:w-44">
                   <select
-                    className="w-full appearance-none bg-[#f3f4f6] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-transparent focus:border-teal-500 cursor-pointer transition-colors"
+                    className="w-full appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none cursor-pointer transition-all"
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
                   >
@@ -318,14 +318,14 @@ const Dashboard = () => {
                       <option key={index} value={status}>{status}</option>
                     ))}
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-600">
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
                     {Icons.DropdownArrow}
                   </div>
                 </div>
 
                 <div className="relative w-full sm:w-40">
                   <select
-                    className="w-full appearance-none bg-[#f3f4f6] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-transparent focus:border-teal-500 cursor-pointer transition-colors"
+                    className="w-full appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none cursor-pointer transition-all"
                     value={selectedTahun}
                     onChange={(e) => setSelectedTahun(e.target.value)}
                   >
@@ -333,7 +333,7 @@ const Dashboard = () => {
                       <option key={index} value={tahun}>{tahun}</option>
                     ))}
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-600">
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
                     {Icons.DropdownArrow}
                   </div>
                 </div>
@@ -373,7 +373,6 @@ const Dashboard = () => {
                       {indexOfFirstItem + i + 1}.
                     </td>
                     <td className="px-4 py-4">
-                      {/* 🔥 SESUAIKAN KEY OBJEK DENGAN RESPONSE API */}
                       <div className="font-semibold text-gray-800 truncate">{row.nama || "-"}</div>
                       <div className="text-[11px] text-gray-400 mt-0.5 truncate">{row.batch || "-"}</div>
                     </td>
@@ -407,7 +406,7 @@ const Dashboard = () => {
           </table>
         </div>
 
-        {/* PAGINATION */}
+        {/* PAGINATION - DIUBAH JADI PUTIH */}
         <div className="p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-gray-100">
           <p className="text-xs text-gray-400">
             Menampilkan {currentData.length} dari {filteredData.length} Data

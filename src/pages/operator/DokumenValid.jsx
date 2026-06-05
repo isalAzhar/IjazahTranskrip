@@ -10,10 +10,8 @@ const generateBatchData = () => {
   const data = [];
   let id = 1;
   
-  // PERUBAHAN: Tahun dari 2021 sampai 2026
   const tahunRandom = ["2021", "2022", "2023", "2024", "2025", "2026"];
   
-  // Daftar nama mahasiswa
   const daftarNama = [
     "Adi Saputra", "Rani Maharani", "Budi Pratama", "Kayla Keyla", "Rizky Gusti A",
     "Risma Puspita", "Budi Doremi", "Siti Aisyah", "Eagle Al-Haikal", "Zahra Nabil",
@@ -21,7 +19,6 @@ const generateBatchData = () => {
     "Zulvikri", "Tasya Cantika", "Baedilah", "Mutqin", "Husni Haqiqi"
   ];
   
-  // FAKULTAS TEKNIK DAN SAINS (FTS) - Batch 1 s/d 10
   const ftsBatch = ["Batch 1 - FTS", "Batch 2 - FTS", "Batch 3 - FTS", "Batch 4 - FTS", "Batch 5 - FTS", 
                     "Batch 6 - FTS", "Batch 7 - FTS", "Batch 8 - FTS", "Batch 9 - FTS", "Batch 10 - FTS"];
   const ftsPeriode = ["Semester Ganjil", "Semester Genap", "Semester Ganjil", "Semester Genap", "Semester Ganjil", "Semester Genap", "Semester Ganjil", "Semester Genap", "Semester Ganjil", "Semester Genap"];
@@ -63,7 +60,6 @@ const generateBatchData = () => {
     });
   }
   
-  // FAKULTAS EKONOMI DAN BISNIS (FEB) - Batch 1 s/d 10
   const febBatch = ["Batch 1 - FEB", "Batch 2 - FEB", "Batch 3 - FEB", "Batch 4 - FEB", "Batch 5 - FEB",
                     "Batch 6 - FEB", "Batch 7 - FEB", "Batch 8 - FEB", "Batch 9 - FEB", "Batch 10 - FEB"];
   const febProdi = ["Manajemen", "Akuntansi", "Bisnis Digital"];
@@ -104,7 +100,6 @@ const generateBatchData = () => {
     });
   }
   
-  // FAKULTAS HUKUM (FH) - Batch 1 s/d 8
   const fhBatch = ["Batch 1 - FH", "Batch 2 - FH", "Batch 3 - FH", "Batch 4 - FH",
                    "Batch 5 - FH", "Batch 6 - FH", "Batch 7 - FH", "Batch 8 - FH"];
   const fhProdi = ["Ilmu Hukum"];
@@ -145,7 +140,6 @@ const generateBatchData = () => {
     });
   }
   
-  // FAKULTAS AGAMA ISLAM (FAI) - Batch 1 s/d 8
   const faiBatch = ["Batch 1 - FAI", "Batch 2 - FAI", "Batch 3 - FAI", "Batch 4 - FAI",
                     "Batch 5 - FAI", "Batch 6 - FAI", "Batch 7 - FAI", "Batch 8 - FAI"];
   const faiProdi = ["Pendidikan Agama Islam", "Ekonomi Syariah"];
@@ -186,7 +180,6 @@ const generateBatchData = () => {
     });
   }
   
-  // FAKULTAS ILMU KESEHATAN (FIKES) - Batch 1 s/d 8
   const fikesBatch = ["Batch 1 - FIKES", "Batch 2 - FIKES", "Batch 3 - FIKES", "Batch 4 - FIKES",
                       "Batch 5 - FIKES", "Batch 6 - FIKES", "Batch 7 - FIKES", "Batch 8 - FIKES"];
   const fikesProdi = ["Kesehatan Masyarakat", "Ilmu Gizi"];
@@ -227,7 +220,6 @@ const generateBatchData = () => {
     });
   }
   
-  // FAKULTAS KEGURUAN DAN ILMU PENDIDIKAN (FKIP) - Batch 1 s/d 8
   const fkipBatch = ["Batch 1 - FKIP", "Batch 2 - FKIP", "Batch 3 - FKIP", "Batch 4 - FKIP",
                      "Batch 5 - FKIP", "Batch 6 - FKIP", "Batch 7 - FKIP", "Batch 8 - FKIP"];
   const fkipProdi = ["Pendidikan Bahasa Inggris", "Teknologi Pendidikan"];
@@ -273,7 +265,6 @@ const generateBatchData = () => {
 
 const batchData = generateBatchData();
 
-// Opsi filter
 const fakultasOptions = [
   "Semua Fakultas",
   "Fakultas Teknik dan Sains",
@@ -284,7 +275,6 @@ const fakultasOptions = [
   "Fakultas Keguruan dan Ilmu Pendidikan"
 ];
 
-// PERUBAHAN: Tambah tahun 2021, 2022, 2023
 const tahunOptions = ["Semua Tahun", "2021", "2022", "2023", "2024", "2025", "2026"];
 
 const DokumenValid = () => {
@@ -295,7 +285,6 @@ const DokumenValid = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // HASIL PENCARIAN MAHASISWA (NAMA, NIM, PRODI)
   const searchResult = useMemo(() => {
     if (!search) return [];
 
@@ -355,18 +344,14 @@ const DokumenValid = () => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
-  // Fungsi untuk navigasi ke detail batch
   const handleDetailClick = (item) => {
-    console.log("Navigasi ke detail batch:", item);
     navigate(`/operator/dokumen-valid/batch/${item.id}`, { state: item });
   };
 
-  // Fungsi untuk navigasi ke detail mahasiswa dari hasil pencarian
   const handleMahasiswaClick = (item) => {
     navigate(`/operator/detail-mahasiswa/${item.nim}`, { state: item.mahasiswa });
   };
 
-  // PAGINATION SAMA PERSIS DENGAN PELAPORAN DAN MANAJEMEN DATA
   const renderPaginationButtons = () => {
     const pages = [];
     pages.push(1);
@@ -391,7 +376,7 @@ const DokumenValid = () => {
             ? "bg-[#00897B] text-white"
             : page === "..."
             ? "bg-transparent text-gray-400 cursor-default shadow-none"
-            : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"
+            : "bg-white border border-gray-300 text-gray-500 hover:bg-gray-100"
         }`}
       >
         {page}
@@ -407,90 +392,81 @@ const DokumenValid = () => {
           <p className="text-[#9CA3AF] text-sm mt-1">Arsip digital ijazah dan transkrip mahasiswa yang telah melewati proses verifikasi institusi.</p>
         </div>
 
-        {/* Search bar di kiri, dropdown filter di kanan */}
-        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-wrap items-center gap-4 border border-gray-100">
-          {/* Search Bar - DI KIRI dengan hasil pencarian */}
-          <div className="flex-1 min-w-[250px] max-w-md relative">
-            <div className="flex items-center bg-[#E5E5E5] rounded-lg px-4 h-11">
-              <FiSearch className="text-gray-500 text-lg mr-3" />
-              <input 
-                type="text" 
-                placeholder="Cari: Nama Mahasiswa, NIM, Prodi" 
-                value={search} 
-                onChange={(e) => setSearch(e.target.value)}
-                className="bg-transparent outline-none text-sm w-full font-medium text-gray-700 placeholder-gray-500" 
-              />
+        {/* FILTER BOX - PUTIH */}
+        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-200">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+            <div className="w-full lg:max-w-md">
+              <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
+                <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
+                <input 
+                  type="text" 
+                  placeholder="Cari: Nama Mahasiswa, NIM, Prodi" 
+                  value={search} 
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400" 
+                />
+              </div>
             </div>
 
+            <div className="flex items-center gap-3 w-full lg:w-auto">
+              <div className="relative w-full lg:w-56">
+                <select 
+                  value={fakultas || "Semua Fakultas"} 
+                  onChange={(e) => setFakultas(e.target.value === "Semua Fakultas" ? "" : e.target.value)}
+                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
+                >
+                  {fakultasOptions.map((item, index) => (
+                    <option key={index} value={item}>{item}</option>
+                  ))}
+                </select>
+                <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+              </div>
 
-          </div>
-
-          {/* Dropdown Filters - DI KANAN (menjauh ke pojok) */}
-          <div className="flex items-center gap-3 ml-auto">
-            {/* Dropdown Fakultas */}
-            <div className="relative min-w-[220px]">
-              <select 
-                value={fakultas || "Semua Fakultas"} 
-                onChange={(e) => setFakultas(e.target.value === "Semua Fakultas" ? "" : e.target.value)}
-                className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 w-full outline-none cursor-pointer"
-              >
-                {fakultasOptions.map((item, index) => (
-                  <option key={index} value={item}>{item}</option>
-                ))}
-              </select>
-              <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none" />
-            </div>
-
-            {/* Dropdown Tahun */}
-            <div className="relative w-[150px]">
-              <select 
-                value={tahun || "Semua Tahun"} 
-                onChange={(e) => setTahun(e.target.value === "Semua Tahun" ? "" : e.target.value)}
-                className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 w-full outline-none cursor-pointer"
-              >
-                {tahunOptions.map((item, index) => (
-                  <option key={index} value={item}>{item}</option>
-                ))}
-              </select>
-              <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none" />
+              <div className="relative w-full lg:w-36">
+                <select 
+                  value={tahun || "Semua Tahun"} 
+                  onChange={(e) => setTahun(e.target.value === "Semua Tahun" ? "" : e.target.value)}
+                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
+                >
+                  {tahunOptions.map((item, index) => (
+                    <option key={index} value={item}>{item}</option>
+                  ))}
+                </select>
+                <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+              </div>
             </div>
           </div>
         </div>
-{/* HASIL SEARCH NAMA / NIM / PRODI */}
-      {search && searchResult.length > 0 && (
-        <div className="bg-white border border-[#ECECEC] rounded-xl mb-4 overflow-hidden">
-          {searchResult.slice(0, 4).map((item, i) => (
-            <div
-              key={i}
-              onClick={() =>
-              navigate(`/operator/detail-mahasiswa/${item.nim}`, { 
-                state: { 
-                  mahasiswa: item.mahasiswa } })
-              }
-              className="flex items-center justify-between px-4 py-2.5 hover:bg-[#FAFAFA] transition border-b border-[#F5F5F5] last:border-b-0 cursor-pointer"
-            >
-              <div>
-                <p className="text-[13px] font-semibold text-[#111827] leading-none">
-                  {item.nama}
-                </p>
 
-                <p className="text-[11px] text-[#9CA3AF] mt-1">
-                  {item.nim} • {item.prodi}
-                </p>
-
-                <p className="text-[11px] text-[#9CA3AF] mt-1">
-                  {item.fakultas}
-                </p>
+        {/* HASIL SEARCH NAMA / NIM / PRODI */}
+        {search && searchResult.length > 0 && (
+          <div className="bg-white border border-[#ECECEC] rounded-xl mb-4 overflow-hidden">
+            {searchResult.slice(0, 4).map((item, i) => (
+              <div
+                key={i}
+                onClick={() => handleMahasiswaClick(item)}
+                className="flex items-center justify-between px-4 py-2.5 hover:bg-[#FAFAFA] transition border-b border-[#F5F5F5] last:border-b-0 cursor-pointer"
+              >
+                <div>
+                  <p className="text-[13px] font-semibold text-[#111827] leading-none">
+                    {item.nama}
+                  </p>
+                  <p className="text-[11px] text-[#9CA3AF] mt-1">
+                    {item.nim} • {item.prodi}
+                  </p>
+                  <p className="text-[11px] text-[#9CA3AF] mt-1">
+                    {item.fakultas}
+                  </p>
+                </div>
+                <div className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-2 py-1 rounded-md">
+                  {item.batch}
+                </div>
               </div>
-
-              <div className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-2 py-1 rounded-md">
-                {item.batch}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-        {/* PERBAIKAN: Tabel dengan lebar kolom tetap dan tidak bergeser, font medium */}
+            ))}
+          </div>
+        )}
+        
+        {/* TABLE */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
           <div className="min-w-[1000px]">
             <table className="w-full text-sm text-left table-fixed">

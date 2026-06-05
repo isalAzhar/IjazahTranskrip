@@ -71,46 +71,46 @@ const Pelaporan = () => {
   const statusOptions = ["Semua Status", "Proses", "Terbit", "Revoke", "Reject"];
 
   const fetchLaporan = async () => {
-  try {
-    setLoading(true);
-    setError("");
+    try {
+      setLoading(true);
+      setError("");
 
-    const result = await getApprovalLaporan({
-      page: currentPage,
-      limit: ITEMS_PER_PAGE,
-      search,
-      status: statusFilter,
-    });
+      const result = await getApprovalLaporan({
+        page: currentPage,
+        limit: ITEMS_PER_PAGE,
+        search,
+        status: statusFilter,
+      });
 
-    setLaporanList(result.data || []);
-    setPagination(
-      result.pagination || {
+      setLaporanList(result.data || []);
+      setPagination(
+        result.pagination || {
+          page: currentPage,
+          limit: ITEMS_PER_PAGE,
+          total_data: 0,
+          total_page: 1,
+        }
+      );
+    } catch (err) {
+      console.error("Gagal mengambil data laporan:", err);
+
+      setError(
+        err?.message ||
+          err?.response?.data?.message ||
+          "Gagal mengambil data laporan approval."
+      );
+
+      setLaporanList([]);
+      setPagination({
         page: currentPage,
         limit: ITEMS_PER_PAGE,
         total_data: 0,
         total_page: 1,
-      }
-    );
-  } catch (err) {
-    console.error("Gagal mengambil data laporan:", err);
-
-    setError(
-      err?.message ||
-        err?.response?.data?.message ||
-        "Gagal mengambil data laporan approval."
-    );
-
-    setLaporanList([]);
-    setPagination({
-      page: currentPage,
-      limit: ITEMS_PER_PAGE,
-      total_data: 0,
-      total_page: 1,
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchLaporan();
@@ -163,7 +163,7 @@ const Pelaporan = () => {
             ? "bg-[#00897B] text-white"
             : page === "..."
             ? "bg-transparent text-gray-400 cursor-default shadow-none"
-            : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"
+            : "bg-white border border-gray-300 text-gray-500 hover:bg-gray-100"
         }`}
       >
         {page}
@@ -183,31 +183,36 @@ const Pelaporan = () => {
           </p>
         </div>
 
-        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-wrap items-center gap-4 border border-gray-100">
-          <div className="flex items-center bg-[#E5E5E5] rounded-lg px-4 h-11 flex-1 min-w-[250px] max-w-md">
-            <FiSearch className="text-gray-500 text-lg mr-3" />
-            <input
-              type="text"
-              placeholder="Cari: Nama, NIM"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="bg-transparent outline-none text-sm w-full font-medium text-gray-700 placeholder-gray-500"
-            />
-          </div>
+        {/* FILTER BOX - DIUBAH JADI PUTIH */}
+        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-200">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+            <div className="w-full lg:max-w-md">
+              <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
+                <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Cari: Nama, NIM"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
+                />
+              </div>
+            </div>
 
-          <div className="relative ml-auto">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="appearance-none bg-[#E5E5E5] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg pr-10 min-w-[180px] outline-none cursor-pointer"
-            >
-              {statusOptions.map((item) => (
-                <option key={item} value={item === "Semua Status" ? "" : item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 text-lg pointer-events-none" />
+            <div className="relative w-full lg:w-48">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
+              >
+                {statusOptions.map((item) => (
+                  <option key={item} value={item === "Semua Status" ? "" : item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+              <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+            </div>
           </div>
         </div>
 
@@ -236,9 +241,7 @@ const Pelaporan = () => {
               <tbody>
                 {!loading &&
                   laporanList.map((item, idx) => {
-                    const no =
-                      (currentPage - 1) * ITEMS_PER_PAGE + idx + 1;
-
+                    const no = (currentPage - 1) * ITEMS_PER_PAGE + idx + 1;
                     const tanggalValue = item.tanggal || item.waktu;
 
                     return (
@@ -249,7 +252,6 @@ const Pelaporan = () => {
                         <td className="py-4 px-6 text-center font-medium text-gray-800 truncate">
                           {no}
                         </td>
-
                         <td className="py-4 px-6">
                           <div className="font-medium text-gray-900 truncate">
                             {item.nama || "-"}
@@ -258,19 +260,15 @@ const Pelaporan = () => {
                             {item.program_studi || "-"}
                           </div>
                         </td>
-
                         <td className="py-4 px-6 text-center font-medium text-gray-900 truncate">
                           {item.nim || "-"}
                         </td>
-
                         <td className="py-4 px-6 text-center text-gray-600 truncate">
                           {formatTanggal(tanggalValue)}
                         </td>
-
                         <td className="py-4 px-6 text-center text-gray-600 truncate">
                           {formatWaktu(tanggalValue)}
                         </td>
-
                         <td className="py-4 px-6 text-center">
                           <span
                             className={`inline-block px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${badgeClass(
@@ -280,20 +278,15 @@ const Pelaporan = () => {
                             {item.status || "-"}
                           </span>
                         </td>
-
                         <td className="py-4 px-6 text-gray-600 text-sm truncate">
                           {item.keterangan || "-"}
                         </td>
-
                         <td className="py-4 px-6 text-center">
                           <button
                             onClick={() =>
-                              navigate(
-                                `/operator/detail-pelaporan/${item.nim}`,
-                                {
-                                  state: item,
-                                }
-                              )
+                              navigate(`/operator/detail-pelaporan/${item.nim}`, {
+                                state: item,
+                              })
                             }
                             className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
                           >
@@ -319,6 +312,7 @@ const Pelaporan = () => {
             </div>
           )}
 
+          {/* PAGINATION - DIUBAH JADI PUTIH */}
           <div className="p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-gray-100">
             <p className="text-xs text-gray-400">
               Menampilkan {laporanList.length} dari{" "}

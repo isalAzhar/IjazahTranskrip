@@ -73,10 +73,8 @@ const BatchTerbit = () => {
   const selectedFakultas = useMemo(() => {
     if (passedFakultasName) {
       const match = fakultasData.find((f) => f.nama === passedFakultasName);
-
       if (match) return match;
     }
-
     return fakultasData[index % fakultasData.length];
   }, [passedFakultasName, index]);
 
@@ -119,9 +117,7 @@ const BatchTerbit = () => {
           ...mhs,
           id: mhs.id || idx + 1,
           nama: mhs.nama || names[idx % names.length],
-          nim:
-            mhs.nim ||
-            `2311060409${(idx + 1).toString().padStart(2, "0")}`,
+          nim: mhs.nim || `2311060409${(idx + 1).toString().padStart(2, "0")}`,
           prodi: mhs.prodi || selectedFakultas.prodi[0],
           fakultas: mhs.fakultas || selectedFakultas.nama,
           tahun: mhs.tahun || batchDariHalamanSebelumnya?.tahun || "2025",
@@ -133,7 +129,6 @@ const BatchTerbit = () => {
   const filteredMahasiswa = mahasiswa
     .filter((mhs) => {
       const keyword = search.toLowerCase();
-
       return (
         mhs.nama.toLowerCase().includes(keyword) ||
         String(mhs.nim).includes(keyword) ||
@@ -159,9 +154,6 @@ const BatchTerbit = () => {
     }
   };
 
-  // ==========================================================================
-  // HANDLE DETAIL MAHASISWA - ROUTE DARI KODE 1 (TIDAK DIUBAH)
-  // ==========================================================================
   const handleDetailMahasiswa = (mhs) => {
     navigate(`/detail-mahasiswa/${mhs.nim}`, {
       state: mhs,
@@ -171,13 +163,12 @@ const BatchTerbit = () => {
   return (
     <DashboardLayout>
       <div className="w-full pb-10">
-        {/* HEADER - gaya dari Kode 2 */}
+        {/* HEADER */}
         <div className="mb-6">
           <div className="flex flex-col gap-1">
             <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">
               Jumlah Ijazah Terbit
             </h1>
-
             <p className="text-[#9CA3AF] text-[14px] font-medium">
               Update terakhir: 17 Januari 2026, 09:10 WIB •{" "}
               {selectedFakultas.nama}
@@ -185,22 +176,21 @@ const BatchTerbit = () => {
           </div>
         </div>
 
-        {/* FILTER BOX - gaya dari Kode 2 */}
-        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-100">
-          <div className="flex items-center bg-[#F3F4F6] rounded-lg px-4 h-[44px] w-full">
-            <FiSearch className="text-gray-500 text-lg mr-3" />
-
+        {/* FILTER BOX - DIUBAH JADI PUTIH */}
+        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-200">
+          <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-[44px] w-full transition-all shadow-sm">
+            <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
             <input
               type="text"
               placeholder="Cari: Nama, NIM, Prodi"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-transparent outline-none text-sm w-full font-medium text-gray-700 placeholder-gray-500"
+              className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
             />
           </div>
         </div>
 
-        {/* TABLE SECTION - gaya dari Kode 2 */}
+        {/* TABLE SECTION */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-[#F7F7F7] text-gray-500 border-b border-gray-200">
@@ -222,23 +212,18 @@ const BatchTerbit = () => {
                   className="border-t border-gray-200 hover:bg-gray-50 transition-colors"
                 >
                   <td className="px-4 py-3 text-center">{i + 1}</td>
-
                   <td className="px-4 py-3 font-semibold text-gray-800">
                     {mhs.nama}
                   </td>
-
                   <td className="px-4 py-3 font-medium text-gray-800 text-center">
                     {mhs.nim}
                   </td>
-
                   <td className="px-4 py-3 font-medium text-gray-800 text-center">
                     {mhs.prodi}
                   </td>
-
                   <td className="px-4 py-3 font-medium text-gray-800 text-center">
                     {mhs.tahun}
                   </td>
-
                   <td className="px-4 py-3 text-center">
                     <span
                       className={`inline-block min-w-[86px] px-4 py-1.5 rounded-full text-xs font-bold ${getBadgeColor(
@@ -248,7 +233,6 @@ const BatchTerbit = () => {
                       {mhs.status || "Terbit"}
                     </span>
                   </td>
-
                   <td className="px-4 py-3 text-center">
                     <button
                       type="button"

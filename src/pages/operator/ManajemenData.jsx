@@ -151,44 +151,44 @@ const ManajemenData = () => {
     }
   };
 
- const renderPaginationButtons = () => {
-  const pages = [];
+  const renderPaginationButtons = () => {
+    const pages = [];
 
-  pages.push(1);
+    pages.push(1);
 
-  if (currentPage > 2 && totalPages > 3) pages.push("...");
+    if (currentPage > 2 && totalPages > 3) pages.push("...");
 
-  if (currentPage === 1 && totalPages > 1) {
-    pages.push(2);
-  } else if (currentPage === totalPages && totalPages > 2) {
-    pages.push(totalPages - 1);
-  } else if (currentPage > 1 && currentPage < totalPages) {
-    pages.push(currentPage);
-  }
+    if (currentPage === 1 && totalPages > 1) {
+      pages.push(2);
+    } else if (currentPage === totalPages && totalPages > 2) {
+      pages.push(totalPages - 1);
+    } else if (currentPage > 1 && currentPage < totalPages) {
+      pages.push(currentPage);
+    }
 
-  if (currentPage < totalPages - 1 && totalPages > 3) pages.push("...");
+    if (currentPage < totalPages - 1 && totalPages > 3) pages.push("...");
 
-  if (totalPages > 1 && !pages.includes(totalPages)) {
-    pages.push(totalPages);
-  }
+    if (totalPages > 1 && !pages.includes(totalPages)) {
+      pages.push(totalPages);
+    }
 
-  return pages.map((page, index) => (
-    <button
-      key={index}
-      onClick={() => typeof page === "number" && handlePageChange(page)}
-      disabled={page === "..."}
-      className={`w-8 h-8 flex items-center justify-center rounded text-xs font-bold shadow-sm transition-colors ${
-        page === currentPage
-          ? "bg-[#00897B] text-white"
-          : page === "..."
+    return pages.map((page, index) => (
+      <button
+        key={index}
+        onClick={() => typeof page === "number" && handlePageChange(page)}
+        disabled={page === "..."}
+        className={`w-8 h-8 flex items-center justify-center rounded text-xs font-bold shadow-sm transition-colors ${
+          page === currentPage
+            ? "bg-[#00897B] text-white"
+            : page === "..."
             ? "bg-transparent text-gray-400 cursor-default shadow-none"
-            : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"
-      }`}
-    >
-      {page}
-    </button>
-  ));
-};
+            : "bg-white border border-gray-300 text-gray-500 hover:bg-gray-100"
+        }`}
+      >
+        {page}
+      </button>
+    ));
+  };
 
   return (
     <DashboardLayout title="Manajemen Data">
@@ -220,9 +220,10 @@ const ManajemenData = () => {
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-wrap items-center gap-4 border border-gray-100">
-          <div className="flex items-center bg-[#E5E5E5] rounded-lg px-4 h-11 flex-1 min-w-[250px] max-w-md">
-            <FiSearch className="text-gray-500 text-lg mr-3" />
+        {/* FILTER BOX - DIUBAH JADI PUTIH */}
+        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-200">
+          <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 w-full transition-all shadow-sm">
+            <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
             <input
               type="text"
               placeholder="Cari: Nama, NIM, Prodi"
@@ -231,7 +232,7 @@ const ManajemenData = () => {
                 setSearch(e.target.value);
                 setCurrentPage(1);
               }}
-              className="bg-transparent outline-none text-sm w-full font-medium text-gray-700 placeholder-gray-500"
+              className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
             />
           </div>
         </div>
@@ -313,6 +314,7 @@ const ManajemenData = () => {
             </table>
           </div>
 
+          {/* PAGINATION - DIUBAH JADI PUTIH */}
           {totalPages > 0 && (
             <div className="flex justify-end items-center px-6 py-6 gap-3 border-t border-gray-100">
               <button
