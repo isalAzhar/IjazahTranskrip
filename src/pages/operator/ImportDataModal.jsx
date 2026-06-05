@@ -601,24 +601,20 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
                           >
                             <td className="px-3 py-2 align-top font-semibold text-gray-700">
                               {item.nomor}
-                            </td>
-
+                             </td>
                             <td className="px-3 py-2 align-top font-mono text-gray-700">
                               {item.nim || "-"}
-                            </td>
-
+                             </td>
                             <td className="px-3 py-2 align-top">
                               <div className="text-gray-800 font-medium">
                                 {item.nama || "-"}
                               </div>
-                            </td>
-
+                             </td>
                             <td className="px-3 py-2 align-top">
                               <span className="inline-block px-2 py-1 bg-red-100 text-red-700 rounded-full text-[10px] font-semibold">
                                 {formatFieldName(item.field)}
                               </span>
-                            </td>
-
+                             </td>
                             <td className="px-3 py-2 align-top">
                               {item.errors?.map((err, i) => (
                                 <div
@@ -628,8 +624,8 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
                                   • {err}
                                 </div>
                               ))}
-                            </td>
-                          </tr>
+                             </td>
+                           </tr>
                         ))}
                       </tbody>
                     </table>
@@ -693,20 +689,18 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
             <select
               value={tahun}
               onChange={(e) => setTahun(e.target.value)}
-              className={`w-full h-[42px] rounded-lg border border-gray-300 px-4 pr-10 text-[12px] outline-none appearance-none font-medium focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] transition-all ${
-                tahun ? "text-black" : "text-gray-400"
-              }`}
+              className="w-full h-[42px] rounded-lg border border-gray-300 px-4 pr-10 text-[12px] outline-none appearance-none font-medium text-gray-900 bg-white focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] transition-all"
             >
-              <option value="">Pilih Tahun Lulus</option>
-              <option value="2021">2021</option>
-              <option value="2022">2022</option>
-              <option value="2023">2023</option>
-              <option value="2024">2024</option>
-              <option value="2025">2025</option>
-              <option value="2026">2026</option>
+              <option value="" className="text-gray-400">Pilih Tahun Lulus</option>
+              <option value="2021" className="text-gray-900">2021</option>
+              <option value="2022" className="text-gray-900">2022</option>
+              <option value="2023" className="text-gray-900">2023</option>
+              <option value="2024" className="text-gray-900">2024</option>
+              <option value="2025" className="text-gray-900">2025</option>
+              <option value="2026" className="text-gray-900">2026</option>
             </select>
 
-            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-black pointer-events-none" />
+            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
           </div>
         </div>
 
@@ -719,16 +713,14 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
             <select
               value={periode}
               onChange={(e) => setPeriode(e.target.value)}
-              className={`w-full h-[42px] rounded-lg border border-gray-300 px-4 pr-10 text-[12px] outline-none appearance-none font-medium focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] transition-all ${
-                periode ? "text-black" : "text-gray-400"
-              }`}
+              className="w-full h-[42px] rounded-lg border border-gray-300 px-4 pr-10 text-[12px] outline-none appearance-none font-medium text-gray-900 bg-white focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] transition-all"
             >
-              <option value="">Pilih Periode</option>
-              <option value="semester ganjil">Semester Ganjil</option>
-              <option value="semester genap">Semester Genap</option>
+              <option value="" className="text-gray-400">Pilih Periode</option>
+              <option value="semester ganjil" className="text-gray-900">Semester Ganjil</option>
+              <option value="semester genap" className="text-gray-900">Semester Genap</option>
             </select>
 
-            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-black pointer-events-none" />
+            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
           </div>
         </div>
 

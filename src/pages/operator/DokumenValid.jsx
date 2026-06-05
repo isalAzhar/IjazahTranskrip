@@ -300,17 +300,21 @@ const DokumenValid = () => {
 
           if (matchNama || matchNim || matchProdi) {
             result.push({
-              nama: mhs.nama,
               nim: mhs.nim,
+              nama: mhs.nama,
               prodi: mhs.prodi,
               batch: mhs.batch || batch.listBatch,
               fakultas: mhs.fakultas || batch.fakultas,
-              tahun: mhs.tahunLulus || batch.tahunLulus,
+              tahunLulus: mhs.tahunLulus || batch.tahunLulus,
+              status: batch.status,
               mahasiswa: {
                 ...mhs,
+                nim: mhs.nim,
+                nama: mhs.nama,
+                prodi: mhs.prodi,
                 batch: mhs.batch || batch.listBatch,
                 fakultas: mhs.fakultas || batch.fakultas,
-                tahun: mhs.tahunLulus || batch.tahunLulus,
+                tahunLulus: mhs.tahunLulus || batch.tahunLulus,
                 status: batch.status,
               },
             });
@@ -348,8 +352,25 @@ const DokumenValid = () => {
     navigate(`/operator/dokumen-valid/batch/${item.id}`, { state: item });
   };
 
+  // Fungsi untuk handle klik hasil pencarian mahasiswa - navigasi sesuai status
   const handleMahasiswaClick = (item) => {
-    navigate(`/operator/detail-mahasiswa/${item.nim}`, { state: item.mahasiswa });
+    const mahasiswaData = {
+      nim: item.nim,
+      nama: item.nama,
+      prodi: item.prodi,
+      fakultas: item.fakultas,
+      tahunLulus: item.tahunLulus,
+      batch: item.batch,
+      status: item.status,
+    };
+
+    // Jika status "Terbit", navigasi ke detail dokumen valid
+    if (item.status === "Terbit") {
+      navigate(`/operator/detail-dokumen-valid/${item.nim}`, { state: mahasiswaData });
+    } else {
+      // Jika status selain Terbit (Proses, Reject, Revoke), navigasi ke detail pelaporan
+      navigate(`/operator/detail-pelaporan/${item.nim}`, { state: mahasiswaData });
+    }
   };
 
   const renderPaginationButtons = () => {
