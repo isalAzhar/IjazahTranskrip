@@ -72,6 +72,16 @@ const transkripFields = [
   "Paraf KATU Fakultas",
   "Paraf Kaprodi",
 ];
+const FIELD_BY_TEMPLATE = {
+  ijazah: ijazahFields,
+  transkrip: transkripFields,
+};
+
+const normalizeTemplateType = (type) => {
+  if (type === "transkrip") return "transkrip";
+  if (type === "transkip") return "transkrip";
+  return "ijazah";
+};
 
 const boxOnlyFields = [
   "Foto",
@@ -86,6 +96,47 @@ const boxOnlyFields = [
   "Stempel Rektor",
   "Stempel Dekan",
 ];
+const previewAsFieldLabel = {
+  ijazah: [
+    "Foto",
+    "QR Code",
+    "TTD Rektor",
+    "TTD Dekan",
+    "Paraf KATU Rektor",
+    "Paraf WAREK",
+    "Paraf KATU Fakultas",
+    "Paraf Wadek",
+    "Stempel Rektor",
+    "Stempel Dekan",
+  ],
+
+  transkrip: [
+    "Paraf KATU Fakultas",
+    "Paraf Kaprodi",
+    "TTD Dekan",
+  ],
+};
+
+const emptyPreviewFields = {
+  ijazah: [
+    "Foto",
+    "QR Code",
+    "Paraf KATU Rektor",
+    "Paraf WAREK",
+    "Paraf KATU Fakultas",
+    "Paraf Wadek",
+    "Stempel Rektor",
+    "Stempel Dekan",
+    "TTD Rektor",
+    "TTD Dekan",
+  ],
+
+  transkrip: [
+    "Paraf KATU Fakultas",
+    "Paraf Kaprodi",
+    "TTD Dekan",
+  ],
+};
 
 const signatureFields = ["TTD Rektor", "TTD Dekan"];
 const nameLineFields = ["Nama Rektor", "Nama Dekan"];
@@ -109,6 +160,65 @@ const ijazahLeftAlignFields = [
   "Program",
   "Program (English)",
 ];
+const fieldTextSize = {
+  ijazah: {
+    default: "text-[14px]",
+    small: "text-[10px]",
+
+    "Nama": "text-[14px]",
+    "Tempat & Tanggal Lahir": "text-[14px]",
+    "Nomor Pokok Mahasiswa": "text-[14px]",
+    "NIK": "text-[14px]",
+    "Akreditasi AIPT": "text-[10px]",
+    "Fakultas": "text-[12px]",
+    "Program Studi": "text-[12px]",
+    "Program": "text-[12px]",
+    "Fakultas (English)": "text-[10px]",
+    "Program Studi (English)": "text-[10px]",
+    "Program (English)": "text-[10px]",
+    "Nama Rektor": "text-[12px]",
+    "Nama Dekan": "text-[12px]",
+    "NIDN Rektor": "text-[10px]",
+    "NIDN Dekan": "text-[10px]",
+  },
+
+  transkrip: {
+    default: "text-[7px]",
+    small: "text-[6px]",
+
+    "Nomor": "text-[7px]",
+    "Nama": "text-[7px]",
+    "Tempat & Tanggal Lahir": "text-[7px]",
+    "Jenis Kelamin": "text-[7px]",
+    "Nomor Pokok Mahasiswa": "text-[7px]",
+    "NINA": "text-[7px]",
+    "NIK": "text-[7px]",
+    "Tahun Masuk": "text-[7px]",
+    "Program Pendidikan": "text-[7px]",
+    "Fakultas": "text-[7px]",
+    "Program Studi": "text-[7px]",
+    "Nomor SK Akreditasi": "text-[7px]",
+    "Status": "text-[7px]",
+    "Tanggal Lulus": "text-[7px]",
+
+    "Nama Dekan": "text-[8px]",
+    "NIDN Dekan": "text-[7px]",
+  },
+};
+
+const getTextSizeClass = (documentType, label, small = false) => {
+  const config = fieldTextSize[documentType] || fieldTextSize.ijazah;
+
+  if (config[label]) {
+    return config[label];
+  }
+
+  if (small) {
+    return config.small;
+  }
+
+  return config.default;
+};
 
 const makePlaceholder = (label) =>
   `{{${label
@@ -122,12 +232,16 @@ const getActiveTemplateName = (type) => {
   return type === "ijazah" ? "Template Ijazah" : "Template Transkrip";
 };
 
-const getFieldSize = (field) => {
+const getIjazahFieldSize = (field) => {
+  // IJAZAH
+  if (field === "Nama") return { width: 145, height: 21 };
+  if (field === "Tempat & Tanggal Lahir") return { width: 145, height: 21 };
+  if (field === "Nomor Pokok Mahasiswa") return { width: 145, height: 21 };
+  if (field === "NIK") return { width: 145, height: 21 };
+
   if (field === "Tanggal Kelulusan") return { width: 95, height: 14 };
   if (field === "PISN") return { width: 95, height: 14 };
   if (field === "Nomor Seri Ijazah") return { width: 95, height: 14 };
-
-  // Akreditasi dibuat sama seperti PISN
   if (field === "Akreditasi AIPT") return { width: 75, height: 21 };
 
   if (
@@ -137,6 +251,7 @@ const getFieldSize = (field) => {
   ) {
     return { width: 145, height: 13 };
   }
+
   if (
     field === "Fakultas" ||
     field === "Program Studi" ||
@@ -167,6 +282,47 @@ const getFieldSize = (field) => {
   return { width: 145, height: 17 };
 };
 
+const getTranskripFieldSize = (field) => {
+  // TRANSKRIP
+  const transkripBiodataFields = [
+    "Nomor",
+    "Nama",
+    "Tempat & Tanggal Lahir",
+    "Jenis Kelamin",
+    "Nomor Pokok Mahasiswa",
+    "NINA",
+    "NIK",
+    "Tahun Masuk",
+    "Program Pendidikan",
+    "Fakultas",
+    "Program Studi",
+    "Nomor SK Akreditasi",
+    "Status",
+    "Tanggal Lulus",
+  ];
+
+  if (transkripBiodataFields.includes(field)) {
+    return { width: 145, height: 6 };
+  }
+
+  if (field === "TTD Dekan") return { width: 78, height: 55 };
+  if (field === "Nama Dekan") return { width: 18, height: 16 };
+  if (field === "NIDN Dekan") return { width: 95, height: 16 };
+
+  if (field === "Paraf KATU Fakultas") return { width: 28, height: 28 };
+  if (field === "Paraf Kaprodi") return { width: 28, height: 28 };
+
+  return { width: 145, height: 8 };
+};
+
+const getFieldSize = (field, documentType = "ijazah") => {
+  if (documentType === "transkrip") {
+    return getTranskripFieldSize(field);
+  }
+
+  return getIjazahFieldSize(field);
+};
+
 const getInitialSessionData = () => {
   try {
     const saved = sessionStorage.getItem(TEMPLATE_SESSION_KEY);
@@ -192,18 +348,14 @@ const WaitingDataText = ({
   value = "",
   align = "center",
   label = "",
+  documentType = "ijazah",
 }) => {
   const alignClass =
     align === "left"
       ? "justify-start text-left"
       : "justify-center text-center";
 
-  const textSize =
-    label === "Akreditasi AIPT"
-      ? "text-[8px]"
-      : small
-      ? "text-[9px]"
-      : "text-[12px]";
+  const textSize = getTextSizeClass(documentType, label, small);
 
   return (
     <div
@@ -231,10 +383,17 @@ const renderElements = (
     const isEnglishSmall = englishSmallFields.includes(el.label);
 
     const fieldValue =
-      previewData?.[el.label] || previewData?.[el.placeholder] || "";
+  previewData?.[el.label] || previewData?.[el.placeholder] || "";
 
-    const displayValue = isPreview ? fieldValue || "Menunggu Data" : "";
+const shouldShowFieldLabel =
+  isPreview &&
+  previewAsFieldLabel[documentType]?.includes(el.label);
 
+const displayValue = isPreview
+  ? shouldShowFieldLabel
+    ? el.label
+    : fieldValue || "Menunggu Data"
+  : "";
     const textAlign =
       documentType === "transkrip"
         ? "left"
@@ -242,7 +401,7 @@ const renderElements = (
         ? "left"
         : "center";
 
-    const size = getFieldSize(el.label);
+    const size = getFieldSize(el.label, documentType);
     const renderWidth = size.width;
     const renderHeight = size.height;
 
@@ -309,23 +468,29 @@ const renderElements = (
           </div>
         )}
 
-        {isSignature && (
-          <div
-            className={fieldBoxClass}
-            style={{
-              width: renderWidth,
-              height: renderHeight,
-            }}
-          >
-            {isPreview && (
-              <WaitingDataText
-                value={displayValue}
-                align={textAlign}
-                label={el.label}
-              />
-            )}
-          </div>
-        )}
+       {isSignature && (
+  <div
+    className={
+      isPreview && emptyPreviewFields[documentType]?.includes(el.label)
+        ? "rounded-sm border border-gray-500 bg-transparent"
+        : fieldBoxClass
+    }
+    style={{
+      width: renderWidth,
+      height: renderHeight,
+    }}
+  >
+    {isPreview &&
+      !emptyPreviewFields[documentType]?.includes(el.label) && (
+        <WaitingDataText
+          value={displayValue}
+          align={textAlign}
+          label={el.label}
+          documentType={documentType}
+        />
+      )}
+  </div>
+)}
 
         {isNidn && (
           <div
@@ -354,24 +519,30 @@ const renderElements = (
           </div>
         )}
 
-        {isBoxOnly && (
-          <div
-            className={fieldBoxClass}
-            style={{
-              width: renderWidth,
-              height: renderHeight,
-            }}
-          >
-            {isPreview && (
-              <WaitingDataText
-                small={isSmallBox}
-                value={displayValue}
-                align={textAlign}
-                label={el.label}
-              />
-            )}
-          </div>
-        )}
+       {isBoxOnly && (
+  <div
+    className={
+      isPreview && emptyPreviewFields[documentType]?.includes(el.label)
+        ? "rounded-sm border border-gray-500 bg-transparent"
+        : fieldBoxClass
+    }
+    style={{
+      width: renderWidth,
+      height: renderHeight,
+    }}
+  >
+    {isPreview &&
+      !emptyPreviewFields[documentType]?.includes(el.label) && (
+        <WaitingDataText
+          small={isSmallBox}
+          value={displayValue}
+          align={textAlign}
+          label={el.label}
+          documentType={documentType}
+        />
+      )}
+  </div>
+)}
 
         {!isNameLine && !isSignature && !isNidn && !isBoxOnly && (
           <div
@@ -387,6 +558,7 @@ const renderElements = (
                 value={displayValue}
                 align={textAlign}
                 label={el.label}
+                documentType={documentType}
               />
             )}
           </div>
@@ -626,8 +798,8 @@ const Template = () => {
   const sessionData = getInitialSessionData();
 
   const [activeTab, setActiveTab] = useState(
-    sessionData?.activeTab || "ijazah"
-  );
+  normalizeTemplateType(sessionData?.activeTab)
+);
 
   const [templateImages, setTemplateImages] = useState(
     sessionData?.templateImages || {
@@ -663,8 +835,8 @@ const Template = () => {
   const [showConfirmUploadModal, setShowConfirmUploadModal] = useState(false);
 
   const [selectedTemplateType, setSelectedTemplateType] = useState(
-    sessionData?.selectedTemplateType || "ijazah"
-  );
+  normalizeTemplateType(sessionData?.selectedTemplateType)
+);
 
   const [selectedTemplateFile, setSelectedTemplateFile] = useState(null);
   const [selectedTemplatePreview, setSelectedTemplatePreview] = useState("");
@@ -717,16 +889,25 @@ const Template = () => {
     sessionData?.mataKuliahData || []
   );
 
-  const currentFields = activeTab === "ijazah" ? ijazahFields : transkripFields;
-  const currentElements =
-    activeTab === "ijazah" ? ijazahElements : transkripElements;
+  const currentTemplateType = normalizeTemplateType(activeTab);
 
-  const isSaved = activeTab === "ijazah" ? ijazahSaved : transkripSaved;
-  const isLocked = activeTab === "ijazah" ? ijazahLocked : transkripLocked;
-  const hasFields = currentElements.length > 0;
+const currentFields = FIELD_BY_TEMPLATE[currentTemplateType];
 
-  const hasPreviewed =
-    activeTab === "ijazah" ? ijazahHasPreviewed : transkripHasPreviewed;
+const currentElements =
+  currentTemplateType === "transkrip" ? transkripElements : ijazahElements;
+
+const isSaved =
+  currentTemplateType === "transkrip" ? transkripSaved : ijazahSaved;
+
+const isLocked =
+  currentTemplateType === "transkrip" ? transkripLocked : ijazahLocked;
+
+const hasFields = currentElements.length > 0;
+
+const hasPreviewed =
+  currentTemplateType === "transkrip"
+    ? transkripHasPreviewed
+    : ijazahHasPreviewed;
 
   const isFieldActive = (field) =>
     currentElements.some((el) => el.label === field);
@@ -943,21 +1124,9 @@ const Template = () => {
 
     const templateArea = e.currentTarget.getBoundingClientRect();
 
-    let size = getFieldSize(field);
+    let size = getFieldSize(field, activeTab);
 
-    if (activeTab === "transkrip") {
-      const specialTranskripFields = [
-        "TTD Dekan",
-        "Nama Dekan",
-        "NIDN Dekan",
-        "Paraf KATU Fakultas",
-        "Paraf Kaprodi",
-      ];
-
-      if (!specialTranskripFields.includes(field)) {
-        size = { width: 150, height: 13 };
-      }
-    }
+    
 
     const newElement = {
       id: Date.now(),
