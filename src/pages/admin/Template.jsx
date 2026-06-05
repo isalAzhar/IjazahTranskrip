@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import ijazahBg from "../../assets/img/Ijazahfiks.png";
-import transkipBg from "../../assets/img/transkripfiks.jpeg";
+import transkripBg from "../../assets/img/transkripfiks.jpeg";
 import { FiUpload, FiX, FiTrash2 } from "react-icons/fi";
 
 const TEMPLATE_SESSION_KEY = "template_builder_session_data";
@@ -51,7 +51,7 @@ const ijazahFields = [
   "Stempel Dekan",
 ];
 
-const transkipFields = [
+const transkripFields = [
   "Nomor",
   "Nama",
   "Tempat & Tanggal Lahir",
@@ -236,7 +236,7 @@ const renderElements = (
     const displayValue = isPreview ? fieldValue || "Menunggu Data" : "";
 
     const textAlign =
-      documentType === "transkip"
+      documentType === "transkrip"
         ? "left"
         : ijazahLeftAlignFields.includes(el.label)
         ? "left"
@@ -395,7 +395,7 @@ const renderElements = (
     );
   });
 
-const TranskipTableOverlay = ({ elements, mataKuliahData = [] }) => {
+const TranskripTableOverlay = ({ elements, mataKuliahData = [] }) => {
   const isActive = (label) => elements.some((el) => el.label === label);
 
   const summaryBox = (label) =>
@@ -632,7 +632,7 @@ const Template = () => {
   const [templateImages, setTemplateImages] = useState(
     sessionData?.templateImages || {
       ijazah: ijazahBg,
-      transkip: transkipBg,
+      transkrip: transkripBg,
     }
   );
 
@@ -647,12 +647,12 @@ const Template = () => {
           isActive: true,
         },
       ],
-      transkip: [
+      transkrip: [
         {
-          id: "default-transkip",
+          id: "default-transkrip",
           originalName: "transkripfiks.jpeg",
           name: "Template Transkrip",
-          src: transkipBg,
+          src: transkripBg,
           isActive: true,
         },
       ],
@@ -695,18 +695,18 @@ const Template = () => {
     sessionData?.ijazahHasPreviewed || false
   );
 
-  const [transkipElements, setTranskipElements] = useState(
-    sessionData?.transkipElements || []
+  const [transkripElements, setTranskripElements] = useState(
+    sessionData?.transkripElements || []
   );
-  const [transkipSaved, setTranskipSaved] = useState(
-    sessionData?.transkipSaved || false
+  const [transkripSaved, setTranskripSaved] = useState(
+    sessionData?.transkripSaved || false
   );
-  const [transkipLocked, setTranskipLocked] = useState(
-    sessionData?.transkipLocked || false
+  const [transkripLocked, setTranskripLocked] = useState(
+    sessionData?.transkripLocked || false
   );
-  const [transkipPreview, setTranskipPreview] = useState(false);
-  const [transkipHasPreviewed, setTranskipHasPreviewed] = useState(
-    sessionData?.transkipHasPreviewed || false
+  const [transkripPreview, setTranskripPreview] = useState(false);
+  const [transkripHasPreviewed, setTranskripHasPreviewed] = useState(
+    sessionData?.transkripHasPreviewed || false
   );
 
   const [draggingElement, setDraggingElement] = useState(null);
@@ -717,16 +717,16 @@ const Template = () => {
     sessionData?.mataKuliahData || []
   );
 
-  const currentFields = activeTab === "ijazah" ? ijazahFields : transkipFields;
+  const currentFields = activeTab === "ijazah" ? ijazahFields : transkripFields;
   const currentElements =
-    activeTab === "ijazah" ? ijazahElements : transkipElements;
+    activeTab === "ijazah" ? ijazahElements : transkripElements;
 
-  const isSaved = activeTab === "ijazah" ? ijazahSaved : transkipSaved;
-  const isLocked = activeTab === "ijazah" ? ijazahLocked : transkipLocked;
+  const isSaved = activeTab === "ijazah" ? ijazahSaved : transkripSaved;
+  const isLocked = activeTab === "ijazah" ? ijazahLocked : transkripLocked;
   const hasFields = currentElements.length > 0;
 
   const hasPreviewed =
-    activeTab === "ijazah" ? ijazahHasPreviewed : transkipHasPreviewed;
+    activeTab === "ijazah" ? ijazahHasPreviewed : transkripHasPreviewed;
 
   const isFieldActive = (field) =>
     currentElements.some((el) => el.label === field);
@@ -741,10 +741,10 @@ const Template = () => {
       ijazahSaved,
       ijazahLocked,
       ijazahHasPreviewed,
-      transkipElements,
-      transkipSaved,
-      transkipLocked,
-      transkipHasPreviewed,
+      transkripElements,
+      transkripSaved,
+      transkripLocked,
+      transkripHasPreviewed,
       mataKuliahData,
     };
 
@@ -758,10 +758,10 @@ const Template = () => {
     ijazahSaved,
     ijazahLocked,
     ijazahHasPreviewed,
-    transkipElements,
-    transkipSaved,
-    transkipLocked,
-    transkipHasPreviewed,
+    transkripElements,
+    transkripSaved,
+    transkripLocked,
+    transkripHasPreviewed,
     mataKuliahData,
   ]);
 
@@ -770,8 +770,8 @@ const Template = () => {
       setIjazahSaved(false);
       setIjazahHasPreviewed(false);
     } else {
-      setTranskipSaved(false);
-      setTranskipHasPreviewed(false);
+      setTranskripSaved(false);
+      setTranskripHasPreviewed(false);
     }
   };
 
@@ -945,8 +945,8 @@ const Template = () => {
 
     let size = getFieldSize(field);
 
-    if (activeTab === "transkip") {
-      const specialTranskipFields = [
+    if (activeTab === "transkrip") {
+      const specialTranskripFields = [
         "TTD Dekan",
         "Nama Dekan",
         "NIDN Dekan",
@@ -954,7 +954,7 @@ const Template = () => {
         "Paraf Kaprodi",
       ];
 
-      if (!specialTranskipFields.includes(field)) {
+      if (!specialTranskripFields.includes(field)) {
         size = { width: 150, height: 13 };
       }
     }
@@ -974,9 +974,9 @@ const Template = () => {
       setIjazahSaved(false);
       setIjazahHasPreviewed(false);
     } else {
-      setTranskipElements((prev) => [...prev, newElement]);
-      setTranskipSaved(false);
-      setTranskipHasPreviewed(false);
+      setTranskripElements((prev) => [...prev, newElement]);
+      setTranskripSaved(false);
+      setTranskripHasPreviewed(false);
     }
   };
 
@@ -1013,7 +1013,7 @@ const Template = () => {
       setIjazahElements(updater);
       resetPreviewState();
     } else {
-      setTranskipElements(updater);
+      setTranskripElements(updater);
       resetPreviewState();
     }
   };
@@ -1029,7 +1029,7 @@ const Template = () => {
       setIjazahElements(remover);
       resetPreviewState();
     } else {
-      setTranskipElements(remover);
+      setTranskripElements(remover);
       resetPreviewState();
     }
   };
@@ -1047,13 +1047,13 @@ const Template = () => {
         setIjazahHasPreviewed(false);
       }
     } else {
-      if (transkipLocked) {
-        setTranskipLocked(false);
-        setTranskipSaved(false);
-        setTranskipHasPreviewed(false);
+      if (transkripLocked) {
+        setTranskripLocked(false);
+        setTranskripSaved(false);
+        setTranskripHasPreviewed(false);
       } else {
-        setTranskipLocked(true);
-        setTranskipHasPreviewed(false);
+        setTranskripLocked(true);
+        setTranskripHasPreviewed(false);
       }
     }
   };
@@ -1065,8 +1065,8 @@ const Template = () => {
       setIjazahHasPreviewed(true);
       setIjazahPreview(true);
     } else {
-      setTranskipHasPreviewed(true);
-      setTranskipPreview(true);
+      setTranskripHasPreviewed(true);
+      setTranskripPreview(true);
     }
   };
 
@@ -1080,7 +1080,7 @@ const Template = () => {
     if (activeTab === "ijazah") {
       setIjazahSaved(true);
     } else {
-      setTranskipSaved(true);
+      setTranskripSaved(true);
     }
 
     setShowConfirmSaveModal(false);
@@ -1119,12 +1119,12 @@ const Template = () => {
     );
   }
 
-  if (transkipPreview) {
+  if (transkripPreview) {
     return (
       <div className="min-h-screen bg-[#d9d9d9] p-6 overflow-auto">
         <div className="flex justify-end mb-4">
           <button
-            onClick={() => setTranskipPreview(false)}
+            onClick={() => setTranskripPreview(false)}
             className="bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-xl font-semibold"
           >
             Keluar
@@ -1133,22 +1133,22 @@ const Template = () => {
 
         <div className="relative w-fit mx-auto">
           <img
-            src={templateImages.transkip}
+            src={templateImages.transkrip}
             alt="Preview Transkrip"
             className="w-[780px]"
           />
 
           {renderElements(
-            transkipElements,
+            transkripElements,
             true,
             true,
             () => {},
-            "transkip",
+            "transkrip",
             true
           )}
 
-          <TranskipTableOverlay
-            elements={transkipElements}
+          <TranskripTableOverlay
+            elements={transkripElements}
             mataKuliahData={mataKuliahData}
           />
         </div>
@@ -1182,9 +1182,9 @@ const Template = () => {
               <span className="text-gray-300">{">"}</span>
 
               <button
-                onClick={() => setActiveTab("transkip")}
+                onClick={() => setActiveTab("transkrip")}
                 className={`font-bold transition ${
-                  activeTab === "transkip" ? "text-[#27AE60]" : "text-gray-400"
+                  activeTab === "transkrip" ? "text-[#27AE60]" : "text-gray-400"
                 }`}
               >
                 Transkrip Digital
@@ -1281,24 +1281,24 @@ const Template = () => {
                   </>
                 )}
 
-                {activeTab === "transkip" && (
+                {activeTab === "transkrip" && (
                   <>
                     <img
-                      src={templateImages.transkip}
+                      src={templateImages.transkrip}
                       alt="Template Transkrip"
                       className="w-[780px]"
                     />
 
                     {renderElements(
-                      transkipElements,
-                      transkipSaved,
-                      transkipLocked,
+                      transkripElements,
+                      transkripSaved,
+                      transkripLocked,
                       handleMouseDownElement,
-                      "transkip"
+                      "transkrip"
                     )}
 
-                    <TranskipTableOverlay
-                      elements={transkipElements}
+                    <TranskripTableOverlay
+                      elements={transkripElements}
                       mataKuliahData={mataKuliahData}
                     />
                   </>
@@ -1383,7 +1383,7 @@ const Template = () => {
                     className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm bg-gray-50 outline-none focus:border-[#0B6B63]"
                   >
                     <option value="ijazah">Template Ijazah</option>
-                    <option value="transkip">Template Transkrip</option>
+                    <option value="transkrip">Template Transkrip</option>
                   </select>
                 </div>
 
@@ -1422,9 +1422,6 @@ const Template = () => {
                         </th>
                         <th className="px-3 py-3 text-left w-[145px]">
                           Nama Gambar
-                        </th>
-                        <th className="px-3 py-3 text-center w-[90px]">
-                          Jenis
                         </th>
                         <th className="px-3 py-3 text-center w-[110px]">
                           Status
@@ -1472,13 +1469,10 @@ const Template = () => {
                             </button>
                           </td>
 
-                          <td className="px-3 py-3 font-semibold text-gray-800 text-left">
+                          <td className="px-3 py-3 font-semibold text-gray-800 text-left w-[145px]">
                             {asset.name}
                           </td>
 
-                          <td className="px-3 py-3 text-center capitalize">
-                            {selectedTemplateType}
-                          </td>
 
                           <td className="px-3 py-3 text-center">
                             <span
