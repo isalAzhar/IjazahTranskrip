@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./pages/context/AuthContext";
+import ProtectedRoute from "./components/shared/ProtectedRoute";
 
 // Public
 import Login from "./pages/context/login";
@@ -53,43 +54,25 @@ import RektorPelaporan from "./pages/verifikator/PelaporanVerifikator";
 import RektorDokumenValid from "./pages/rektor/DokumenValid"; 
 import RektorDetailDokumenValid from "./pages/rektor/DetailDokumenValid";
 
-// 🔥 Pengecekan Role Dinamis (DI SINI YANG DIPERBAIKI)
-const isAdmin = (role) => ["admin", "admin_sistem"].includes(role);
-const isOperator = (role) => ["operator", "operator_data"].includes(role);  
-
-// Rektor bsendiri
-const isRektor = (role) => role === "rektor";
-
-// Semua yang tugasnya memvalidasi masuk ke Verifikator
-const isVerifikator = (role) => [
-  "tu_fakultas", "wakil_dekan", "wakil_dekan_1", "dekan", 
-  "tu_rektorat", "wakil_rektor", "wakil_rektor_1"
-].includes(role);
-
-const ProtectedRoute = ({ children, allowedGroup }) => {
-  // ... (Sisa kode ProtectedRoute tetap sama)
-  const { user, loading } = useAuth();
   
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0d6b5e]" /></div>;
-  if (!user) return <Navigate to="/login" replace />;
-
-  if (allowedGroup === "ADMIN" && !isAdmin(user.role)) return <Navigate to="/dashboard" replace />;
-  if (allowedGroup === "OPERATOR" && !isOperator(user.role)) return <Navigate to="/dashboard" replace />;
-  if (allowedGroup === "REKTOR" && !isRektor(user.role)) return <Navigate to="/dashboard" replace />;
-  if (allowedGroup === "VERIFIKATOR" && !isVerifikator(user.role)) return <Navigate to="/dashboard" replace />;
-  
-  return children;
-};
-
 const RoleBasedRedirect = () => {
   const { user, loading } = useAuth();
-  if (loading) return null;
+
+  const localToken = localStorage.getItem("authToken"); // ✅ Tambah cek sinkron di sini juga
+  if (!localToken) return <Navigate to="/login" replace />;
+
+  if (loading) return (
+    <div className="h-screen flex items-center justify-center bg-gray-50">
+      <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#117065]" />
+    </div>
+  );
+
   if (!user) return <Navigate to="/login" replace />;
-  
-  if (isAdmin(user.role)) return <Navigate to="/admin/dashboard" replace />;
-  if (isOperator(user.role)) return <Navigate to="/operator/dashboard" replace />;
-  if (isRektor(user.role)) return <Navigate to="/rektor/dashboard" replace />;
-  
+
+  const role = user.role?.toLowerCase() || "";
+  if (["admin", "admin_sistem"].includes(role)) return <Navigate to="/admin/dashboard" replace />;
+  if (["operator", "operator_data"].includes(role)) return <Navigate to="/operator/dashboard" replace />;
+  if (role === "rektor") return <Navigate to="/rektor/dashboard" replace />;
   return <Navigate to="/verifikator/dashboard" replace />;
 };
 
