@@ -1,24 +1,68 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
-// Warna chart
-const data = [
-  { name: "Terbit", value: 459, color: "#27AE60" },
-  { name: "Proses", value: 76, color: "#16719E" },
-  { name: "Reject", value: 17, color: "#DC2626" },
-  { name: "Revoke", value: 11, color: "#F59E0B" },
-];
+import { getVerificationStatus } from "../../services/dashboard.api";
 
 const VerificationStatusChart = () => {
-  // Hover state
   const [activeIndex, setActiveIndex] = useState(null);
 
-  // Total value
+  const [loading, setLoading] = useState(true);
+
+  const [data, setData] = useState([
+    {
+      name: "Terbit",
+      value: 0,
+      color: "#27AE60",
+    },
+    {
+      name: "Proses",
+      value: 0,
+      color: "#16719E",
+    },
+    {
+      name: "Reject",
+      value: 0,
+      color: "#DC2626",
+    },
+    {
+      name: "Revoke",
+      value: 0,
+      color: "#F59E0B",
+    },
+  ]);
+
+  const fetchVerificationStatus = async () => {
+    try {
+      setLoading(true);
+      const currentYear = new Date().getFullYear();
+
+
+      const result = await getVerificationStatus(currentYear);
+
+      setData(result.chartData);
+    } catch (error) {
+      console.log("Gagal mengambil data status verifikasi:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVerificationStatus();
+  }, []);
+
   const total = data.reduce((sum, item) => sum + item.value, 0);
+
+  if (loading) {
+    return (
+      <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">
+        Memuat data chart...
+      </div>
+    );
+  }
 
   return (
     <div className="w-full flex flex-col h-full">
-      
       {/* Chart Container */}
       <div className="h-48 w-full relative flex justify-center items-center">
         <ResponsiveContainer width="100%" height="100%">
@@ -48,21 +92,27 @@ const VerificationStatusChart = () => {
           </PieChart>
         </ResponsiveContainer>
 
-        {/* Text Tengah Saat Hover */}
-        {activeIndex !== null && (
+        {/* Text tengah saat hover */}
+        {activeIndex !== null && total > 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <span
               className="text-3xl font-bold"
               style={{ color: data[activeIndex].color }}
             >
-              {Math.round(
-                (data[activeIndex].value / total) * 100
-              )}
-              %
+              {Math.round((data[activeIndex].value / total) * 100)}%
             </span>
 
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">
               {data[activeIndex].name}
+            </span>
+          </div>
+        )}
+
+        {/* Jika belum ada data */}
+        {total === 0 && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <span className="text-sm font-medium text-gray-400">
+              Belum ada data
             </span>
           </div>
         )}

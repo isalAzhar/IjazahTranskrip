@@ -25,12 +25,14 @@ export default defineConfig({
     },
     proxy: {
       "/api": {
-        target: "http://localhost:3000",
+        // target: "http://localhost:3000",
+        target: "http://103.158.196.32:8010",
         changeOrigin: true,
         secure: false,
       },
       "/uploads/templates": {
-        target: "http://localhost:3000",
+        // target: "http://localhost:3000",
+        target: "http://103.158.196.32:8010",
         changeOrigin: true,
         secure: false,
       },
