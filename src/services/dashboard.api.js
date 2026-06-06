@@ -1,106 +1,79 @@
 // services/dashboard.api.js
-// Fungsi-fungsi yang belum di-binding ke backend (masih mock data)
 
-const API_BASE_URL = "/api";
+// 🔥 1. DYNAMIC BASE URL: Mengambil dari file .env (jika ada), atau fallback ke "/api"
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
-// Fetch statistics for dashboard
-export const getStatistics = async () => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/statistics`);
-    if (!response.ok) throw new Error("Failed to fetch statistics");
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching statistics:", error);
-    return {
-      totalIjazahTerbit: 12543,
-      permintaanVerifikasi: 451,
-      dataReject: 42,
-      dataRevoke: 17,
-      perubahanBulanTerakhir: 4.5,
-      permintaanBaruHariIni: 12,
-      rejectMingguIni: 2,
-      perubahanHariIni: 0,
-    };
-  }
+// Helper untuk menyusun Headers secara otomatis
+const getHeaders = (token) => {
+  return {
+    "Content-Type": "application/json",
+    ...(token && { Authorization: `Bearer ${token}` }),
+  };
 };
 
-// Fetch monthly issuance data for chart
-export const getMonthlyIssuance = async () => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/monthly-issuance`);
-    if (!response.ok) throw new Error("Failed to fetch monthly data");
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching monthly issuance:", error);
-    return {
-      labels: ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"],
-      data: [200, 350, 150, 250, 380, 180, 450, 300, 320, 280, 400, 350],
-    };
+// 🔥 2. GLOBAL ERROR HANDLER: Menangani respons secara terpusat
+const handleResponse = async (response) => {
+  if (response.status === 401) {
+    throw new Error("Unauthorized");
   }
+
+  if (!response.ok) {
+    let errorMessage = "Terjadi kesalahan pada server.";
+    try {
+      // 🔥 3. PESAN PINTAR: Mencoba membaca detail pesan error dari backend
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorMessage;
+    } catch (e) {
+      // Abaikan jika response bukan berupa JSON
+    }
+    throw new Error(errorMessage);
+  }
+
+  return await response.json();
 };
 
-// Fetch verification status distribution
-export const getVerificationStatus = async () => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/verification-status`);
-    if (!response.ok) throw new Error("Failed to fetch verification status");
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching verification status:", error);
-    return {
-      labels: ["Valid", "Proses", "Reject"],
-      data: [1250, 320, 42],
-      colors: ["#27AE60", "#F2A93B", "#EB5757"],
-    };
-  }
-};
+// ============================================================================
+// DAFTAR ENDPOINT API
+// ============================================================================
 
-// Fetch list of ijazah for table
-export const getIjazahList = async (params = {}) => {
+// 1. Fetch Ringkasan Statistik (Stat Cards)
+export const getDashboardSummary = async (token) => {
   try {
-    const queryParams = new URLSearchParams(params);
-    const response = await fetch(`${API_BASE_URL}/ijazah?${queryParams}`);
-    if (!response.ok) throw new Error("Failed to fetch ijazah list");
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching ijazah list:", error);
-    return {
-      data: [
-        { id: 1, nama: "Adi Saputra",    npm: "2011080518", prodi: "Teknik Informatika", tahunLulus: 2024, status: "Valid"  },
-        { id: 2, nama: "Rani Maharani",  npm: "2211080518", prodi: "Akuntansi",          tahunLulus: 2026, status: "Proses" },
-        { id: 3, nama: "Budi Pratama",   npm: "1811080518", prodi: "Manajemen Bisnis",   tahunLulus: 2022, status: "Valid"  },
-        { id: 4, nama: "Kayla Kay",      npm: "2011080518", prodi: "Ilmu Hukum",         tahunLulus: 2024, status: "Reject" },
-      ],
-      total: 4,
-      page: 1,
-      totalPages: 1,
-    };
-  }
-};
-
-// Verify ijazah
-export const verifyIjazah = async (npm) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/verify/${npm}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const response = await fetch(`${API_BASE_URL}/dashboard/summary`, {
+      method: "GET",
+      headers: getHeaders(token),
     });
-    if (!response.ok) throw new Error("Failed to verify ijazah");
-    return await response.json();
+    return await handleResponse(response);
   } catch (error) {
-    console.error("Error verifying ijazah:", error);
+    console.error("[API Error] getDashboardSummary:", error.message);
+    throw error; // Lempar kembali agar ditangkap oleh komponen UI
+  }
+};
+
+// 2. Fetch Tabel Aktivitas Verifikasi Terbaru
+export const getLatestValidations = async (token) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/dashboard/validations/latest`, {
+      method: "GET",
+      headers: getHeaders(token),
+    });
+    return await handleResponse(response);
+  } catch (error) {
+    console.error("[API Error] getLatestValidations:", error.message);
     throw error;
   }
 };
 
-// Search ijazah by npm atau nama
-export const searchIjazah = async (query) => {
+// 3. Fetch Detail Mahasiswa 
+export const getDetailMahasiswa = async (nim, token) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/search?q=${query}`);
-    if (!response.ok) throw new Error("Failed to search ijazah");
-    return await response.json();
+    const response = await fetch(`${API_BASE_URL}/mahasiswa/${nim}`, {
+      method: "GET",
+      headers: getHeaders(token),
+    });
+    return await handleResponse(response);
   } catch (error) {
-    console.error("Error searching ijazah:", error);
+    console.error(`[API Error] getDetailMahasiswa (${nim}):`, error.message);
     throw error;
   }
 };

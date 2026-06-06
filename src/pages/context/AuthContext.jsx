@@ -1,4 +1,3 @@
-// src/pages/context/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from "react";
 
 const AuthContext = createContext(null);
@@ -8,16 +7,33 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // 🔥 PERTAHANAN GLOBAL: Deteksi Tombol Back & Cache Browser
+  useEffect(() => {
+    const blockBackNavigation = () => {
+      const currentToken = localStorage.getItem("authToken");
+      // Jika user memaksa kembali ke halaman dalam tapi token sudah tidak ada
+      if (!currentToken && window.location.pathname !== "/login") {
+        window.location.replace("/login");
+      }
+    };
+
+    // Dengarkan aksi navigasi browser (tembus ke level memory)
+    window.addEventListener("popstate", blockBackNavigation);
+    window.addEventListener("pageshow", blockBackNavigation);
+    window.addEventListener("visibilitychange", blockBackNavigation);
+
+    return () => {
+      window.removeEventListener("popstate", blockBackNavigation);
+      window.removeEventListener("pageshow", blockBackNavigation);
+      window.removeEventListener("visibilitychange", blockBackNavigation);
+    };
+  }, []);
+
   useEffect(() => {
     const restoreSession = () => {
       try {
         const savedToken = localStorage.getItem("authToken");
         const userDataRaw = localStorage.getItem("user");
-
-        console.log("[AuthContext] Restoring session:", { 
-          hasToken: !!savedToken, 
-          hasUserData: !!userDataRaw
-        });
 
         if (savedToken && userDataRaw && userDataRaw !== "undefined" && userDataRaw !== "null") {
           const parsedUser = JSON.parse(userDataRaw);
@@ -28,7 +44,6 @@ export const AuthProvider = ({ children }) => {
           setToken(null);
         }
       } catch (error) {
-        console.error("[AuthContext] Error restoring session:", error);
         localStorage.clear();
         setUser(null);
         setToken(null);
@@ -40,16 +55,11 @@ export const AuthProvider = ({ children }) => {
     restoreSession();
   }, []);
 
-  // FUNGSI LOGIN (Menggunakan Promise agar bisa di-await oleh login.jsx)
   const login = (userData, accessToken) => {
     return new Promise((resolve) => {
-      console.log("[AuthContext] Login tersimpan:", { userData, hasToken: !!accessToken });
-      
-      // Simpan ke LocalStorage
       localStorage.setItem("authToken", accessToken);
       localStorage.setItem("user", JSON.stringify(userData));
       
-      // Simpan ke State
       setUser(userData);
       setToken(accessToken);
       
@@ -58,22 +68,20 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-  console.log("[AuthContext] Logout dieksekusi");
+    // 1. Hancurkan semua storage
+    sessionStorage.clear();
+    localStorage.clear();
+    
+    // 2. Bersihkan state
+    setUser(null);
+    setToken(null);
 
-  sessionStorage.removeItem("inbound_uploaded_data");
-  sessionStorage.removeItem("inbound_uploaded_batch_ids");
-  sessionStorage.removeItem("inbound_uploaded_pagination");
-
-  localStorage.clear();
-  setUser(null);
-  setToken(null);
-
-  window.location.href = "/";
-};
+    // 3. Paksa hard reload menggunakan .href agar memori JS dihancurkan
+    window.location.href = "/login";
+  };
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout, loading, isAuthenticated: !!user }}>
-      {/* Tahan rendering aplikasi sampai pengecekan memori selesai */}
       {!loading && children}
     </AuthContext.Provider>
   );

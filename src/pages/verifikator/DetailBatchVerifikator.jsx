@@ -100,14 +100,17 @@ const DetailBatchVerifikator = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [batchId]);
 
-  // Handler Detail Mahasiswa (Shared Route)
+  // Handler Detail Mahasiswa 
   const handleDetailMahasiswa = (item) => {
     const safeNim = encodeURIComponent(item.nim);
-    if (isRektorat) {
+    
+    // 🔥 PERBAIKAN: Hanya rektor yang masuk ke rute /rektor/...
+    if (userRole === "rektor") {
       navigate(`/rektor/detail-mahasiswa/${safeNim}`, { state: { mahasiswa: item, batch: batchInfo } });
     } else if (userRole.includes("operator")) {
       navigate(`/operator/detail-mahasiswa/${safeNim}`, { state: { mahasiswa: item, batch: batchInfo } });
     } else {
+      // tu_fakultas, wakil_dekan_1, dekan, tu_rektorat, dan wakil_rektor_1 masuk ke sini
       navigate(`/verifikator/detail-mahasiswa/${safeNim}`, { state: { mahasiswa: item, batch: batchInfo } });
     }
   };
@@ -175,7 +178,7 @@ const DetailBatchVerifikator = () => {
 
   const handleFinishValidasi = () => {
     setShowValSuccess(false);
-    navigate(isRektorat ? "/rektor/daftar-batch" : "/verifikator/daftar-batch");
+    navigate(userRole === "rektor" ? "/rektor/daftar-batch" : "/verifikator/daftar-batch");
   };
 
   const DetailIcon = () => <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>;

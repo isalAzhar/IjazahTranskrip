@@ -1,14 +1,20 @@
 import React, { useMemo, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import DashboardLayout from "../../components/ui/DashboardLayout";
 import { FiSearch } from "react-icons/fi";
+import DashboardLayout from "../../components/ui/DashboardLayout";
+import { useAuth } from "../../pages/context/AuthContext";
 
 const BatchTerbit = () => {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
 
+  // 🔥 TAMBAHKAN INI
+  const { user } = useAuth();
+  const userRole = user?.role?.toLowerCase() || "";
+
   const [search, setSearch] = useState("");
+  // ... sisa kode lainnya
 
   const index = Number(id ?? 0);
 
@@ -154,39 +160,69 @@ const BatchTerbit = () => {
     }
   };
 
+  // ==========================================================================
+  // HANDLE DETAIL MAHASISWA - ROUTING DINAMIS BERDASARKAN ROLE
+  // ==========================================================================
   const handleDetailMahasiswa = (mhs) => {
-    navigate(`/detail-mahasiswa/${mhs.nim}`, {
-      state: mhs,
-    });
+    const safeNim = encodeURIComponent(mhs.nim);
+
+    // 🔥 FORMAT ULANG DATA: Menyamakan properti agar terbaca oleh DetailMahasiswa.jsx
+    const formattedMahasiswa = {
+      ...mhs,
+      nama_mahasiswa: mhs.nama_mahasiswa || mhs.nama, 
+      program_studi: mhs.program_studi || mhs.prodi,  
+      tahun_lulus: mhs.tahun_lulus || mhs.tahun       
+    };
+
+    // Kirim data yang sudah diformat beserta info batch-nya (jika diperlukan)
+    const navState = { 
+      state: { 
+        mahasiswa: formattedMahasiswa, 
+        batch: batchDariHalamanSebelumnya || "Batch 15" 
+      } 
+    };
+
+    if (userRole === "rektor") {
+      navigate(`/rektor/detail-mahasiswa/${safeNim}`, navState);
+    } else if (userRole.includes("operator")) {
+      navigate(`/operator/detail-mahasiswa/${safeNim}`, navState);
+    } else if (userRole.includes("admin")) {
+      navigate(`/admin/detail-mahasiswa/${safeNim}`, navState);
+    } else {
+      // Masuk ke rute Verifikator
+      navigate(`/verifikator/detail-mahasiswa/${safeNim}`, navState);
+    }
   };
 
   return (
     <DashboardLayout>
       <div className="w-full pb-10">
-        {/* HEADER */}
-        <div className="mb-6">
+      {/* BAGIAN HEADER & PENCARIAN */}
+        <div className="bg-white p-5 md:p-6 rounded-xl shadow-sm border border-gray-200 mb-6 flex flex-col gap-4">
+          
+          {/* Header Text */}
           <div className="flex flex-col gap-1">
-            <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">
+            <h1 className="text-[24px] md:text-[28px] font-bold text-gray-900 tracking-tight">
               Jumlah Ijazah Terbit
             </h1>
-            <p className="text-[#9CA3AF] text-[14px] font-medium">
+            <p className="text-[#9CA3AF] text-[13px] md:text-[14px] font-medium">
               Update terakhir: 17 Januari 2026, 09:10 WIB •{" "}
-              {selectedFakultas.nama}
+              {selectedFakultas?.nama || "Semua Fakultas"}
             </p>
           </div>
-        </div>
 
-        {/* FILTER BOX - DIUBAH JADI PUTIH */}
-        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-200">
-          <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-[44px] w-full transition-all shadow-sm">
-            <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
-            <input
-              type="text"
-              placeholder="Cari: Nama, NIM, Prodi"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
-            />
+          {/* Search Box - Pindah ke kiri bawah text & lebarnya disesuaikan */}
+          <div className="w-full sm:max-w-md mt-1">
+            <div className="flex items-center bg-gray-50 hover:bg-gray-100 border border-gray-200 focus-within:bg-white focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-xl px-4 h-[44px] transition-all duration-300 shadow-inner focus-within:shadow-sm">
+              <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
+              <input
+                type="text"
+                placeholder="Cari: Nama, NIM, Prodi..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
+              />
+            </div>
           </div>
         </div>
 

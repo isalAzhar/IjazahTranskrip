@@ -32,7 +32,7 @@ import ManajemenData from "./pages/operator/ManajemenData";
 import Pelaporan from "./pages/operator/Pelaporan";
 import OperatorProfile from "./pages/operator/OperatorProfile";
 import DokumenValid from "./pages/operator/DokumenValid";
-import DetailMahasiswa from "./pages/DetailMahasiswa"; // 🔥 SATU KOMPONEN UNTUK SEMUA ROLE
+import DetailMahasiswa from "@/pages/admin/DetailMahasiswa";
 import IjazahDigital from "./pages/operator/IjazahDigital";
 import DetailPelaporan from "./pages/operator/DetailPelaporan";
 import DetailBatchDokumenValid from "./pages/operator/DetailBatchDokumenValid";
@@ -53,13 +53,21 @@ import RektorPelaporan from "./pages/verifikator/PelaporanVerifikator";
 import RektorDokumenValid from "./pages/rektor/DokumenValid"; 
 import RektorDetailDokumenValid from "./pages/rektor/DetailDokumenValid";
 
-// 🔥 Pengecekan Role Dinamis
+// 🔥 Pengecekan Role Dinamis (DI SINI YANG DIPERBAIKI)
 const isAdmin = (role) => ["admin", "admin_sistem"].includes(role);
 const isOperator = (role) => ["operator", "operator_data"].includes(role);  
+
+// Rektor bsendiri
 const isRektor = (role) => role === "rektor";
-const isVerifikator = (role) => !isAdmin(role) && !isOperator(role) && !isRektor(role);
+
+// Semua yang tugasnya memvalidasi masuk ke Verifikator
+const isVerifikator = (role) => [
+  "tu_fakultas", "wakil_dekan", "wakil_dekan_1", "dekan", 
+  "tu_rektorat", "wakil_rektor", "wakil_rektor_1"
+].includes(role);
 
 const ProtectedRoute = ({ children, allowedGroup }) => {
+  // ... (Sisa kode ProtectedRoute tetap sama)
   const { user, loading } = useAuth();
   
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0d6b5e]" /></div>;
@@ -100,7 +108,6 @@ function App() {
           <Route path="/admin/daftar-unit" element={<ProtectedRoute allowedGroup="ADMIN"><DaftarUnit /></ProtectedRoute>} />
           <Route path="/admin/daftar-pengguna" element={<ProtectedRoute allowedGroup="ADMIN"><DaftarPengguna /></ProtectedRoute>} />
           <Route path="/admin/detail-batch/:id" element={<ProtectedRoute allowedGroup="ADMIN"><DetailBatch /></ProtectedRoute>} />
-          {/* 🔥 Admin menggunakan komponen yang sama */}
           <Route path="/admin/detail-mahasiswa/:nim" element={<ProtectedRoute allowedGroup="ADMIN"><DetailMahasiswa /></ProtectedRoute>} />
 
           {/* OPERATOR ROUTES */}
@@ -117,7 +124,6 @@ function App() {
           <Route path="/operator/batch/proses/:id" element={<ProtectedRoute allowedGroup="OPERATOR"><BatchProses /></ProtectedRoute>} />
           <Route path="/operator/batch/reject/:id" element={<ProtectedRoute allowedGroup="OPERATOR"><BatchReject /></ProtectedRoute>} />
           <Route path="/operator/batch/revoke/:id" element={<ProtectedRoute allowedGroup="OPERATOR"><BatchRevoke /></ProtectedRoute>} />
-          {/* 🔥 Rute spesifik Operator yang memanggil DetailMahasiswa */}
           <Route path="/operator/detail-mahasiswa/:nim" element={<ProtectedRoute allowedGroup="OPERATOR"><DetailMahasiswa /></ProtectedRoute>} />
        
           {/* 🔥 VERIFIKATOR ROUTES */}
@@ -126,7 +132,6 @@ function App() {
           <Route path="/verifikator/daftar-batch" element={<ProtectedRoute allowedGroup="VERIFIKATOR"><VerifikatorDaftarBatch /></ProtectedRoute>} />
           <Route path="/verifikator/pelaporan" element={<ProtectedRoute allowedGroup="VERIFIKATOR"><VerifikatorPelaporan /></ProtectedRoute>} />
           <Route path="/verifikator/detail-batch/:batchId" element={<ProtectedRoute allowedGroup="VERIFIKATOR"><VerifikatorDetailBatch /></ProtectedRoute>} />
-          {/* 🔥 Rute spesifik Verifikator yang memanggil DetailMahasiswa */}
           <Route path="/verifikator/detail-mahasiswa/:nim" element={<ProtectedRoute allowedGroup="VERIFIKATOR"><DetailMahasiswa /></ProtectedRoute>} />
 
           {/* 🔥 REKTOR ROUTES */}
@@ -137,10 +142,9 @@ function App() {
           <Route path="/rektor/pelaporan" element={<ProtectedRoute allowedGroup="REKTOR"><RektorPelaporan /></ProtectedRoute>} />
           <Route path="/rektor/dokumen-valid" element={<ProtectedRoute allowedGroup="REKTOR"><RektorDokumenValid /></ProtectedRoute>} />  
           <Route path="/rektor/detail-dokumen-valid/:id" element={<ProtectedRoute allowedGroup="REKTOR"><RektorDetailDokumenValid /></ProtectedRoute>} />
-          {/* 🔥 Rute spesifik Rektor yang memanggil DetailMahasiswa */}
           <Route path="/rektor/detail-mahasiswa/:nim" element={<ProtectedRoute allowedGroup="REKTOR"><DetailMahasiswa /></ProtectedRoute>} />
 
-          {/* SHARED ROUTES (Tanpa Detail Mahasiswa karena sudah dipisah per role) */}
+          {/* SHARED ROUTES */}
           <Route path="/ijazah/terbit" element={<ProtectedRoute allowedGroup="ALL"><IjazahTerbit /></ProtectedRoute>} />
           <Route path="/ijazah/proses" element={<ProtectedRoute allowedGroup="ALL"><IjazahProses /></ProtectedRoute>} />
           <Route path="/ijazah/reject" element={<ProtectedRoute allowedGroup="ALL"><IjazahReject /></ProtectedRoute>} />

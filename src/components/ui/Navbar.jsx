@@ -46,7 +46,7 @@ const Navbar = () => {
   const mobileMenuRef = useRef(null);
 
   // ==========================================
-  // EKSTRAKSI DATA USER (TanPA HIT API)
+  // EKSTRAKSI DATA USER
   // ==========================================
   const userRole = user?.role?.toLowerCase().trim() || "";
   const fallbackName = user?.email ? user.email.split("@")[0] : "User";
@@ -55,8 +55,6 @@ const Navbar = () => {
   const currentRoleName = roleDisplayMap[userRole] || "User";
   const isUniversityRole = UNIVERSITY_ROLES.includes(userRole);
 
-  // 🔥 Mengambil Nama Unit (Fakultas) langsung dari Payload User
-  // Cek property apa yang dikirim backend (nama_unit, unit, fakultas, dll)
   const unitName = isUniversityRole 
     ? null 
     : (user?.nama_unit || user?.unit || user?.fakultas || user?.department || null);
@@ -92,28 +90,35 @@ const Navbar = () => {
     { name: "Dokumen Valid",  path: "/rektor/dokumen-valid" },
   ];
 
+  // 🔥 PERBAIKAN: Arahkan tu_rektorat dan wakil_rektor_1 ke rektorMenu
   const menuConfig = {
     admin:          adminMenu,
     admin_sistem:   adminMenu,
     operator:       operatorMenu,
     operator_data:  operatorMenu,
-    rektor:         rektorMenu,
-    // Semua role verifikator (fakultas & rektorat) pakai menu yang sama
+    rektor:         rektorMenu,          // Hanya Rektor yang pakai rektorMenu
+    tu_rektorat:    verifikatorMenu,     // Rektorat level 1 & 2 kembali ke Verifikator
+    wakil_rektor_1: verifikatorMenu,     // Rektorat level 1 & 2 kembali ke Verifikator
     tu_fakultas:    verifikatorMenu,
     wakil_dekan_1:  verifikatorMenu,
     dekan:          verifikatorMenu,
-    tu_rektorat:    verifikatorMenu,
-    wakil_rektor_1: verifikatorMenu,
   };
 
   const activeMenus = menuConfig[userRole] || verifikatorMenu;
 
+  // 🔥 PERBAIKAN: Buat indikator active menu tetap menyala saat masuk ke detail
   const isRouteActive = (path) => {
     if (path === "/admin/data-mahasiswa" && location.pathname.startsWith("/admin/data-mahasiswa")) return true;
     if (path === "/operator/detail-mahasiswa" && location.pathname.startsWith("/operator/detail-mahasiswa")) return true;
+    
+    // Biarkan menu Manajemen Data tetap aktif saat berada di halaman detail batch
+    if (path.includes("/daftar-batch") && location.pathname.includes("/detail-batch")) return true;
+    if (path.includes("/dokumen-valid") && location.pathname.includes("/detail-dokumen-valid")) return true;
+    
     return location.pathname === path;
   };
 
+  // 🔥 PERBAIKAN: Arahkan klik profile ke rute yang benar
   const handleProfileClick = () => {
     switch (userRole) {
       case "admin":
@@ -121,10 +126,12 @@ const Navbar = () => {
       case "operator":
       case "operator_data": return navigate("/operator/profile");
       case "rektor": return navigate("/rektor/profile");
+      // tu_rektorat dan wakil_rektor_1 otomatis akan masuk ke default (verifikator)
       default: return navigate("/verifikator/profile");
     }
   };
 
+  // 🔥 PERBAIKAN: Arahkan klik logo ke dashboard yang benar
   const getDashboardPath = () => {
     switch (userRole) {
       case "admin":
@@ -132,6 +139,7 @@ const Navbar = () => {
       case "operator":
       case "operator_data": return "/operator/dashboard";
       case "rektor": return "/rektor/dashboard";
+      // tu_rektorat dan wakil_rektor_1 otomatis akan masuk ke default (verifikator)
       default: return "/verifikator/dashboard";
     }
   };
@@ -165,7 +173,6 @@ const Navbar = () => {
     }`;
   };
 
-  // Label profil: "Wakil Rektor" atau "Dekan - Fakultas Teknik dan Sains"
   const ProfileSubtitle = () => (
     <div className="text-[10px] text-gray-500 font-medium tracking-wide">
       {currentRoleName}

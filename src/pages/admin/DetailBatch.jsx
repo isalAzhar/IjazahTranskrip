@@ -3,10 +3,16 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { FiSearch } from "react-icons/fi";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 
+import { useAuth } from "../../pages/context/AuthContext";
+
 const DetailBatch = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // 🔥 TAMBAHKAN INI UNTUK DETEKSI ROLE
+  const { user } = useAuth();
+  const userRole = user?.role?.toLowerCase() || "";
 
   const [search, setSearch] = useState("");
 
@@ -113,9 +119,26 @@ const DetailBatch = () => {
   // ==========================================================================
   // HANDLE DETAIL MAHASISWA - ROUTE DARI KODE 1 (TIDAK DIUBAH)
   // ==========================================================================
+ // ==========================================================================
+  // HANDLE DETAIL MAHASISWA - DINAMIS MENYESUAIKAN ROLE
+  // ==========================================================================
   const handleDetailMahasiswa = (item) => {
-    navigate(`/detail-mahasiswa/${item.nim}`, {
-      state: item,
+    let routePath = "";
+
+    // Cek role dan arahkan ke URL yang tepat
+    if (userRole === "admin") {
+      routePath = `/admin/detail-mahasiswa/${item.nim}`;
+    } else if (userRole === "operator") {
+      routePath = `/operator/detail-mahasiswa/${item.nim}`;
+    } else if (userRole.includes("rektor")) {
+      routePath = `/rektor/detail-mahasiswa/${item.nim}`;
+    } else {
+      // Default ke verifikator jika tidak ada kecocokan
+      routePath = `/verifikator/detail-mahasiswa/${item.nim}`; 
+    }
+
+    navigate(routePath, {
+      state: { mahasiswa: item }, // Kita bungkus dengan { mahasiswa: item } agar seragam
     });
   };
 

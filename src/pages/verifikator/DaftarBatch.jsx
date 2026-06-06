@@ -147,14 +147,16 @@ const DaftarBatch = () => {
 
   const currentSuggestions = getSuggestions();
 
-  const handleNavigateDetail = (item) => {
-    if (REKTORAT_ROLES.includes(userRole)) {
+ const handleNavigateDetail = (item) => {
+    // Hanya rektor yang masuk ke rute /rektor
+    if (userRole === "rektor") {
       navigate(`/rektor/detail-batch/${item.id_batch_upload}`, { state: item });
     } else {
+      // tu_rektorat, wakil_rektor_1, dan fakultas masuk ke sini
       navigate(`/verifikator/detail-batch/${item.id_batch_upload}`, { state: item });
     }
   };
-
+  
   // Handler Modal Reject
   const handleOpenReject = (batch) => {
     setSelectedBatch(batch);
@@ -275,11 +277,13 @@ const DaftarBatch = () => {
                     setShowSuggestions(false); 
                     const safeNim = encodeURIComponent(item.nim);
                     
-                    if (REKTORAT_ROLES.includes(userRole)) {
+                    // PERBAIKAN LOGIKA ROUTING SEARCH
+                    if (userRole === "rektor") {
                       navigate(`/rektor/detail-mahasiswa/${safeNim}`, { state: { mahasiswa: item.mahasiswaData, batch: item.batchData } });
                     } else if (userRole === "operator" || userRole === "operator_data") {
                       navigate(`/operator/detail-mahasiswa/${safeNim}`, { state: { mahasiswa: item.mahasiswaData, batch: item.batchData } });
                     } else {
+                      // tu_rektorat, wakil_rektor_1, dan fakultas masuk ke rute verifikator
                       navigate(`/verifikator/detail-mahasiswa/${safeNim}`, { state: { mahasiswa: item.mahasiswaData, batch: item.batchData } });
                     }
                   }}

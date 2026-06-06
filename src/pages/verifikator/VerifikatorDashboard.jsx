@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiSearch } from "react-icons/fi";
 import DashboardLayout from "../../components/ui/DashboardLayout";
@@ -7,6 +7,7 @@ import IssuanceChart from "../../components/ui/IssuanceChart";
 import VerificationStatusChart from "../../components/ui/VerificationStatusChart";
 import { Icons } from "../../components/icon/DashboardIcons";
 import { useAuth } from "../context/AuthContext";
+import { getDashboardSummary, getLatestValidations } from "@/services/dashboard.api";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -33,69 +34,42 @@ const Dashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const faculties = [
-    "Semua Fakultas",
-    "Fakultas Teknik dan Sains",
-    "Fakultas Ekonomi dan Bisnis",
-    "Fakultas Keguruan & Ilmu Pendidikan",
-    "Fakultas Hukum",
-    "Fakultas Agama Islam",
-    "Fakultas Ilmu Kesehatan",
-  ];
+// 🔥 GENERATOR DROPDOWN DINAMIS (Berdasarkan data Backend)
+  const dynamicFakultas = useMemo(() => {
+    // Ambil semua fakultas dari API, buang yang kosong, hilangkan duplikat, lalu urutkan abjad
+    const list = [...new Set(tableData.map(item => item.fakultas).filter(Boolean))];
+    return ["Semua Fakultas", ...list.sort()];
+  }, [tableData]);
 
-  const statusOptions = [
-    "Semua Status",
-    "Proses",
-    "Terbit",
-    "Reject",
-    "Revoke",
-    "Approved"
-  ];
+  const dynamicStatus = useMemo(() => {
+    // Ambil semua status asli dari API (Terbit, Revoke, dll)
+    const list = [...new Set(tableData.map(item => item.status).filter(Boolean))];
+    return ["Semua Status", ...list.sort()];
+  }, [tableData]);
 
-  const tahunOptions = [
-    "Semua Tahun",
-    "2021",
-    "2022",
-    "2023",
-    "2024",
-    "2025",
-    "2026"
-  ];
+  const dynamicTahun = useMemo(() => {
+    // Ambil semua tahun dari API
+    const list = [...new Set(tableData.map(item => (item.tahun_lulus || item.tahun)?.toString()).filter(Boolean))];
+    return ["Semua Tahun", ...list.sort((a, b) => b - a)]; // Urutkan tahun terbaru di atas
+  }, [tableData]);
 
-  // 🔥 4. OPERASI PENYEDOTAN DATA DARI BACKEND
+  // 🔥 4. OPERASI PENYEDOTAN DATA DARI API EXTERNAL (CLEAN CODE)
   useEffect(() => {
     const fetchDashboardData = async () => {
+      if (!token) return;
+
       try {
         setIsLoading(true);
         setApiError("");
 
-        const [resSummary, resTable] = await Promise.all([
-          fetch("/api/dashboard/summary", {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`
-            }
-          }),
-          fetch("/api/dashboard/validations/latest", {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`
-            }
-          })
+        // Panggil kedua API secara bersamaan menggunakan file services
+        const [dataSummary, dataTable] = await Promise.all([
+          getDashboardSummary(token),
+          getLatestValidations(token)
         ]);
 
-        if (resSummary.status === 401 || resTable.status === 401) {
-          console.error("Token kedaluwarsa! Menendang keluar...");
-          logout();
-          return;
-        }
-
-        const dataSummary = await resSummary.json();
-        const dataTable = await resTable.json();
-
-        if (resSummary.ok && dataSummary.data) {
+        // Set data statistik
+        if (dataSummary?.data) {
           setStatsData({
             terbit: dataSummary.data.terbit || dataSummary.data.total_terbit || 0,
             proses: dataSummary.data.proses || dataSummary.data.total_proses || 0,
@@ -104,23 +78,26 @@ const Dashboard = () => {
           });
         }
 
-        if (resTable.ok && dataTable.data) {
+        // Set data tabel
+        if (dataTable?.data) {
           setTableData(Array.isArray(dataTable.data) ? dataTable.data : []);
-        } else {
-          setApiError("Gagal mengambil data tabel dari server.");
         }
 
       } catch (err) {
-        console.error("Gagal menembak API Dashboard:", err);
-        setApiError("Gagal terhubung ke server backend.");
+        // Tangkap lemparan error dari dashboard.api.js
+        if (err.message === "Unauthorized") {
+          console.error("Token kedaluwarsa! Menendang keluar...");
+          logout();
+        } else {  
+          console.error("Gagal menembak API Dashboard:", err);
+          setApiError("Gagal terhubung ke server backend.");
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (token) {
-      fetchDashboardData();
-    }
+    fetchDashboardData();
   }, [token, logout]);
 
   // 5. FILTERING DATA SECARA LOKAL
@@ -135,18 +112,12 @@ const Dashboard = () => {
         (item.fakultas?.toLowerCase().includes(searchLower) || false) ||
         (item.status?.toLowerCase().includes(searchLower) || false);
 
-      const matchesFakultas = 
-        selectedFakultas === "Semua Fakultas" || 
-        item.fakultas === selectedFakultas;
+      // Logika filter sekarang sangat akurat karena bersumber dari data yang sama
+      const matchesFakultas = selectedFakultas === "Semua Fakultas" || item.fakultas === selectedFakultas;
+      const matchesStatus = selectedStatus === "Semua Status" || item.status === selectedStatus;
       
-      // 🔥 FIX: Tambahkan .trim() untuk membuang spasi tersembunyi & .toLowerCase() untuk menyamakan huruf
-      const matchesStatus = 
-        selectedStatus === "Semua Status" || 
-        (item.status && item.status.trim().toLowerCase() === selectedStatus.trim().toLowerCase());
-      
-      const matchesTahun = 
-        selectedTahun === "Semua Tahun" || 
-        item.tahun_lulus?.toString() === selectedTahun;
+      const itemTahun = (item.tahun_lulus || item.tahun)?.toString();
+      const matchesTahun = selectedTahun === "Semua Tahun" || itemTahun === selectedTahun;
 
       return matchesSearch && matchesFakultas && matchesStatus && matchesTahun;
     })
@@ -155,11 +126,9 @@ const Dashboard = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, selectedFakultas, selectedStatus, selectedTahun]);
-
-  // 6. LOGIKA PAGINATION SESUAI FIGMA
-  // 🔥 HARDCODE 6135 untuk simulasi Figma. Nanti ganti dengan total data dari API backend.
-  const totalItems = 6135; 
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  
+  const totalItems = filteredData.length; 
+  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1; // Minimal 1 halaman
   
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -326,9 +295,9 @@ const Dashboard = () => {
                     value={selectedFakultas}
                     onChange={(e) => setSelectedFakultas(e.target.value)}
                   >
-                    {faculties.map((fakultas, index) => (
-                      <option key={index} value={fakultas}>{fakultas}</option>
-                    ))}
+                    {dynamicFakultas.map((fakultas, index) => (
+                      <option key={`fak-${index}`} value={fakultas}>{fakultas}</option>
+                    ))} 
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-600">
                     {Icons.DropdownArrow}
@@ -336,13 +305,13 @@ const Dashboard = () => {
                 </div>
 
                 <div className="relative w-full sm:w-44">
-                  <select
+                    <select
                     className="w-full appearance-none bg-[#f3f4f6] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none cursor-pointer"
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
                   >
-                    {statusOptions.map((status, index) => (
-                      <option key={index} value={status}>{status}</option>
+                    {dynamicStatus.map((status, index) => (
+                      <option key={`stat-${index}`} value={status}>{status}</option>
                     ))}
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-600">
@@ -351,13 +320,13 @@ const Dashboard = () => {
                 </div>
 
                 <div className="relative w-full sm:w-40">
-                  <select
+                 <select
                     className="w-full appearance-none bg-[#f3f4f6] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none cursor-pointer"
                     value={selectedTahun}
                     onChange={(e) => setSelectedTahun(e.target.value)}
                   >
-                    {tahunOptions.map((tahun, index) => (
-                      <option key={index} value={tahun}>{tahun}</option>
+                    {dynamicTahun.map((tahun, index) => (
+                      <option key={`thn-${index}`} value={tahun}>{tahun}</option>
                     ))}
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-600">
