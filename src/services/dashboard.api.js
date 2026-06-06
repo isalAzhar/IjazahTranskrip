@@ -1,16 +1,11 @@
-
-
-
-
-
-
-const API_BASE_URL = "/api";
+const RAW_API_BASE_URL ="/api";
+const API_BASE_URL = RAW_API_BASE_URL.replace(/\/$/, "");
 
 const DASHBOARD_API = `${API_BASE_URL}/dashboard`;
 
 // ==================== HELPER ====================
 
-const getToken = () => {
+export const getToken = () => {
   return (
     localStorage.getItem("authToken") ||
     localStorage.getItem("access_token") ||
@@ -32,6 +27,23 @@ const getHeaders = () => {
   return headers;
 };
 
+const toNumber = (value) => {
+  const numberValue = Number(value);
+  return Number.isNaN(numberValue) ? 0 : numberValue;
+};
+
+const buildQueryParams = (params = {}) => {
+  const queryParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      queryParams.append(key, value);
+    }
+  });
+
+  return queryParams.toString();
+};
+
 const fetchJSON = async (url, options = {}) => {
   const response = await fetch(url, {
     ...options,
@@ -41,13 +53,75 @@ const fetchJSON = async (url, options = {}) => {
     },
   });
 
-  const result = await response.json();
+  const result = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(result.message || "Request gagal");
+    const error = new Error(result.message || "Request gagal");
+    error.status = response.status;
+    error.response = result;
+    throw error;
   }
 
   return result;
+};
+
+const isAuthError = (error) => {
+  return error?.status === 401 || error?.status === 403;
+};
+
+const getDefaultStatistics = () => ({
+  totalIjazahTerbit: 0,
+  permintaanVerifikasi: 0,
+  dataReject: 0,
+  dataRevoke: 0,
+  totalMahasiswa: 0,
+  perubahanBulanTerakhir: 0,
+  permintaanBaruHariIni: 0,
+  rejectMingguIni: 0,
+  perubahanHariIni: 0,
+  raw: {},
+});
+
+const getDefaultMonthlyIssuance = () => ({
+  labels: [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "Mei",
+    "Jun",
+    "Jul",
+    "Agu",
+    "Sep",
+    "Okt",
+    "Nov",
+    "Des",
+  ],
+  datasets: [],
+  data: [],
+  years: [],
+  raw: [],
+});
+
+const getDefaultVerificationStatus = () => {
+  const chartData = [
+    { name: "Terbit", value: 0, color: "#27AE60" },
+    { name: "Proses", value: 0, color: "#16719E" },
+    { name: "Reject", value: 0, color: "#DC2626" },
+    { name: "Revoke", value: 0, color: "#F59E0B" },
+  ];
+
+  return {
+    labels: chartData.map((item) => item.name),
+    data: chartData.map((item) => item.value),
+    colors: chartData.map((item) => item.color),
+    chartData,
+    terbit: 0,
+    proses: 0,
+    rejected: 0,
+    revoked: 0,
+    raw: {},
+  };
 };
 
 // ==================== 1. CARD STATISTIK ATAS ====================
@@ -61,36 +135,28 @@ export const getStatistics = async () => {
     const data = result.data || {};
 
     return {
-      totalIjazahTerbit: Number(data.terbit || 0),
-      permintaanVerifikasi: Number(data.proses || 0),
-      dataReject: Number(data.rejected || 0),
-      dataRevoke: Number(data.revoked || 0),
+      totalIjazahTerbit: toNumber(data.terbit ?? data.total_terbit ?? 0),
+      permintaanVerifikasi: toNumber(data.proses ?? data.total_proses ?? 0),
+      dataReject: toNumber(data.rejected ?? data.total_rejected ?? 0),
+      dataRevoke: toNumber(data.revoked ?? data.total_revoked ?? 0),
 
-      totalMahasiswa: Number(data.total_mahasiswa || 0),
+      totalMahasiswa: toNumber(data.total_mahasiswa ?? 0),
 
-      // sementara default 0 karena backend belum buat statistik perubahan
-      perubahanBulanTerakhir: 0,
-      permintaanBaruHariIni: 0,
-      rejectMingguIni: 0,
-      perubahanHariIni: 0,
+      perubahanBulanTerakhir: toNumber(data.perubahan_bulan_terakhir ?? 0),
+      permintaanBaruHariIni: toNumber(data.permintaan_baru_hari_ini ?? 0),
+      rejectMingguIni: toNumber(data.reject_minggu_ini ?? 0),
+      perubahanHariIni: toNumber(data.perubahan_hari_ini ?? 0),
 
       raw: data,
     };
   } catch (error) {
     console.error("Error fetching statistics:", error);
 
-    return {
-      totalIjazahTerbit: 0,
-      permintaanVerifikasi: 0,
-      dataReject: 0,
-      dataRevoke: 0,
-      totalMahasiswa: 0,
-      perubahanBulanTerakhir: 0,
-      permintaanBaruHariIni: 0,
-      rejectMingguIni: 0,
-      perubahanHariIni: 0,
-      raw: {},
-    };
+    if (isAuthError(error)) {
+      throw error;
+    }
+
+    return getDefaultStatistics();
   }
 };
 
@@ -102,7 +168,7 @@ export const getMonthlyIssuance = async () => {
   try {
     const result = await fetchJSON(`${DASHBOARD_API}/statistik-tahunan`);
 
-    const rows = result.data || [];
+    const rows = Array.isArray(result.data) ? result.data : [];
 
     const labels = rows.map((item) => item.bulan);
 
@@ -116,14 +182,14 @@ export const getMonthlyIssuance = async () => {
 
     const datasets = years.map((year) => ({
       label: year,
-      data: rows.map((item) => Number(item[year] || 0)),
+      data: rows.map((item) => toNumber(item[year] ?? 0)),
     }));
 
     return {
       labels,
       datasets,
 
-      // data ini untuk component lama yang hanya baca satu array data
+      // Untuk component lama yang hanya baca satu array data
       data: datasets[0]?.data || [],
 
       years,
@@ -132,58 +198,47 @@ export const getMonthlyIssuance = async () => {
   } catch (error) {
     console.error("Error fetching monthly issuance:", error);
 
-    return {
-      labels: [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "Mei",
-        "Jun",
-        "Jul",
-        "Agu",
-        "Sep",
-        "Okt",
-        "Nov",
-        "Des",
-      ],
-      datasets: [],
-      data: [],
-      years: [],
-      raw: [],
-    };
+    if (isAuthError(error)) {
+      throw error;
+    }
+
+    return getDefaultMonthlyIssuance();
   }
 };
 
 // ==================== 3. DONUT CHART STATUS VALIDASI ====================
 // Endpoint backend:
-// GET /api/dashboard/statistik-validasi
+// GET /api/dashboard/statistik-validasi?year=2026
 
 export const getVerificationStatus = async (year = new Date().getFullYear()) => {
   try {
-    const result = await fetchJSON(`${DASHBOARD_API}/statistik-validasi?year=${year}`);
+    const queryParams = buildQueryParams({ year });
+
+    const result = await fetchJSON(
+      `${DASHBOARD_API}/statistik-validasi?${queryParams}`
+    );
 
     const data = result.data || {};
 
     const chartData = [
       {
         name: "Terbit",
-        value: Number(data.terbit || 0),
+        value: toNumber(data.terbit ?? data.total_terbit ?? 0),
         color: "#27AE60",
       },
       {
         name: "Proses",
-        value: Number(data.proses || 0),
+        value: toNumber(data.proses ?? data.total_proses ?? 0),
         color: "#16719E",
       },
       {
         name: "Reject",
-        value: Number(data.rejected || 0),
+        value: toNumber(data.rejected ?? data.total_rejected ?? 0),
         color: "#DC2626",
       },
       {
         name: "Revoke",
-        value: Number(data.revoked || 0),
+        value: toNumber(data.revoked ?? data.total_revoked ?? 0),
         color: "#F59E0B",
       },
     ];
@@ -195,34 +250,21 @@ export const getVerificationStatus = async (year = new Date().getFullYear()) => 
 
       chartData,
 
-      terbit: Number(data.terbit || 0),
-      proses: Number(data.proses || 0),
-      rejected: Number(data.rejected || 0),
-      revoked: Number(data.revoked || 0),
+      terbit: toNumber(data.terbit ?? data.total_terbit ?? 0),
+      proses: toNumber(data.proses ?? data.total_proses ?? 0),
+      rejected: toNumber(data.rejected ?? data.total_rejected ?? 0),
+      revoked: toNumber(data.revoked ?? data.total_revoked ?? 0),
 
       raw: data,
     };
   } catch (error) {
     console.error("Error fetching verification status:", error);
 
-    const chartData = [
-      { name: "Terbit", value: 0, color: "#27AE60" },
-      { name: "Proses", value: 0, color: "#16719E" },
-      { name: "Reject", value: 0, color: "#DC2626" },
-      { name: "Revoke", value: 0, color: "#F59E0B" },
-    ];
+    if (isAuthError(error)) {
+      throw error;
+    }
 
-    return {
-      labels: chartData.map((item) => item.name),
-      data: chartData.map((item) => item.value),
-      colors: chartData.map((item) => item.color),
-      chartData,
-      terbit: 0,
-      proses: 0,
-      rejected: 0,
-      revoked: 0,
-      raw: {},
-    };
+    return getDefaultVerificationStatus();
   }
 };
 
@@ -236,46 +278,91 @@ export const getIjazahList = async (params = {}) => {
     const limit = params.limit || 10;
     const search = params.search || params.q || "";
 
-    const queryParams = new URLSearchParams({
+    const queryParams = buildQueryParams({
       page,
       limit,
       search,
+      fakultas: params.fakultas || "",
+      status: params.status || "",
+      tahun_lulus: params.tahun_lulus || params.tahun || "",
     });
 
     const result = await fetchJSON(
       `${DASHBOARD_API}/validations/latest?${queryParams}`
     );
 
-    const list = result.data || [];
+    const list = Array.isArray(result.data) ? result.data : [];
     const pagination = result.pagination || {};
 
     return {
       data: list.map((item) => ({
-        id: item.id_mahasiswa,
+        id: item.id ?? item.id_mahasiswa,
         id_mahasiswa: item.id_mahasiswa,
 
-        nama: item.nama,
-        nim: item.nim,
-        npm: item.nim,
+        nama: item.nama ?? item.nama_mahasiswa ?? item.mahasiswa?.nama ?? "-",
+        nim: item.nim ?? item.mahasiswa?.nim ?? "-",
+        npm: item.nim ?? item.mahasiswa?.nim ?? "-",
 
-        fakultas: item.fakultas,
-        prodi: item.prodi,
-        tahunLulus: item.tahun_lulus,
-        tahun_lulus: item.tahun_lulus,
+        fakultas:
+          item.fakultas ??
+          item.nama_fakultas ??
+          item.unit_fakultas ??
+          item.unit?.nama_unit ??
+          item.mahasiswa?.prodi?.unit?.nama_unit ??
+          "-",
 
-        status: item.status,
-        batch: item.batch,
+        prodi:
+          item.prodi ??
+          item.nama_prodi ??
+          item.program_studi ??
+          item.mahasiswa?.prodi?.nama_prodi ??
+          "-",
+
+        tahunLulus:
+          item.tahun_lulus ??
+          item.tahunLulus ??
+          item.tahun ??
+          item.mahasiswa?.tahun_lulus ??
+          "-",
+
+        tahun_lulus:
+          item.tahun_lulus ??
+          item.tahunLulus ??
+          item.tahun ??
+          item.mahasiswa?.tahun_lulus ??
+          "-",
+
+        status:
+          item.status ??
+          item.status_dashboard ??
+          item.status_validasi ??
+          "proses",
+
+        batch:
+          item.batch ??
+          item.nomor_batch_upload ??
+          item.batch_upload?.nomor_batch_upload ??
+          item.mahasiswa?.batch_upload?.nomor_batch_upload ??
+          "-",
+
+        raw: item,
       })),
 
-      total: Number(pagination.total_data || 0),
-      page: Number(pagination.page || page),
-      totalPages: Number(pagination.total_page || 1),
+      total: toNumber(pagination.total_data ?? pagination.total ?? 0),
+      page: toNumber(pagination.page ?? page),
+      totalPages: toNumber(
+        pagination.total_page ?? pagination.totalPages ?? 1
+      ),
 
       pagination,
       raw: result,
     };
   } catch (error) {
     console.error("Error fetching ijazah list:", error);
+
+    if (isAuthError(error)) {
+      throw error;
+    }
 
     return {
       data: [],
@@ -316,23 +403,26 @@ export const getBatchList = async (params = {}) => {
     const search = params.search || "";
     const tahun_lulus = params.tahun_lulus || "";
     const periode = params.periode || "";
+    const status = params.status || "";
 
-    const queryParams = new URLSearchParams();
+    const queryParams = buildQueryParams({
+      page,
+      limit,
+      search,
+      tahun_lulus,
+      periode,
+      status,
+    });
 
-    queryParams.append("page", page);
-    queryParams.append("limit", limit);
-
-    if (search) queryParams.append("search", search);
-    if (tahun_lulus) queryParams.append("tahun_lulus", tahun_lulus);
-    if (periode) queryParams.append("periode", periode);
-
-    const result = await fetchJSON(
-      `${DASHBOARD_API}/batches?${queryParams}`
-    );
+    const result = await fetchJSON(`${DASHBOARD_API}/batches?${queryParams}`);
 
     return result;
   } catch (error) {
     console.error("Error fetching batch list:", error);
+
+    if (isAuthError(error)) {
+      throw error;
+    }
 
     return {
       success: false,
@@ -353,13 +443,9 @@ export const getBatchList = async (params = {}) => {
 
 export const getDetailBatch = async (idBatch, status = "") => {
   try {
-    const queryParams = new URLSearchParams();
+    const queryParams = buildQueryParams({ status });
 
-    if (status) {
-      queryParams.append("status", status);
-    }
-
-    const url = status
+    const url = queryParams
       ? `${DASHBOARD_API}/batches/batch/${idBatch}?${queryParams}`
       : `${DASHBOARD_API}/batches/batch/${idBatch}`;
 
@@ -373,13 +459,12 @@ export const getDetailBatch = async (idBatch, status = "") => {
 };
 
 // ==================== 8. VERIFY IJAZAH ====================
-// Catatan:
-// Endpoint verify belum masuk dashboard-service.
-// Kalau nanti approval-service sudah siap, endpoint ini bisa diarahkan ke API approval.
+// Endpoint approval:
+// POST /api/approval/verify/:npm
 
 export const verifyIjazah = async (npm) => {
   try {
-    const response = await fetchJSON(`${API_BASE_URL}/api/approval/verify/${npm}`, {
+    const response = await fetchJSON(`${API_BASE_URL}/approval/verify/${npm}`, {
       method: "POST",
     });
 
@@ -406,6 +491,12 @@ export const searchIjazah = async (query) => {
   }
 };
 
+// ==================== 10. LIST FAKULTAS ====================
+// Endpoint backend:
+// GET /api/dashboard/faculties
+// Aman ditambahkan. Kalau endpoint belum ada, return [].
+
+
 // ==================== ALIAS EXPORT ====================
 // Biar component lain bisa pakai nama yang lebih jelas
 
@@ -413,3 +504,24 @@ export const getDashboardSummary = getStatistics;
 export const getStatistikValidasi = getVerificationStatus;
 export const getStatistikTahunan = getMonthlyIssuance;
 export const getLatestValidations = getIjazahList;
+
+// ==================== DEFAULT EXPORT OPSIONAL ====================
+// Tidak wajib dipakai, tapi aman kalau nanti mau import sebagai object.
+
+export default {
+  getStatistics,
+  getMonthlyIssuance,
+  getVerificationStatus,
+  getIjazahList,
+  getDetailIjazah,
+  getBatchList,
+  getDetailBatch,
+  verifyIjazah,
+  searchIjazah,
+
+
+  getDashboardSummary,
+  getStatistikValidasi,
+  getStatistikTahunan,
+  getLatestValidations,
+};

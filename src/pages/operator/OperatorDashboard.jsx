@@ -1,123 +1,267 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiSearch } from "react-icons/fi";
+
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import StatCard from "../../components/ui/StatCard";
 import IssuanceChart from "../../components/ui/IssuanceChart";
 import VerificationStatusChart from "../../components/ui/VerificationStatusChart";
+
 import { Icons } from "../../components/icon/DashboardIcons";
 import { useAuth } from "../context/AuthContext";
-import { getDashboardSummary, getLatestValidations } from "@/services/dashboard.api";
+
+import {
+  getDashboardSummary,
+  getLatestValidations,
+  getStatistikTahunan,
+  getStatistikValidasi,
+} from "../../services/dashboard.api";
+
+
+
+const normalizeStatus = (status) => {
+  const value = status?.toString().toLowerCase();
+
+  if (value === "terbit" || value === "approved" || value === "valid") {
+    return "terbit";
+  }
+
+  if (value === "proses" || value === "pending") {
+    return "proses";
+  }
+
+  if (value === "reject" || value === "rejected" || value === "ditolak") {
+    return "reject";
+  }
+
+  if (value === "revoke" || value === "revoked" || value === "dicabut") {
+    return "revoke";
+  }
+
+  return value || "";
+};
+
+const getBadgeLabel = (status) => {
+  const value = normalizeStatus(status);
+
+  switch (value) {
+    case "terbit":
+      return "Terbit";
+    case "proses":
+      return "Proses";
+    case "reject":
+      return "Reject";
+    case "revoke":
+      return "Revoke";
+    default:
+      return status || "-";
+  }
+};
+
+const getBadgeColor = (status) => {
+  const value = normalizeStatus(status);
+
+  switch (value) {
+    case "terbit":
+      return "bg-[#27AE60] text-white";
+    case "proses":
+      return "bg-[#3B82F6] text-white";
+    case "reject":
+      return "bg-[#EF4444] text-white";
+    case "revoke":
+      return "bg-[#F59E0B] text-white";
+    default:
+      return "bg-gray-400 text-white";
+  }
+};
+
+const buildFacultyOptions = (rows = []) => {
+  const uniqueFaculties = [
+    ...new Set(
+      rows
+        .map((item) => item.fakultas)
+        .filter((fakultas) => fakultas && fakultas !== "-")
+    ),
+  ];
+
+  return ["Semua Fakultas", ...uniqueFaculties];
+};
+
+const buildYearOptions = (rows = []) => {
+  const uniqueYears = [
+    ...new Set(
+      rows
+        .map((item) => item.tahun_lulus?.toString())
+        .filter((tahun) => tahun && tahun !== "-")
+    ),
+  ].sort((a, b) => Number(b) - Number(a));
+
+  return ["Semua Tahun", ...uniqueYears];
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  
-  // 1. AMBIL TOKEN & LOGOUT DARI AUTH CONTEXT
   const { token, logout } = useAuth();
 
-  // 2. STATE UNTUK DATA BACKEND
+  // ==================== STATE DATA BACKEND ====================
+
   const [statsData, setStatsData] = useState({
     terbit: 0,
     proses: 0,
-    reject: 0,
-    revoke: 0
+    rejected: 0,
+    revoked: 0,
   });
+
   const [tableData, setTableData] = useState([]);
+  const [issuanceChartData, setIssuanceChartData] = useState(null);
+  const [verificationChartData, setVerificationChartData] = useState(null);
+
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState("");
 
-  // 3. STATE UNTUK FILTER & PAGINATION
+  // ==================== STATE FILTER & PAGINATION ====================
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFakultas, setSelectedFakultas] = useState("Semua Fakultas");
   const [selectedStatus, setSelectedStatus] = useState("Semua Status");
   const [selectedTahun, setSelectedTahun] = useState("Semua Tahun");
+
+  const [faculties, setFaculties] = useState(["Semua Fakultas"]);
+  const [tahunOptions, setTahunOptions] = useState(["Semua Tahun"]);
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-// 🔥 GENERATOR DROPDOWN DINAMIS (Berdasarkan data Backend)
-  const dynamicFakultas = useMemo(() => {
-    // Ambil semua fakultas dari API, buang yang kosong, hilangkan duplikat, lalu urutkan abjad
-    const list = [...new Set(tableData.map(item => item.fakultas).filter(Boolean))];
-    return ["Semua Fakultas", ...list.sort()];
-  }, [tableData]);
+  const statusOptions = [
+    "Semua Status",
+    "Proses",
+    "Terbit",
+    "Reject",
+    "Revoke",
+  ];
 
-  const dynamicStatus = useMemo(() => {
-    // Ambil semua status asli dari API (Terbit, Revoke, dll)
-    const list = [...new Set(tableData.map(item => item.status).filter(Boolean))];
-    return ["Semua Status", ...list.sort()];
-  }, [tableData]);
+  // ==================== FETCH DATA DASHBOARD ====================
 
-  const dynamicTahun = useMemo(() => {
-    // Ambil semua tahun dari API
-    const list = [...new Set(tableData.map(item => (item.tahun_lulus || item.tahun)?.toString()).filter(Boolean))];
-    return ["Semua Tahun", ...list.sort((a, b) => b - a)]; // Urutkan tahun terbaru di atas
-  }, [tableData]);
-
-  // 🔥 4. OPERASI PENYEDOTAN DATA DARI API EXTERNAL (CLEAN CODE)
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      if (!token) return;
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      setApiError("");
 
+      const [
+        summary,
+        latestValidations,
+        statistikTahunan,
+        statistikValidasi,
+      ] = await Promise.all([
+        getDashboardSummary(),
+        getLatestValidations({
+          page: 1,
+          limit: 100,
+          search: "",
+        }),
+        getStatistikTahunan(),
+        getStatistikValidasi(new Date().getFullYear()),
+      ]);
+
+      const rows = Array.isArray(latestValidations.data)
+        ? latestValidations.data
+        : [];
+
+      setStatsData({
+        terbit: summary.totalIjazahTerbit || 0,
+        proses: summary.permintaanVerifikasi || 0,
+        rejected: summary.dataReject || 0,
+        revoked: summary.dataRevoke || 0,
+      });
+
+      setTableData(rows);
+
+      setIssuanceChartData(statistikTahunan);
+      setVerificationChartData(statistikValidasi);
+
+      // Ini tetap binding, karena datanya dari backend validations/latest
+      setFaculties(buildFacultyOptions(rows));
+      setTahunOptions(buildYearOptions(rows));
+    } catch (err) {
+      console.error("Gagal mengambil data dashboard rektor:", err);
+
+      if (err.status === 401 || err.status === 403) {
+        logout();
+        return;
+      }
+
+      setApiError(err.message || "Gagal terhubung ke server backend.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (token) {
+    fetchDashboardData();
+  } else {
+    setIsLoading(false);
+  }
+}, [token, logout]);
+
+  // ==================== FETCH CHART STATUS SAAT TAHUN DIGANTI ====================
+
+  useEffect(() => {
+    const fetchChartByYear = async () => {
       try {
-        setIsLoading(true);
-        setApiError("");
+        if (!token) return;
 
-        // Panggil kedua API secara bersamaan menggunakan file services
-        const [dataSummary, dataTable] = await Promise.all([
-          getDashboardSummary(token),
-          getLatestValidations(token)
-        ]);
+        const year =
+          selectedTahun === "Semua Tahun"
+            ? new Date().getFullYear()
+            : selectedTahun;
 
-        // Set data statistik
-        if (dataSummary?.data) {
-          setStatsData({
-            terbit: dataSummary.data.terbit || dataSummary.data.total_terbit || 0,
-            proses: dataSummary.data.proses || dataSummary.data.total_proses || 0,
-            reject: dataSummary.data.reject || dataSummary.data.total_reject || 0,
-            revoke: dataSummary.data.revoke || dataSummary.data.total_revoke || 0
-          });
-        }
+        const statistikValidasi = await getStatistikValidasi(year);
 
-        // Set data tabel
-        if (dataTable?.data) {
-          setTableData(Array.isArray(dataTable.data) ? dataTable.data : []);
-        }
-
+        setVerificationChartData(statistikValidasi);
       } catch (err) {
-        // Tangkap lemparan error dari dashboard.api.js
-        if (err.message === "Unauthorized") {
-          console.error("Token kedaluwarsa! Menendang keluar...");
+        console.error("Gagal mengambil chart status berdasarkan tahun:", err);
+
+        if (err.status === 401 || err.status === 403) {
           logout();
-        } else {  
-          console.error("Gagal menembak API Dashboard:", err);
-          setApiError("Gagal terhubung ke server backend.");
         }
-      } finally {
-        setIsLoading(false);
       }
     };
 
-    fetchDashboardData();
-  }, [token, logout]);
+    fetchChartByYear();
+  }, [selectedTahun, token, logout]);
 
-  // 5. FILTERING DATA SECARA LOKAL
+  // ==================== FILTERING DATA LOKAL ====================
+
   const filteredData = tableData
     .filter((item) => {
       const searchLower = searchQuery.toLowerCase();
-      
-      const matchesSearch =
-        (item.nama?.toLowerCase().includes(searchLower) || false) ||
-        (item.nim?.toLowerCase().includes(searchLower) || false) ||
-        (item.prodi?.toLowerCase().includes(searchLower) || false) ||
-        (item.fakultas?.toLowerCase().includes(searchLower) || false) ||
-        (item.status?.toLowerCase().includes(searchLower) || false);
 
-      // Logika filter sekarang sangat akurat karena bersumber dari data yang sama
-      const matchesFakultas = selectedFakultas === "Semua Fakultas" || item.fakultas === selectedFakultas;
-      const matchesStatus = selectedStatus === "Semua Status" || item.status === selectedStatus;
-      
-      const itemTahun = (item.tahun_lulus || item.tahun)?.toString();
-      const matchesTahun = selectedTahun === "Semua Tahun" || itemTahun === selectedTahun;
+      const searchableText = [
+        item.nama,
+        item.nim,
+        item.prodi,
+        item.fakultas,
+        item.tahun_lulus,
+        item.status,
+        item.batch,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      const matchesSearch = searchableText.includes(searchLower);
+
+      const matchesFakultas =
+        selectedFakultas === "Semua Fakultas" ||
+        item.fakultas === selectedFakultas;
+
+      const matchesStatus =
+        selectedStatus === "Semua Status" ||
+        normalizeStatus(item.status) === normalizeStatus(selectedStatus);
+
+      const matchesTahun =
+        selectedTahun === "Semua Tahun" ||
+        item.tahun_lulus?.toString() === selectedTahun;
 
       return matchesSearch && matchesFakultas && matchesStatus && matchesTahun;
     })
@@ -126,80 +270,67 @@ const Dashboard = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, selectedFakultas, selectedStatus, selectedTahun]);
-  
-  const totalItems = filteredData.length; 
-  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1; // Minimal 1 halaman
-  
+
+  // ==================== PAGINATION ====================
+
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentData = filteredData.slice(indexOfFirstItem, indexOfLastItem);
-
-  const getBadgeColor = (status) => {
-    switch (status?.toLowerCase().trim()) {
-      case "terbit": 
-      case "approved":
-        return "bg-[#27AE60] text-white";
-      case "proses": 
-      case "pending":
-        return "bg-[#3B82F6] text-white";
-      case "reject": 
-      case "rejected":
-        return "bg-[#EF4444] text-white";
-      case "revoke": 
-      case "revoked":
-        return "bg-[#F59E0B] text-white";
-      default: 
-        return "bg-gray-400 text-white";
-    }
-  };
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
   const renderPaginationButtons = () => {
-    let pages = [];
+    const pages = [];
 
-    // Logika pembentukan array angka agar persis [1, 2, ..., 614]
-    if (totalPages <= 4) {
-      pages = Array.from({ length: totalPages }, (_, i) => i + 1);
-    } else {
-      if (currentPage === 1) {
-        pages = [1, 2, "...", totalPages];
-      } else if (currentPage === 2) {
-        pages = [1, 2, 3, "...", totalPages];
-      } else if (currentPage === totalPages) {
-        pages = [1, "...", totalPages - 1, totalPages];
-      } else if (currentPage === totalPages - 1) {
-        pages = [1, "...", totalPages - 2, totalPages - 1, totalPages];
-      } else {
-        pages = [1, "...", currentPage, "...", totalPages];
-      }
+    if (totalPages <= 0) return pages;
+
+    pages.push(1);
+
+    if (currentPage > 2 && totalPages > 3) {
+      pages.push("...");
     }
 
-    return pages.map((page, index) => {
-      const isActive = page === currentPage;
-      const isEllipsis = page === "...";
+    if (currentPage === 1 && totalPages > 1) {
+      pages.push(2);
+    } else if (currentPage === totalPages && totalPages > 2) {
+      pages.push(totalPages - 1);
+    } else if (currentPage > 1 && currentPage < totalPages) {
+      pages.push(currentPage);
+    }
 
-      return (
-        <button
-          key={index}
-          onClick={() => !isEllipsis && setCurrentPage(page)}
-          disabled={isEllipsis}
-          className={`w-9 h-9 flex items-center justify-center rounded-md text-sm font-bold transition-all ${
-            isActive
-              ? "bg-[#117065] text-white shadow-md"
-              : "bg-[#C4C4C4] text-white hover:bg-gray-400"
-          } ${isEllipsis ? "cursor-default" : "cursor-pointer"}`}
-        >
-          {page}
-        </button>
-      );
-    });
+    if (currentPage < totalPages - 1 && totalPages > 3) {
+      pages.push("...");
+    }
+
+    if (totalPages > 1 && !pages.includes(totalPages)) {
+      pages.push(totalPages);
+    }
+
+    return pages.map((page, index) => (
+      <button
+        key={index}
+        type="button"
+        onClick={() => typeof page === "number" && setCurrentPage(page)}
+        disabled={page === "..."}
+        className={`w-8 h-8 flex items-center justify-center rounded text-xs font-bold shadow-sm transition-colors ${
+          page === currentPage
+            ? "bg-[#00897B] text-white"
+            : page === "..."
+            ? "bg-transparent text-gray-400 cursor-default shadow-none"
+            : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"
+        }`}
+      >
+        {page}
+      </button>
+    ));
   };
 
-  // TAMPILAN LOADING JIKA SEDANG MENGAMBIL DATA
+  // ==================== LOADING ====================
+
   if (isLoading) {
     return (
       <DashboardLayout>
         <div className="flex justify-center items-center h-[70vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#117065]"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#27AE60]"></div>
         </div>
       </DashboardLayout>
     );
@@ -209,46 +340,63 @@ const Dashboard = () => {
     <DashboardLayout>
       {/* HEADER */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Ringkasan Statistik</h1>
-        {apiError && <p className="text-sm text-red-500 mt-1 font-bold">{apiError}</p>}
+        <h1 className="text-2xl font-bold text-gray-800">
+          Ringkasan Statistik
+        </h1>
+
+        {apiError && (
+          <p className="text-sm text-red-500 mt-1 font-bold">{apiError}</p>
+        )}
       </div>
 
       {/* STAT CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div onClick={() => navigate("/ijazah/terbit")} className="cursor-pointer">
+        <div
+          onClick={() => navigate("/ijazah/terbit")}
+          className="cursor-pointer"
+        >
           <StatCard
             title="Jumlah Ijazah Terbit"
-            value={statsData.terbit.toLocaleString('id-ID')}
+            value={statsData.terbit.toLocaleString("id-ID")}
             sub="Statistik Terkini"
             subColor="text-[#27AE60]"
             icon={Icons.Badge}
           />
         </div>
 
-        <div onClick={() => navigate("/ijazah/proses")} className="cursor-pointer">
+        <div
+          onClick={() => navigate("/ijazah/proses")}
+          className="cursor-pointer"
+        >
           <StatCard
             title="Jumlah Ijazah di Proses"
-            value={statsData.proses.toLocaleString('id-ID')}
+            value={statsData.proses.toLocaleString("id-ID")}
             sub="Statistik Terkini"
             subColor="text-[#3B82F6]"
             icon={Icons.Check}
           />
         </div>
 
-        <div onClick={() => navigate("/ijazah/reject")} className="cursor-pointer">
+        <div
+          onClick={() => navigate("/ijazah/reject")}
+          className="cursor-pointer"
+        >
           <StatCard
             title="Jumlah Ijazah di Reject"
-            value={statsData.reject.toLocaleString('id-ID')}
+            value={statsData.rejected.toLocaleString("id-ID")}
             sub="Statistik Terkini"
             subColor="text-[#F97316]"
             icon={Icons.Close}
           />
         </div>
 
-        <div onClick={() => navigate("/ijazah/revoke")} className="cursor-pointer">
+        <div
+          onClick={() => navigate("/ijazah/revoke")}
+          className="cursor-pointer"
+        >
           <StatCard
             title="Jumlah Ijazah di Revoke"
-            value={statsData.revoke.toLocaleString('id-ID')}
+            value={statsData.revoked.toLocaleString("id-ID")}
             sub="Statistik Terkini"
             subColor="text-[#F59E0B]"
             icon={Icons.List}
@@ -259,12 +407,22 @@ const Dashboard = () => {
       {/* CHARTS SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="font-bold text-gray-800 mb-6 text-lg">Statistik Penerbitan Ijazah Tahunan</h2>
-          <IssuanceChart />
+          <h2 className="font-bold text-gray-800 mb-6 text-lg">
+            Statistik Penerbitan Ijazah Tahunan
+          </h2>
+
+          <IssuanceChart chartData={issuanceChartData} />
         </div>
+
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="font-bold text-gray-800 mb-4 text-lg">Status Data Ijazah Tahun 2026</h2>
-          <VerificationStatusChart />
+          <h2 className="font-bold text-gray-800 mb-4 text-lg">
+            Status Data Ijazah Tahun{" "}
+            {selectedTahun === "Semua Tahun"
+              ? new Date().getFullYear()
+              : selectedTahun}
+          </h2>
+
+          <VerificationStatusChart chartData={verificationChartData} />
         </div>
       </div>
 
@@ -272,12 +430,18 @@ const Dashboard = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100">
         <div className="p-6 border-b border-gray-100">
           <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-            <h2 className="text-xl font-bold text-gray-800">Aktivitas Verifikasi Terbaru</h2>
+            <h2 className="text-xl font-bold text-gray-800">
+              Aktivitas Verifikasi Terbaru
+            </h2>
+
             <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto xl:justify-end">
-              
               {/* SEARCH */}
               <div className="relative w-full sm:w-72">
-                <FiSearch className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                <FiSearch
+                  className="absolute left-3 top-2.5 text-gray-400"
+                  size={16}
+                />
+
                 <input
                   type="text"
                   placeholder="Cari: Nama, NIM, Prodi"
@@ -289,46 +453,58 @@ const Dashboard = () => {
 
               {/* FILTERS */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:ml-auto">
+                {/* FILTER FAKULTAS */}
                 <div className="relative w-full sm:w-64">
                   <select
-                    className="w-full appearance-none bg-[#f3f4f6] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none cursor-pointer"
+                    className="w-full appearance-none bg-[#f3f4f6] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-transparent focus:border-teal-500 cursor-pointer transition-colors"
                     value={selectedFakultas}
                     onChange={(e) => setSelectedFakultas(e.target.value)}
                   >
-                    {dynamicFakultas.map((fakultas, index) => (
-                      <option key={`fak-${index}`} value={fakultas}>{fakultas}</option>
-                    ))} 
+                    {faculties.map((fakultas, index) => (
+                      <option key={index} value={fakultas}>
+                        {fakultas}
+                      </option>
+                    ))}
                   </select>
+
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-600">
                     {Icons.DropdownArrow}
                   </div>
                 </div>
 
+                {/* FILTER STATUS */}
                 <div className="relative w-full sm:w-44">
-                    <select
-                    className="w-full appearance-none bg-[#f3f4f6] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none cursor-pointer"
+                  <select
+                    className="w-full appearance-none bg-[#f3f4f6] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-transparent focus:border-teal-500 cursor-pointer transition-colors"
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
                   >
-                    {dynamicStatus.map((status, index) => (
-                      <option key={`stat-${index}`} value={status}>{status}</option>
+                    {statusOptions.map((status, index) => (
+                      <option key={index} value={status}>
+                        {status}
+                      </option>
                     ))}
                   </select>
+
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-600">
                     {Icons.DropdownArrow}
                   </div>
                 </div>
 
+                {/* FILTER TAHUN */}
                 <div className="relative w-full sm:w-40">
-                 <select
-                    className="w-full appearance-none bg-[#f3f4f6] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none cursor-pointer"
+                  <select
+                    className="w-full appearance-none bg-[#f3f4f6] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-transparent focus:border-teal-500 cursor-pointer transition-colors"
                     value={selectedTahun}
                     onChange={(e) => setSelectedTahun(e.target.value)}
                   >
-                    {dynamicTahun.map((tahun, index) => (
-                      <option key={`thn-${index}`} value={tahun}>{tahun}</option>
+                    {tahunOptions.map((tahun, index) => (
+                      <option key={index} value={tahun}>
+                        {tahun}
+                      </option>
                     ))}
                   </select>
+
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-600">
                     {Icons.DropdownArrow}
                   </div>
@@ -339,7 +515,7 @@ const Dashboard = () => {
         </div>
 
         {/* TABLE CONTENT */}
-        <div className="overflow-x-auto min-h-[500px]">
+        <div className="overflow-x-auto min-h-[700px]">
           <table className="w-full table-fixed text-sm">
             <colgroup>
               <col className="w-[6%]" />
@@ -350,6 +526,7 @@ const Dashboard = () => {
               <col className="w-[10%]" />
               <col className="w-[10%]" />
             </colgroup>
+
             <thead className="bg-[#f3f4f6] text-gray-500 border-b border-gray-200">
               <tr>
                 <th className="px-4 py-4 text-center">No.</th>
@@ -361,44 +538,62 @@ const Dashboard = () => {
                 <th className="px-4 py-4 text-center">Status</th>
               </tr>
             </thead>
+
             <tbody className="text-gray-700">
               {currentData.length > 0 ? (
                 currentData.map((row, i) => (
-                  <tr key={i} className="border-t border-gray-200 hover:bg-gray-50 transition-colors">
+                  <tr
+                    key={row.id || row.id_mahasiswa || i}
+                    className="border-t border-gray-200 hover:bg-gray-50"
+                  >
                     <td className="px-4 py-4 text-center font-semibold">
                       {indexOfFirstItem + i + 1}.
                     </td>
+
                     <td className="px-4 py-4">
-                      <div className="font-semibold text-gray-800 truncate">{row.nama || "-"}</div>
-                      <div className="text-[11px] text-gray-400 mt-0.5 truncate">{row.batch || "-"}</div>
+                      <div className="font-semibold text-gray-800 truncate">
+                        {row.nama || "-"}
+                      </div>
+
+                      <div className="text-[11px] text-gray-400 mt-0.5 truncate">
+                        {row.batch || "-"}
+                      </div>
                     </td>
+
                     <td className="px-4 py-4 text-center font-semibold text-gray-700 truncate">
                       {row.nim || "-"}
                     </td>
+
                     <td className="px-4 py-4 text-center text-gray-600 font-semibold whitespace-nowrap truncate">
                       {row.fakultas || "-"}
                     </td>
+
                     <td className="px-4 py-4 text-center text-gray-600 font-semibold truncate">
                       {row.prodi || "-"}
                     </td>
+
                     <td className="px-4 py-4 text-center font-semibold text-gray-700">
                       {row.tahun_lulus || "-"}
                     </td>
+
                     <td className="px-4 py-4 text-center">
-                      <span className={`inline-block min-w-[86px] px-4 py-1.5 rounded-full text-xs font-bold ${getBadgeColor(row.status)}`}>
-                        {row.status || "-"}
+                      <span
+                        className={`inline-block min-w-[86px] px-4 py-1.5 rounded-full text-xs font-bold ${getBadgeColor(
+                          row.status
+                        )}`}
+                      >
+                        {getBadgeLabel(row.status)}
                       </span>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" className="px-4 py-16 text-center text-gray-400">
-                    <div className="flex flex-col items-center justify-center text-gray-400">
-                      <FiSearch className="w-12 h-12 mb-3 text-gray-300" />
-                      <p className="text-lg font-bold text-gray-600">Data tidak ditemukan</p>
-                      <p className="text-sm mt-1">Belum ada data verifikasi ijazah atau pencarian tidak cocok.</p>
-                    </div>
+                  <td
+                    colSpan="7"
+                    className="px-4 py-8 text-center text-gray-400"
+                  >
+                    Data tidak ditemukan atau belum ada data di server.
                   </td>
                 </tr>
               )}
@@ -406,36 +601,39 @@ const Dashboard = () => {
           </table>
         </div>
 
-        {/* PAGINATION SECTION - EXACT FIGMA UI */}
-        <div className="p-6 bg-white flex justify-between items-center border-t border-gray-100">
-          <p className="text-sm text-gray-500 font-medium">
-            Menampilkan {currentData.length} dari {totalItems.toLocaleString('id-ID')} Data
+        {/* PAGINATION */}
+        <div className="p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-gray-100">
+          <p className="text-xs text-gray-400">
+            Menampilkan {currentData.length} dari {filteredData.length} Data
           </p>
-          
-          <div className="flex items-center gap-2">
-            {/* Panah Kiri - Abu-abu */}
-            <button 
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="text-[#C4C4C4] hover:text-gray-600 disabled:opacity-30 text-xl font-bold px-2 transition-colors cursor-pointer"
-            >
-              {"<"}
-            </button>
 
-            {/* Kotak Angka Halaman */}
-            <div className="flex items-center gap-2">
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() =>
+                  setCurrentPage((prev) => Math.max(prev - 1, 1))
+                }
+                disabled={currentPage === 1}
+                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50"
+              >
+                {"<"}
+              </button>
+
               {renderPaginationButtons()}
-            </div>
 
-            {/* Panah Kanan - Teal Hijau Figma */}
-            <button 
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages || totalPages === 0}
-              className="text-[#117065] hover:text-teal-900 disabled:opacity-30 text-xl font-bold px-2 transition-colors cursor-pointer"
-            >
-              {">"}
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
+                disabled={currentPage === totalPages}
+                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50"
+              >
+                {">"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>
