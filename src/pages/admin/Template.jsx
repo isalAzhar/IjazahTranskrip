@@ -3,8 +3,13 @@ import DashboardLayout from "../../components/ui/DashboardLayout";
 import ijazahBg from "../../assets/img/Ijazahfiks.png";
 import transkripBg from "../../assets/img/transkripfiks.jpeg";
 import { FiUpload, FiX, FiTrash2 } from "react-icons/fi";
-
-const TEMPLATE_SESSION_KEY = "template_builder_session_data";
+import {
+  getTemplateByJenis,
+  uploadTemplateBackground,
+  selectTemplateBackground,
+  deleteTemplateBackground,
+  saveTemplateLayout,
+} from "../../services/api";
 
 const ROW_H = 16;
 
@@ -110,11 +115,7 @@ const previewAsFieldLabel = {
     "Stempel Dekan",
   ],
 
-  transkrip: [
-    "Paraf KATU Fakultas",
-    "Paraf Kaprodi",
-    "TTD Dekan",
-  ],
+  transkrip: ["Paraf KATU Fakultas", "Paraf Kaprodi", "TTD Dekan"],
 };
 
 const emptyPreviewFields = {
@@ -131,11 +132,7 @@ const emptyPreviewFields = {
     "TTD Dekan",
   ],
 
-  transkrip: [
-    "Paraf KATU Fakultas",
-    "Paraf Kaprodi",
-    "TTD Dekan",
-  ],
+  transkrip: ["Paraf KATU Fakultas", "Paraf Kaprodi", "TTD Dekan"],
 };
 
 const signatureFields = ["TTD Rektor", "TTD Dekan"];
@@ -165,14 +162,14 @@ const fieldTextSize = {
     default: "text-[14px]",
     small: "text-[10px]",
 
-    "Nama": "text-[14px]",
+    Nama: "text-[14px]",
     "Tempat & Tanggal Lahir": "text-[14px]",
     "Nomor Pokok Mahasiswa": "text-[14px]",
-    "NIK": "text-[14px]",
+    NIK: "text-[14px]",
     "Akreditasi AIPT": "text-[10px]",
-    "Fakultas": "text-[12px]",
+    Fakultas: "text-[12px]",
     "Program Studi": "text-[12px]",
-    "Program": "text-[12px]",
+    Program: "text-[12px]",
     "Fakultas (English)": "text-[10px]",
     "Program Studi (English)": "text-[10px]",
     "Program (English)": "text-[10px]",
@@ -186,19 +183,19 @@ const fieldTextSize = {
     default: "text-[7px]",
     small: "text-[6px]",
 
-    "Nomor": "text-[7px]",
-    "Nama": "text-[7px]",
+    Nomor: "text-[7px]",
+    Nama: "text-[7px]",
     "Tempat & Tanggal Lahir": "text-[7px]",
     "Jenis Kelamin": "text-[7px]",
     "Nomor Pokok Mahasiswa": "text-[7px]",
-    "NINA": "text-[7px]",
-    "NIK": "text-[7px]",
+    NINA: "text-[7px]",
+    NIK: "text-[7px]",
     "Tahun Masuk": "text-[7px]",
     "Program Pendidikan": "text-[7px]",
-    "Fakultas": "text-[7px]",
+    Fakultas: "text-[7px]",
     "Program Studi": "text-[7px]",
     "Nomor SK Akreditasi": "text-[7px]",
-    "Status": "text-[7px]",
+    Status: "text-[7px]",
     "Tanggal Lulus": "text-[7px]",
 
     "Nama Dekan": "text-[8px]",
@@ -323,25 +320,31 @@ const getFieldSize = (field, documentType = "ijazah") => {
   return getIjazahFieldSize(field);
 };
 
-const getInitialSessionData = () => {
-  try {
-    const saved = sessionStorage.getItem(TEMPLATE_SESSION_KEY);
-    if (!saved) return null;
-    return JSON.parse(saved);
-  } catch (error) {
-    console.error("Gagal membaca session template:", error);
-    return null;
-  }
+const mapBackendTemplateToState = (template, fallbackImage) => {
+  const layout = template?.konfigurasi_layout || {};
+
+  const rawAssets = Array.isArray(layout.assets) ? layout.assets : [];
+  const elements = Array.isArray(layout.elements) ? layout.elements : [];
+
+  const assets = rawAssets.map((asset) => ({
+    ...asset,
+    src: getTemplateImageSrc(asset.src, fallbackImage),
+  }));
+
+  const activeAsset = assets.find((asset) => asset.isActive);
+
+  return {
+    image: getTemplateImageSrc(
+      template?.file_template || activeAsset?.src,
+      fallbackImage,
+    ),
+    assets,
+    elements,
+    isSaved: Boolean(layout.isSaved),
+    isLocked: Boolean(layout.isLocked),
+    hasPreviewed: Boolean(layout.hasPreviewed),
+  };
 };
-
-const fileToBase64 = (file) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 
 const WaitingDataText = ({
   small = false,
@@ -351,9 +354,7 @@ const WaitingDataText = ({
   documentType = "ijazah",
 }) => {
   const alignClass =
-    align === "left"
-      ? "justify-start text-left"
-      : "justify-center text-center";
+    align === "left" ? "justify-start text-left" : "justify-center text-center";
 
   const textSize = getTextSizeClass(documentType, label, small);
 
@@ -373,7 +374,7 @@ const renderElements = (
   handleMouseDownElement,
   documentType,
   isPreview = false,
-  previewData = {}
+  previewData = {},
 ) =>
   elements.map((el) => {
     const isBoxOnly = boxOnlyFields.includes(el.label);
@@ -383,23 +384,22 @@ const renderElements = (
     const isEnglishSmall = englishSmallFields.includes(el.label);
 
     const fieldValue =
-  previewData?.[el.label] || previewData?.[el.placeholder] || "";
+      previewData?.[el.label] || previewData?.[el.placeholder] || "";
 
-const shouldShowFieldLabel =
-  isPreview &&
-  previewAsFieldLabel[documentType]?.includes(el.label);
+    const shouldShowFieldLabel =
+      isPreview && previewAsFieldLabel[documentType]?.includes(el.label);
 
-const displayValue = isPreview
-  ? shouldShowFieldLabel
-    ? el.label
-    : fieldValue || "Menunggu Data"
-  : "";
+    const displayValue = isPreview
+      ? shouldShowFieldLabel
+        ? el.label
+        : fieldValue || "Menunggu Data"
+      : "";
     const textAlign =
       documentType === "transkrip"
         ? "left"
         : ijazahLeftAlignFields.includes(el.label)
-        ? "left"
-        : "center";
+          ? "left"
+          : "center";
 
     const size = getFieldSize(el.label, documentType);
     const renderWidth = size.width;
@@ -421,15 +421,19 @@ const displayValue = isPreview
       <div
         key={el.id}
         onMouseDown={(e) => handleMouseDownElement(e, el)}
-        className={`absolute z-20 ${
+        className={`absolute z-20 group ${
           !isSaved && !isLocked ? "cursor-move" : "cursor-default"
         }`}
         style={{
           left: el.x,
           top: el.y,
         }}
-        title={el.placeholder}
       >
+        {!isPreview && (
+          <div className="pointer-events-none absolute -top-7 left-0 z-50 hidden group-hover:block whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[10px] font-bold text-white shadow-lg">
+            {el.label}
+          </div>
+        )}
         {/* NAMA REKTOR / NAMA DEKAN */}
         {isNameLine && (
           <div
@@ -468,29 +472,29 @@ const displayValue = isPreview
           </div>
         )}
 
-       {isSignature && (
-  <div
-    className={
-      isPreview && emptyPreviewFields[documentType]?.includes(el.label)
-        ? "rounded-sm border border-gray-500 bg-transparent"
-        : fieldBoxClass
-    }
-    style={{
-      width: renderWidth,
-      height: renderHeight,
-    }}
-  >
-    {isPreview &&
-      !emptyPreviewFields[documentType]?.includes(el.label) && (
-        <WaitingDataText
-          value={displayValue}
-          align={textAlign}
-          label={el.label}
-          documentType={documentType}
-        />
-      )}
-  </div>
-)}
+        {isSignature && (
+          <div
+            className={
+              isPreview && emptyPreviewFields[documentType]?.includes(el.label)
+                ? "rounded-sm border border-gray-500 bg-transparent"
+                : fieldBoxClass
+            }
+            style={{
+              width: renderWidth,
+              height: renderHeight,
+            }}
+          >
+            {isPreview &&
+              !emptyPreviewFields[documentType]?.includes(el.label) && (
+                <WaitingDataText
+                  value={displayValue}
+                  align={textAlign}
+                  label={el.label}
+                  documentType={documentType}
+                />
+              )}
+          </div>
+        )}
 
         {isNidn && (
           <div
@@ -519,30 +523,30 @@ const displayValue = isPreview
           </div>
         )}
 
-       {isBoxOnly && (
-  <div
-    className={
-      isPreview && emptyPreviewFields[documentType]?.includes(el.label)
-        ? "rounded-sm border border-gray-500 bg-transparent"
-        : fieldBoxClass
-    }
-    style={{
-      width: renderWidth,
-      height: renderHeight,
-    }}
-  >
-    {isPreview &&
-      !emptyPreviewFields[documentType]?.includes(el.label) && (
-        <WaitingDataText
-          small={isSmallBox}
-          value={displayValue}
-          align={textAlign}
-          label={el.label}
-          documentType={documentType}
-        />
-      )}
-  </div>
-)}
+        {isBoxOnly && (
+          <div
+            className={
+              isPreview && emptyPreviewFields[documentType]?.includes(el.label)
+                ? "rounded-sm border border-gray-500 bg-transparent"
+                : fieldBoxClass
+            }
+            style={{
+              width: renderWidth,
+              height: renderHeight,
+            }}
+          >
+            {isPreview &&
+              !emptyPreviewFields[documentType]?.includes(el.label) && (
+                <WaitingDataText
+                  small={isSmallBox}
+                  value={displayValue}
+                  align={textAlign}
+                  label={el.label}
+                  documentType={documentType}
+                />
+              )}
+          </div>
+        )}
 
         {!isNameLine && !isSignature && !isNidn && !isBoxOnly && (
           <div
@@ -793,53 +797,42 @@ const TranskripTableOverlay = ({ elements, mataKuliahData = [] }) => {
     </div>
   );
 };
+const getTemplateImageSrc = (src, fallback) => {
+  if (!src) return fallback;
 
+  if (src.startsWith("http://") || src.startsWith("https://")) {
+    return src;
+  }
+
+  if (src.startsWith("/")) {
+    return src;
+  }
+
+  return `/${src}`;
+};
 const Template = () => {
-  const sessionData = getInitialSessionData();
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
+  const [templateError, setTemplateError] = useState("");
 
-  const [activeTab, setActiveTab] = useState(
-  normalizeTemplateType(sessionData?.activeTab)
-);
+  const [activeTab, setActiveTab] = useState("ijazah");
 
-  const [templateImages, setTemplateImages] = useState(
-    sessionData?.templateImages || {
-      ijazah: ijazahBg,
-      transkrip: transkripBg,
-    }
-  );
-
-  const [templateAssets, setTemplateAssets] = useState(
-    sessionData?.templateAssets || {
-      ijazah: [
-        {
-          id: "default-ijazah",
-          originalName: "ijazahfiks.png",
-          name: "Template Ijazah",
-          src: ijazahBg,
-          isActive: true,
-        },
-      ],
-      transkrip: [
-        {
-          id: "default-transkrip",
-          originalName: "transkripfiks.jpeg",
-          name: "Template Transkrip",
-          src: transkripBg,
-          isActive: true,
-        },
-      ],
-    }
-  );
+  const [templateImages, setTemplateImages] = useState({
+    ijazah: ijazahBg,
+    transkrip: transkripBg,
+  });
+  const [templateAssets, setTemplateAssets] = useState({
+    ijazah: [],
+    transkrip: [],
+  });
 
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [showConfirmUploadModal, setShowConfirmUploadModal] = useState(false);
 
-  const [selectedTemplateType, setSelectedTemplateType] = useState(
-  normalizeTemplateType(sessionData?.selectedTemplateType)
-);
+  const [selectedTemplateType, setSelectedTemplateType] = useState("ijazah");
 
   const [selectedTemplateFile, setSelectedTemplateFile] = useState(null);
   const [selectedTemplatePreview, setSelectedTemplatePreview] = useState("");
+  const [selectedTemplateName, setSelectedTemplateName] = useState("");
   const [pendingSelectedAssetId, setPendingSelectedAssetId] = useState(null);
 
   const [imagePreviewModal, setImagePreviewModal] = useState({
@@ -853,98 +846,95 @@ const Template = () => {
     asset: null,
   });
 
-  const [ijazahElements, setIjazahElements] = useState(
-    sessionData?.ijazahElements || []
-  );
-  const [ijazahSaved, setIjazahSaved] = useState(
-    sessionData?.ijazahSaved || false
-  );
-  const [ijazahLocked, setIjazahLocked] = useState(
-    sessionData?.ijazahLocked || false
-  );
-  const [ijazahPreview, setIjazahPreview] = useState(false);
-  const [ijazahHasPreviewed, setIjazahHasPreviewed] = useState(
-    sessionData?.ijazahHasPreviewed || false
-  );
+  const [ijazahElements, setIjazahElements] = useState([]);
+  const [ijazahSaved, setIjazahSaved] = useState(false);
+  const [ijazahLocked, setIjazahLocked] = useState(false);
+  const [ijazahHasPreviewed, setIjazahHasPreviewed] = useState(false);
 
-  const [transkripElements, setTranskripElements] = useState(
-    sessionData?.transkripElements || []
-  );
-  const [transkripSaved, setTranskripSaved] = useState(
-    sessionData?.transkripSaved || false
-  );
-  const [transkripLocked, setTranskripLocked] = useState(
-    sessionData?.transkripLocked || false
-  );
-  const [transkripPreview, setTranskripPreview] = useState(false);
-  const [transkripHasPreviewed, setTranskripHasPreviewed] = useState(
-    sessionData?.transkripHasPreviewed || false
-  );
+  const [transkripElements, setTranskripElements] = useState([]);
+  const [transkripSaved, setTranskripSaved] = useState(false);
+  const [transkripLocked, setTranskripLocked] = useState(false);
+  const [transkripHasPreviewed, setTranskripHasPreviewed] = useState(false);
 
+  const [mataKuliahData, setMataKuliahData] = useState([]);
   const [draggingElement, setDraggingElement] = useState(null);
-  const [showSavedModal, setShowSavedModal] = useState(false);
+
+  const [ijazahPreview, setIjazahPreview] = useState(false);
+  const [transkripPreview, setTranskripPreview] = useState(false);
+
   const [showConfirmSaveModal, setShowConfirmSaveModal] = useState(false);
-
-  const [mataKuliahData, setMataKuliahData] = useState(
-    sessionData?.mataKuliahData || []
-  );
-
+  const [showSavedModal, setShowSavedModal] = useState(false);
   const currentTemplateType = normalizeTemplateType(activeTab);
 
-const currentFields = FIELD_BY_TEMPLATE[currentTemplateType];
+  const currentFields = FIELD_BY_TEMPLATE[currentTemplateType];
 
-const currentElements =
-  currentTemplateType === "transkrip" ? transkripElements : ijazahElements;
+  const currentElements =
+    currentTemplateType === "transkrip" ? transkripElements : ijazahElements;
 
-const isSaved =
-  currentTemplateType === "transkrip" ? transkripSaved : ijazahSaved;
+  const isSaved =
+    currentTemplateType === "transkrip" ? transkripSaved : ijazahSaved;
 
-const isLocked =
-  currentTemplateType === "transkrip" ? transkripLocked : ijazahLocked;
+  const isLocked =
+    currentTemplateType === "transkrip" ? transkripLocked : ijazahLocked;
 
-const hasFields = currentElements.length > 0;
+  const hasFields = currentElements.length > 0;
 
-const hasPreviewed =
-  currentTemplateType === "transkrip"
-    ? transkripHasPreviewed
-    : ijazahHasPreviewed;
+  const hasPreviewed =
+    currentTemplateType === "transkrip"
+      ? transkripHasPreviewed
+      : ijazahHasPreviewed;
 
   const isFieldActive = (field) =>
     currentElements.some((el) => el.label === field);
+  const applyTemplateFromBackend = (jenis, templateData) => {
+    const fallbackImage = jenis === "ijazah" ? ijazahBg : transkripBg;
+    const mapped = mapBackendTemplateToState(templateData, fallbackImage);
 
+    setTemplateImages((prev) => ({
+      ...prev,
+      [jenis]: mapped.image,
+    }));
+
+    setTemplateAssets((prev) => ({
+      ...prev,
+      [jenis]: mapped.assets.length > 0 ? mapped.assets : prev[jenis] || [],
+    }));
+
+    if (jenis === "ijazah") {
+      setIjazahElements(mapped.elements);
+      setIjazahSaved(mapped.isSaved);
+      setIjazahLocked(mapped.isLocked);
+      setIjazahHasPreviewed(mapped.hasPreviewed);
+    } else {
+      setTranskripElements(mapped.elements);
+      setTranskripSaved(mapped.isSaved);
+      setTranskripLocked(mapped.isLocked);
+      setTranskripHasPreviewed(mapped.hasPreviewed);
+    }
+  };
+
+  const loadTemplatesFromBackend = async () => {
+    try {
+      setLoadingTemplate(true);
+      setTemplateError("");
+
+      const [ijazahResult, transkripResult] = await Promise.all([
+        getTemplateByJenis("ijazah"),
+        getTemplateByJenis("transkrip"),
+      ]);
+
+      applyTemplateFromBackend("ijazah", ijazahResult.data);
+      applyTemplateFromBackend("transkrip", transkripResult.data);
+    } catch (error) {
+      console.error("Gagal mengambil template:", error);
+      setTemplateError(error.message || "Gagal mengambil template.");
+    } finally {
+      setLoadingTemplate(false);
+    }
+  };
   useEffect(() => {
-    const payload = {
-      activeTab,
-      selectedTemplateType,
-      templateImages,
-      templateAssets,
-      ijazahElements,
-      ijazahSaved,
-      ijazahLocked,
-      ijazahHasPreviewed,
-      transkripElements,
-      transkripSaved,
-      transkripLocked,
-      transkripHasPreviewed,
-      mataKuliahData,
-    };
-
-    sessionStorage.setItem(TEMPLATE_SESSION_KEY, JSON.stringify(payload));
-  }, [
-    activeTab,
-    selectedTemplateType,
-    templateImages,
-    templateAssets,
-    ijazahElements,
-    ijazahSaved,
-    ijazahLocked,
-    ijazahHasPreviewed,
-    transkripElements,
-    transkripSaved,
-    transkripLocked,
-    transkripHasPreviewed,
-    mataKuliahData,
-  ]);
+    loadTemplatesFromBackend();
+  }, []);
 
   const resetPreviewState = () => {
     if (activeTab === "ijazah") {
@@ -960,9 +950,10 @@ const hasPreviewed =
     setSelectedTemplateType(activeTab);
     setSelectedTemplateFile(null);
     setSelectedTemplatePreview("");
+    setSelectedTemplateName("");
 
     const activeAsset = templateAssets[activeTab]?.find(
-      (asset) => asset.isActive
+      (asset) => asset.isActive,
     );
 
     setPendingSelectedAssetId(activeAsset?.id || null);
@@ -980,53 +971,43 @@ const hasPreviewed =
     }
 
     try {
-      const base64Image = await fileToBase64(file);
-      const activeName = getActiveTemplateName(selectedTemplateType);
+      const result = await uploadTemplateBackground(
+        selectedTemplateType,
+        file,
+        selectedTemplateName.trim() || file.name,
+      );
 
-      const newAsset = {
-        id: Date.now(),
-        originalName: file.name,
-        name: activeName,
-        src: base64Image,
-        isActive: true,
-      };
+      const mapped = mapBackendTemplateToState(
+        result.data,
+        selectedTemplateType === "ijazah" ? ijazahBg : transkripBg,
+      );
+
+      setTemplateImages((prev) => ({
+        ...prev,
+        [selectedTemplateType]: mapped.image,
+      }));
 
       setTemplateAssets((prev) => ({
         ...prev,
-        [selectedTemplateType]: [
-          ...prev[selectedTemplateType].map((asset) => ({
-            ...asset,
-            name: "xxx",
-            isActive: false,
-          })),
-          newAsset,
-        ],
+        [selectedTemplateType]: mapped.assets,
       }));
 
-      setPendingSelectedAssetId(newAsset.id);
+      const newAsset = mapped.assets[mapped.assets.length - 1];
+
+      setPendingSelectedAssetId(newAsset?.id || null);
       setSelectedTemplateFile(null);
       setSelectedTemplatePreview("");
+      setSelectedTemplateName("");
 
       e.target.value = "";
     } catch (error) {
-      console.error("Gagal membaca file gambar:", error);
-      alert("Gagal membaca file gambar.");
+      console.error("Gagal upload background:", error);
+      alert(error.message || "Gagal upload background template.");
     }
   };
 
   const handleUseTemplateAsset = (asset) => {
-    const activeName = getActiveTemplateName(selectedTemplateType);
-
     setPendingSelectedAssetId(asset.id);
-
-    setTemplateAssets((prev) => ({
-      ...prev,
-      [selectedTemplateType]: prev[selectedTemplateType].map((item) => ({
-        ...item,
-        name: item.id === asset.id ? activeName : "xxx",
-        isActive: item.id === asset.id,
-      })),
-    }));
   };
 
   const handleDeleteTemplateAsset = (asset) => {
@@ -1041,26 +1022,44 @@ const hasPreviewed =
     });
   };
 
-  const confirmDeleteTemplateAsset = () => {
+  const confirmDeleteTemplateAsset = async () => {
     const asset = deleteAssetModal.asset;
 
     if (!asset) return;
 
-    setTemplateAssets((prev) => ({
-      ...prev,
-      [selectedTemplateType]: prev[selectedTemplateType].filter(
-        (item) => item.id !== asset.id
-      ),
-    }));
+    try {
+      const result = await deleteTemplateBackground(
+        selectedTemplateType,
+        asset.id,
+      );
 
-    if (pendingSelectedAssetId === asset.id) {
-      setPendingSelectedAssetId(null);
+      const mapped = mapBackendTemplateToState(
+        result.data,
+        selectedTemplateType === "ijazah" ? ijazahBg : transkripBg,
+      );
+
+      setTemplateImages((prev) => ({
+        ...prev,
+        [selectedTemplateType]: mapped.image,
+      }));
+
+      setTemplateAssets((prev) => ({
+        ...prev,
+        [selectedTemplateType]: mapped.assets,
+      }));
+
+      if (pendingSelectedAssetId === asset.id) {
+        setPendingSelectedAssetId(null);
+      }
+
+      setDeleteAssetModal({
+        open: false,
+        asset: null,
+      });
+    } catch (error) {
+      console.error("Gagal menghapus background:", error);
+      alert(error.message || "Gagal menghapus background template.");
     }
-
-    setDeleteAssetModal({
-      open: false,
-      asset: null,
-    });
   };
 
   const handleSaveAssetChanges = () => {
@@ -1072,9 +1071,9 @@ const hasPreviewed =
     setShowConfirmUploadModal(true);
   };
 
-  const confirmSaveTemplateImage = () => {
+  const confirmSaveTemplateImage = async () => {
     const selectedAsset = templateAssets[selectedTemplateType].find(
-      (asset) => asset.id === pendingSelectedAssetId
+      (asset) => asset.id === pendingSelectedAssetId,
     );
 
     if (!selectedAsset) {
@@ -1082,17 +1081,38 @@ const hasPreviewed =
       return;
     }
 
-    setTemplateImages((prev) => ({
-      ...prev,
-      [selectedTemplateType]: selectedAsset.src,
-    }));
+    try {
+      const result = await selectTemplateBackground(
+        selectedTemplateType,
+        selectedAsset.id,
+      );
 
-    setShowConfirmUploadModal(false);
-    setUploadModalOpen(false);
-    setSelectedTemplateFile(null);
-    setSelectedTemplatePreview("");
-    setPendingSelectedAssetId(null);
-    setSelectedTemplateType(activeTab);
+      const mapped = mapBackendTemplateToState(
+        result.data,
+        selectedTemplateType === "ijazah" ? ijazahBg : transkripBg,
+      );
+
+      setTemplateImages((prev) => ({
+        ...prev,
+        [selectedTemplateType]: mapped.image,
+      }));
+
+      setTemplateAssets((prev) => ({
+        ...prev,
+        [selectedTemplateType]: mapped.assets,
+      }));
+
+      setShowConfirmUploadModal(false);
+      setUploadModalOpen(false);
+      setSelectedTemplateFile(null);
+      setSelectedTemplatePreview("");
+      setPendingSelectedAssetId(null);
+      setSelectedTemplateName("");
+      setSelectedTemplateType(activeTab);
+    } catch (error) {
+      console.error("Gagal memilih background aktif:", error);
+      alert(error.message || "Gagal memilih background aktif.");
+    }
   };
 
   const handleCloseUploadModal = () => {
@@ -1100,6 +1120,7 @@ const hasPreviewed =
     setShowConfirmUploadModal(false);
     setSelectedTemplateFile(null);
     setSelectedTemplatePreview("");
+    setSelectedTemplateName("");
     setPendingSelectedAssetId(null);
     setDeleteAssetModal({
       open: false,
@@ -1125,8 +1146,6 @@ const hasPreviewed =
     const templateArea = e.currentTarget.getBoundingClientRect();
 
     let size = getFieldSize(field, activeTab);
-
-    
 
     const newElement = {
       id: Date.now(),
@@ -1175,7 +1194,7 @@ const hasPreviewed =
 
     const updater = (prev) =>
       prev.map((el) =>
-        el.id === draggingElement.id ? { ...el, x: newX, y: newY } : el
+        el.id === draggingElement.id ? { ...el, x: newX, y: newY } : el,
       );
 
     if (activeTab === "ijazah") {
@@ -1245,15 +1264,46 @@ const hasPreviewed =
     setShowConfirmSaveModal(true);
   };
 
-  const confirmSaveTemplate = () => {
-    if (activeTab === "ijazah") {
-      setIjazahSaved(true);
-    } else {
-      setTranskripSaved(true);
-    }
+  const confirmSaveTemplate = async () => {
+    try {
+      const jenis = activeTab === "ijazah" ? "ijazah" : "transkrip";
 
-    setShowConfirmSaveModal(false);
-    setShowSavedModal(true);
+      const elements = jenis === "ijazah" ? ijazahElements : transkripElements;
+      const isLockedValue = jenis === "ijazah" ? ijazahLocked : transkripLocked;
+      const hasPreviewedValue =
+        jenis === "ijazah" ? ijazahHasPreviewed : transkripHasPreviewed;
+
+      const result = await saveTemplateLayout(
+        jenis,
+        elements,
+        true,
+        isLockedValue,
+        hasPreviewedValue,
+      );
+
+      const mapped = mapBackendTemplateToState(
+        result.data,
+        jenis === "ijazah" ? ijazahBg : transkripBg,
+      );
+
+      if (jenis === "ijazah") {
+        setIjazahElements(mapped.elements);
+        setIjazahSaved(mapped.isSaved);
+        setIjazahLocked(mapped.isLocked);
+        setIjazahHasPreviewed(mapped.hasPreviewed);
+      } else {
+        setTranskripElements(mapped.elements);
+        setTranskripSaved(mapped.isSaved);
+        setTranskripLocked(mapped.isLocked);
+        setTranskripHasPreviewed(mapped.hasPreviewed);
+      }
+
+      setShowConfirmSaveModal(false);
+      setShowSavedModal(true);
+    } catch (error) {
+      console.error("Gagal menyimpan template:", error);
+      alert(error.message || "Gagal menyimpan template.");
+    }
   };
 
   if (ijazahPreview) {
@@ -1275,14 +1325,7 @@ const hasPreviewed =
             className="w-[780px]"
           />
 
-          {renderElements(
-            ijazahElements,
-            true,
-            true,
-            () => {},
-            "ijazah",
-            true
-          )}
+          {renderElements(ijazahElements, true, true, () => {}, "ijazah", true)}
         </div>
       </div>
     );
@@ -1313,7 +1356,7 @@ const hasPreviewed =
             true,
             () => {},
             "transkrip",
-            true
+            true,
           )}
 
           <TranskripTableOverlay
@@ -1328,6 +1371,17 @@ const hasPreviewed =
   return (
     <DashboardLayout>
       <div className="min-h-screen pb-6">
+        {loadingTemplate && (
+          <div className="fixed bottom-5 right-5 z-50 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-lg border">
+            Memuat template...
+          </div>
+        )}
+
+        {templateError && (
+          <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            {templateError}
+          </div>
+        )}
         <div className="flex items-start justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">
@@ -1341,19 +1395,21 @@ const hasPreviewed =
             <div className="flex items-center gap-2 mt-4 text-sm">
               <button
                 onClick={() => setActiveTab("ijazah")}
-                className={`font-bold transition ${
-                  activeTab === "ijazah" ? "text-[#27AE60]" : "text-gray-400"
+                className={`font-bold transition px-4 py-2 rounded-xl border ${
+                  activeTab === "ijazah"
+                    ? "bg-[#0B6B63] text-white border-[#0B6B63] shadow-sm"
+                    : "bg-white text-gray-500 border-gray-200 hover:bg-[#E6F4F1] hover:text-[#0B6B63] hover:border-[#0B6B63]"
                 }`}
               >
                 Ijazah Digital
               </button>
 
-              <span className="text-gray-300">{">"}</span>
-
               <button
                 onClick={() => setActiveTab("transkrip")}
-                className={`font-bold transition ${
-                  activeTab === "transkrip" ? "text-[#27AE60]" : "text-gray-400"
+                className={`font-bold transition px-4 py-2 rounded-xl border ${
+                  activeTab === "transkrip"
+                    ? "bg-[#0B6B63] text-white border-[#0B6B63] shadow-sm"
+                    : "bg-white text-gray-500 border-gray-200 hover:bg-[#E6F4F1] hover:text-[#0B6B63] hover:border-[#0B6B63]"
                 }`}
               >
                 Transkrip Digital
@@ -1412,8 +1468,8 @@ const hasPreviewed =
                         isSaved || isLocked
                           ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                           : active
-                          ? "bg-[#c0c0c0] text-gray-800 cursor-pointer"
-                          : "bg-[#d9d9d9] hover:bg-[#cfcfcf] text-gray-700 cursor-grab"
+                            ? "bg-[#c0c0c0] text-gray-800 cursor-pointer"
+                            : "bg-[#d9d9d9] hover:bg-[#cfcfcf] text-gray-700 cursor-grab"
                       }`}
                     >
                       {item}
@@ -1445,7 +1501,7 @@ const hasPreviewed =
                       ijazahSaved,
                       ijazahLocked,
                       handleMouseDownElement,
-                      "ijazah"
+                      "ijazah",
                     )}
                   </>
                 )}
@@ -1463,7 +1519,7 @@ const hasPreviewed =
                       transkripSaved,
                       transkripLocked,
                       handleMouseDownElement,
-                      "transkrip"
+                      "transkrip",
                     )}
 
                     <TranskripTableOverlay
@@ -1494,8 +1550,8 @@ const hasPreviewed =
                     !hasFields
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : isLocked
-                      ? "bg-white hover:bg-gray-50 text-[#0B6B63] border border-[#0B6B63]"
-                      : "bg-yellow-500 hover:bg-yellow-600 text-white"
+                        ? "bg-white hover:bg-gray-50 text-[#0B6B63] border border-[#0B6B63]"
+                        : "bg-yellow-500 hover:bg-yellow-600 text-white"
                   }`}
                 >
                   {isLocked ? "Edit" : "Lock"}
@@ -1544,7 +1600,7 @@ const hasPreviewed =
                       setSelectedTemplatePreview("");
 
                       const activeAsset = templateAssets[type]?.find(
-                        (asset) => asset.isActive
+                        (asset) => asset.isActive,
                       );
 
                       setPendingSelectedAssetId(activeAsset?.id || null);
@@ -1557,6 +1613,23 @@ const hasPreviewed =
                 </div>
 
                 <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-semibold text-gray-800">
+                      Nama Gambar Template
+                    </label>
+
+                    <input
+                      type="text"
+                      value={selectedTemplateName}
+                      onChange={(e) => setSelectedTemplateName(e.target.value)}
+                      placeholder="Contoh: Template Ijazah/Transkrip 2026"
+                      className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm bg-gray-50 outline-none focus:border-[#0B6B63]"
+                    />
+
+                    <p className="text-xs text-gray-400">
+                      Nama ini akan tampil di tabel daftar gambar template.
+                    </p>
+                  </div>
                   <label className="text-sm font-semibold text-gray-800">
                     Pilih File Gambar
                   </label>
@@ -1583,9 +1656,7 @@ const hasPreviewed =
                   <table className="w-full text-sm table-fixed">
                     <thead className="bg-[#F7F7F7] text-gray-500 border-b border-gray-200">
                       <tr>
-                        <th className="px-3 py-3 text-center w-[60px]">
-                          
-                        </th>
+                        <th className="px-3 py-3 text-center w-[60px]"></th>
                         <th className="px-3 py-3 text-center w-[100px]">
                           Preview
                         </th>
@@ -1595,9 +1666,7 @@ const hasPreviewed =
                         <th className="px-3 py-3 text-center w-[110px]">
                           Status
                         </th>
-                        <th className="px-3 py-3 text-center w-[70px]">
-                          Aksi
-                        </th>
+                        <th className="px-3 py-3 text-center w-[70px]">Aksi</th>
                       </tr>
                     </thead>
 
@@ -1623,7 +1692,12 @@ const hasPreviewed =
                               onClick={() =>
                                 setImagePreviewModal({
                                   open: true,
-                                  src: asset.src,
+                                  src: getTemplateImageSrc(
+                                    asset.src,
+                                    selectedTemplateType === "ijazah"
+                                      ? ijazahBg
+                                      : transkripBg,
+                                  ),
                                   name: asset.name,
                                 })
                               }
@@ -1631,7 +1705,12 @@ const hasPreviewed =
                               title="Lihat gambar template"
                             >
                               <img
-                                src={asset.src}
+                                src={getTemplateImageSrc(
+                                  asset.src,
+                                  selectedTemplateType === "ijazah"
+                                    ? ijazahBg
+                                    : transkripBg,
+                                )}
                                 alt={asset.name}
                                 className="w-full h-full object-cover"
                               />
@@ -1641,7 +1720,6 @@ const hasPreviewed =
                           <td className="px-3 py-3 font-semibold text-gray-800 text-left w-[145px]">
                             {asset.name}
                           </td>
-
 
                           <td className="px-3 py-3 text-center">
                             <span
@@ -1844,8 +1922,7 @@ const hasPreviewed =
               </h2>
 
               <p className="text-sm text-gray-500 mb-6">
-                Pastikan posisi field sudah sesuai. Template akan disimpan ke
-                session browser.
+                Pastikan posisi field sudah sesuai. Template akan disimpan
               </p>
 
               <div className="flex justify-center gap-3">
@@ -1881,7 +1958,7 @@ const hasPreviewed =
               </h2>
 
               <p className="text-sm text-gray-500 mb-5">
-                Template berhasil disimpan ke session browser.
+                Template berhasil disimpan.
               </p>
 
               <button
