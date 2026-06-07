@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { FiAlertTriangle, FiCheckCircle } from "react-icons/fi";
-import { TbArrowBackUp } from "react-icons/tb";
 import { BsSendFill } from "react-icons/bs";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { useAuth } from "../context/AuthContext";
-import { getBatchDetail, revokeMahasiswa, approveBatch } from "../../services/api"; // Sesuaikan path jika perlu
+import { getBatchDetail, revokeMahasiswa, approveBatch } from "@/services/api"; 
+import { Icons } from "@/components/icon/DashboardIcons"; // Import ikon dari file terpisah
 
 // Role level rektorat — backend handle
 const REKTORAT_ROLES = ["tu_rektorat", "wakil_rektor_1", "rektor"];
@@ -22,7 +22,7 @@ const ROLE_DESCRIPTION = {
 
 const DetailBatchVerifikator = () => {
   const navigate = useNavigate();
-  const location = useLocation(); // 🔥 Untuk menangkap data dari Daftar Batch
+  const location = useLocation();
   const { batchId } = useParams();
   const { user } = useAuth();
 
@@ -74,7 +74,6 @@ const DetailBatchVerifikator = () => {
       }));
 
       // 🔥 JURUS RAHASIA: Membuang mahasiswa yang statusnya revoke
-      // Dan membuang NIM yang tercatat di sessionStorage (karena backend belum fix)
       const activeStudents = rawStudents.filter((mhs) => {
         const isLocallyRevoked = sessionStorage.getItem(`revoked_${mhs.nim}`) === "true";
         const statusAPI = String(mhs.status || mhs.status_validasi || mhs.status_approval || "").toLowerCase();
@@ -85,7 +84,7 @@ const DetailBatchVerifikator = () => {
 
       setStudents(activeStudents);
       
-      // Update sisa angka mahasiswa sesuai dengan tabel yang sudah difilter
+      // Update sisa angka mahasiswa
       setBatchInfo(prev => ({ ...prev, total_record: activeStudents.length }));
 
     } catch (error) {
@@ -104,13 +103,11 @@ const DetailBatchVerifikator = () => {
   const handleDetailMahasiswa = (item) => {
     const safeNim = encodeURIComponent(item.nim);
     
-    // 🔥 PERBAIKAN: Hanya rektor yang masuk ke rute /rektor/...
     if (userRole === "rektor") {
       navigate(`/rektor/detail-mahasiswa/${safeNim}`, { state: { mahasiswa: item, batch: batchInfo } });
     } else if (userRole.includes("operator")) {
       navigate(`/operator/detail-mahasiswa/${safeNim}`, { state: { mahasiswa: item, batch: batchInfo } });
     } else {
-      // tu_fakultas, wakil_dekan_1, dekan, tu_rektorat, dan wakil_rektor_1 masuk ke sini
       navigate(`/verifikator/detail-mahasiswa/${safeNim}`, { state: { mahasiswa: item, batch: batchInfo } });
     }
   };
@@ -133,13 +130,10 @@ const DetailBatchVerifikator = () => {
     try {
       await revokeMahasiswa(selectedStudent.nim, revokeReason);
       
-      // 🔥 1. Catat NIM di Session Storage agar tidak muncul saat halaman di-refresh
       sessionStorage.setItem(`revoked_${selectedStudent.nim}`, "true");
 
-      // 🔥 2. Hapus mahasiswa dari tabel UI seketika
       setStudents(prev => {
         const newStudents = prev.filter(s => s.nim !== selectedStudent.nim);
-        // 🔥 3. Update angka Total Record di Header secara otomatis
         setBatchInfo(info => ({ ...info, total_record: newStudents.length }));
         return newStudents;
       });
@@ -192,7 +186,7 @@ const DetailBatchVerifikator = () => {
           <p className="text-[#9CA3AF] text-[14px] font-medium mt-1">{pageDescription}</p>
         </div>
 
-        {/* INFO BATCH (Sekarang tidak akan kosong) */}
+        {/* INFO BATCH */}
         <div className="mb-6 px-6 py-4 bg-white border border-gray-200 rounded-xl flex flex-wrap items-center gap-x-12 gap-y-4 shadow-sm relative overflow-hidden">
           <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#117065]"></div>
           
@@ -252,9 +246,12 @@ const DetailBatchVerifikator = () => {
                     </td>
                     <td className="py-4 px-6 text-center">
                       <button onClick={() => handleOpenRevoke(item)}
-                        className="inline-flex items-center justify-center p-1.5 w-8 h-8 rounded-md hover:bg-orange-200 bg-orange-100 text-orange-500 transition-colors"
+                        className="inline-flex items-center justify-center p-1.5 w-8 h-8 rounded-md hover:bg-orange-200 bg-orange-100 transition-colors flex-shrink-0"
                         title="Revoke Mahasiswa">
-                        <TbArrowBackUp size={20} />
+                        {/* 🔥 2. PEMANGGILAN ICON YANG BENAR */}
+                        <div className="scale-[0.85] flex items-center justify-center">
+                          {Icons.Revoke}
+                        </div>
                       </button>
                     </td>
                   </tr>

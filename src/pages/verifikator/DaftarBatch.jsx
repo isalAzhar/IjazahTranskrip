@@ -214,7 +214,7 @@ const DaftarBatch = () => {
               
               {/* Search */}
               <div className="w-full lg:max-w-md">
-                <div className="flex items-center bg-gray-50 border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
+                <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
                   <FiSearch className="text-gray-400 text-lg mr-3" />
                   <input
                     type="text"
@@ -237,7 +237,7 @@ const DaftarBatch = () => {
                     <select
                       value={selectedFakultas}
                       onChange={(e) => { setSelectedFakultas(e.target.value); setCurrentPage(1); }}
-                      className="appearance-none bg-gray-50 border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
+                      className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
                     >
                       <option value="">Semua Fakultas</option>
                       <option value="Fakultas Agama Islam">Fakultas Agama Islam</option>
@@ -256,7 +256,7 @@ const DaftarBatch = () => {
                   <select
                     value={selectedYear}
                     onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(1); }}
-                    className="appearance-none bg-gray-50 border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
+                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
                   >
                     <option value="">Semua Tahun</option>
                     {years.map((y) => <option key={y} value={y}>{y}</option>)}
@@ -325,52 +325,56 @@ const DaftarBatch = () => {
                   <th className="py-4 px-6 text-center w-20">Reject</th>
                 </tr>
               </thead>
-              <tbody className={`${isLoading ? "opacity-50" : ""} transition-opacity duration-200`}>
-                {realBatchData.map((item, i) => (
-                  <tr key={item.id_batch_upload} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-6 text-center font-bold text-gray-800">
-                      {(currentPage - 1) * itemsPerPage + i + 1}.
-                    </td>
-                    <td className="py-4 px-6 font-bold text-gray-900">{item.nomor_batch_upload}</td>
-                    <td className="py-4 px-6 font-normal text-gray-800">{renderFakultas(item.fakultas)}</td>
-                    <td className="py-4 px-6 text-center font-semibold text-gray-700">{item.tahun_lulus}</td>
-                    <td className="py-4 px-6 text-center font-semibold text-gray-700">{item.periode || "-"}</td>
-                    <td className="py-4 px-6 text-center">
-                      <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-[12px] font-bold bg-amber-100 text-amber-700">
-                        {item.pending_count} Mahasiswa
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <button
-                        onClick={() => handleNavigateDetail(item)}
-                        className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
-                      >
-                        <DetailIcon />
-                      </button>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <button
-                        onClick={() => handleOpenReject(item)}
-                        className="inline-flex items-center justify-center p-1.5 w-8 h-8 rounded-md hover:bg-red-50 text-red-400 hover:text-red-600 border border-transparent hover:border-red-200 transition-colors"
-                        title="Reject Batch"
-                      >
-                        <FiXCircle size={22} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+            <tbody className={`${isLoading ? "opacity-50" : ""} transition-opacity duration-200`}>
+              {realBatchData.map((item, i) => (
+                <tr key={item.id_batch_upload} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                  <td className="py-4 px-6 text-center font-bold text-gray-800">
+                    {(currentPage - 1) * itemsPerPage + i + 1}.
+                  </td>
+                  <td className="py-4 px-6 font-bold text-gray-900">{item.nomor_batch_upload}</td>
+                  <td className="py-4 px-6 font-normal text-gray-800">{renderFakultas(item.fakultas)}</td>
+                  <td className="py-4 px-6 text-center font-semibold text-gray-700">{item.tahun_lulus}</td>
+                  
+                  {/* 🔥 PERBAIKAN PERIODE: Hapus underscore & format judul */}
+                  <td className="py-4 px-6 text-center font-semibold text-gray-700 capitalize">
+                    {item.periode ? item.periode.replace(/_/g, ' ') : "-"}
+                  </td>
+              
+              {/* 🔥 TOTAL DATA: Semi-bold, tanpa background, sejajar dengan periode */}
+                  <td className="py-4 px-6 text-center font-semibold text-gray-700">
+                    {item.pending_count}
+                  </td>
+                  <td className="py-4 px-6 text-center">
+                    <button
+                      onClick={() => handleNavigateDetail(item)}
+                      className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
+                    >
+                      <DetailIcon />
+                    </button>
+                  </td>
+                  <td className="py-4 px-6 text-center">
+                    <button
+                      onClick={() => handleOpenReject(item)}
+                      className="inline-flex items-center justify-center p-1.5 w-8 h-8 rounded-md hover:bg-red-50 text-red-400 hover:text-red-600 border border-transparent hover:border-red-200 transition-colors"
+                      title="Reject Batch"
+                    >
+                      <FiXCircle size={22} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
 
-                {realBatchData.length === 0 && !isLoading && (
-                  <tr>
-                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
-                      <div className="flex flex-col items-center justify-center">
-                        <FiSearch className="text-4xl mb-3 text-gray-300" />
-                        <p>Data batch tidak ditemukan.</p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
+              {realBatchData.length === 0 && !isLoading && (
+                <tr>
+                  <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
+                    <div className="flex flex-col items-center justify-center">
+                      <FiSearch className="text-4xl mb-3 text-gray-300" />
+                      <p>Data batch tidak ditemukan.</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
             </table>
           </div>
 

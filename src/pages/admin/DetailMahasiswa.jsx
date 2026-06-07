@@ -28,13 +28,16 @@ const DetailMahasiswa = () => {
   const { nim } = useParams();
   const auth = useAuth();
 
-  // 🔥 Logika Role untuk Link Dokumen Valid
   const user = auth?.user || null;
   const userRole = user?.role?.toLowerCase() || "";
-  const showLinkDokumen = ["rektor", "operator", "operator_data"].includes(userRole);
 
-  // Tangkap data state cadangan dari halaman sebelumnya
+  // Tangkap data state dari halaman RektorDokumenValid atau Pelaporan (termasuk properti source)
   const laporanState = location.state?.mahasiswa || location.state || {};
+
+  // 🔥 Logika Role & Konteks untuk Link Dokumen Valid
+  // Hanya muncul jika role adalah operator/rektor DAN datang dari halaman "dokumen_valid"
+  const isFromDokumenValid = location.state?.source === "dokumen_valid" || laporanState?.source === "dokumen_valid";
+  const showLinkDokumen = ["rektor", "operator", "operator_data"].includes(userRole) && isFromDokumenValid;
 
   // States Komponen
   const [profile, setProfile] = useState(null);
@@ -64,15 +67,27 @@ const DetailMahasiswa = () => {
     if (nim) {
       fetchProfile();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nim]);
 
-  // Ekstraksi data API secara aman
-  const mahasiswa = profile?.mahasiswa || {};
-  const akademik = profile?.akademik || {};
-  const batch = profile?.batch || {};
-  const statusInfo = profile?.status || {};
+  // 🔥 STRATEGI BINDING AMAN: 
+  // Ekstrak data dari API ATAU gunakan state navigasi sebagai fallback sementara
+  const mahasiswa = profile?.mahasiswa || {
+    nama_mahasiswa: laporanState.nama_mahasiswa || laporanState.nama,
+    nim: laporanState.nim,
+    foto: laporanState.foto
+  };
   
-  // Validasi array transkrip
+  const akademik = profile?.akademik || {
+    fakultas: laporanState.fakultas,
+    program_studi: laporanState.program_studi || laporanState.prodi,
+  };
+  
+  const batch = profile?.batch || {
+    nomor_batch_upload: laporanState.batch || laporanState.nomor_batch_upload
+  };
+
+  const statusInfo = profile?.status || {};
   const rawTranskrip = profile?.transkrip;
   const transkrip = Array.isArray(rawTranskrip) ? rawTranskrip : []; 
 
@@ -117,8 +132,9 @@ const DetailMahasiswa = () => {
     );
   }
 
-  // VIEW: DATA KOSONG (Tombol kembali tetap disisakan di sini agar user tidak terjebak jika data kosong)
-  if (!profile) {
+  // 🔥 VIEW: DATA KOSONG 
+  // Sekarang mengecek: Jika profile API kosong DAN data navigasi (nim) juga kosong, baru tampilkan "Tidak Ditemukan"
+  if (!profile && !mahasiswa.nim) {
     return (
       <DashboardLayout>
         <div className="w-full text-center py-16">
@@ -164,13 +180,12 @@ const DetailMahasiswa = () => {
             <p className="text-[12px] text-gray-900 font-bold mt-1">{statusUI.sub1}</p>
             <p className="text-[11px] text-gray-400 font-medium">{statusUI.sub2}</p>
 
-            {/* 🔥 FILTER LINK DOKUMEN VALID HANYA UNTUK OPERATOR & REKTOR */}
+            {/* 🔥 FILTER LINK DOKUMEN VALID HANYA UNTUK OPERATOR & REKTOR DARI KONTEKS DOKUMEN VALID */}
             {showLinkDokumen && (
               <a
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
-                  // Arahkan ke rute spesifik sesuai role yang sedang aktif
                   const targetRoute = userRole.includes("operator") ? "/operator/dokumen-valid" : "/rektor/dokumen-valid";
                   navigate(targetRoute);
                 }}

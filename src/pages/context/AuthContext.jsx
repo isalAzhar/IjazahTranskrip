@@ -10,7 +10,6 @@ export const AuthProvider = ({ children }) => {
 
   // 🔥 Blokir cache browser di level meta tag
   useEffect(() => {
-    // Tambah meta no-cache secara dinamis
     const metas = [
       { httpEquiv: "Cache-Control", content: "no-cache, no-store, must-revalidate" },
       { httpEquiv: "Pragma", content: "no-cache" },
@@ -35,12 +34,10 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    // Push state dummy supaya back button "ketahan"
     window.history.pushState(null, "", window.location.href);
 
     window.addEventListener("popstate", blockBack);
     window.addEventListener("pageshow", (e) => {
-      // bfcache (back-forward cache) — paksa reload jika halaman dari cache
       if (e.persisted) {
         const token = localStorage.getItem("authToken");
         if (!token) {
@@ -97,13 +94,12 @@ export const AuthProvider = ({ children }) => {
     localStorage.clear();
     setUser(null);
     setToken(null);
-    // replace() agar history entry dihapus, bukan ditambah
     window.location.replace("/login");
   };
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout, loading, isAuthenticated: !!user }}>
-      {!loading && children}
+      {children} {/* ✅ Hapus !loading — biarkan ProtectedRoute yang handle */}
     </AuthContext.Provider>
   );
 };

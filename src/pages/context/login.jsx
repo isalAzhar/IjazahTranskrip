@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+// Login.jsx
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { FiEye, FiEyeOff, FiLoader } from "react-icons/fi";
@@ -8,6 +9,13 @@ import logoUika from "../../assets/img/Logo.jpg";
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+
+  useEffect(() => {
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      navigate(-1, { replace: true });
+    }
+  }, [navigate]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,11 +36,11 @@ const Login = () => {
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json" 
+          "Accept": "application/json",
         },
-        credentials: "include", 
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
@@ -45,20 +53,18 @@ const Login = () => {
       }
 
       if (response.ok && data.status === "success") {
-        
         if (data.data && data.data.role) {
           data.data.role = data.data.role.toLowerCase().trim();
         }
 
-        const accessToken = data.access_token; 
+        const accessToken = data.access_token;
         const userData = data.data;
 
         await login(userData, accessToken);
-        
+
         const role = userData.role;
         let target = "/dashboard";
-          
-        // 🔥 LOGIKA DINAMIS: Admin & Operator masuk ke jalurnya, sisanya otomatis ke Verifikator
+
         if (["admin", "admin_sistem"].includes(role)) {
           target = "/admin/dashboard";
         } else if (["operator", "operator_data"].includes(role)) {
@@ -66,17 +72,15 @@ const Login = () => {
         } else if (role === "rektor") {
           target = "/rektor/dashboard";
         } else {
-          // Bebas! Apapun nama role yang dibikin Admin, akan ditangkap di sini
           target = "/verifikator/dashboard";
         }
 
         navigate(target, { replace: true });
-
       } else {
         setError(data.message || "Email atau password salah");
       }
     } catch (err) {
-      setError("CRASH: " + err.message); 
+      setError("CRASH: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -122,14 +126,17 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
-                className="w-full px-4 py-2.5 pr-10 rounded-xl bg-gray-50 border border-gray-100 text-sm outline-none focus:border-[#0d6b5e] transition-all"
+                // ✅ Matikan icon mata bawaan semua browser
+                className="w-full px-4 py-2.5 pr-10 rounded-xl bg-gray-50 border border-gray-100 text-sm outline-none focus:border-[#0d6b5e] transition-all [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-credentials-auto-fill-button]:hidden [&::-webkit-textfield-decoration-container]:hidden"
               />
-              <div
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-[#0d6b5e] transition-colors"
-              >
-               {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-              </div>
+             <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-[#0d6b5e] transition-colors"
+              title={showPassword ? "Sembunyikan Kata Sandi" : "Tampilkan Kata Sandi"}
+            >
+              {showPassword ? <FiEye size={18} /> : <FiEyeOff size={18} />}
+            </button>
             </div>
           </div>
 

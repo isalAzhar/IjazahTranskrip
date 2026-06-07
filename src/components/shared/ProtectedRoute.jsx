@@ -1,4 +1,5 @@
-import React from "react";
+// src/components/ProtectedRoute.jsx
+import React, { useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../pages/context/AuthContext";
 
@@ -13,43 +14,71 @@ const ProtectedRoute = ({ children, allowedGroup }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  // ✅ Cek token SINKRON — tangkap copy-paste URL & back setelah logout
+  // ✅ LAYER 1: Cek token sinkron — eksekusi SEBELUM React render apapun
   const localToken = localStorage.getItem("authToken");
-  if (!localToken) {
+  const localUserRaw = localStorage.getItem("user");
+
+  if (!localToken || !localUserRaw || localUserRaw === "undefined" || localUserRaw === "null") {
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  }
+
+  // ✅ LAYER 2: Parse user dari localStorage sinkron
+  // Ini mencegah celah saat Context masih loading tapi token sudah ada
+  let localUser = null;
+  try {
+    localUser = JSON.parse(localUserRaw);
+  } catch {
+    // Data korup → tendang ke login
+    localStorage.clear();
     return <Navigate to="/login" replace />;
   }
 
+  if (!localUser || !localUser.role) {
+    localStorage.clear();
+    return <Navigate to="/login" replace />;
+  }
+
+  // ✅ LAYER 3: Validasi role dari localStorage (sinkron, tidak tunggu Context)
+  const localRole = localUser.role?.toLowerCase() || "";
+
+  if (allowedGroup === "ADMIN" && !ADMIN_ROLES.includes(localRole)) {
+    return <Navigate to="/login" replace />;
+  }
+  if (allowedGroup === "OPERATOR" && !OPERATOR_ROLES.includes(localRole)) {
+    return <Navigate to="/login" replace />;
+  }
+  if (allowedGroup === "VERIFIKATOR" && !VERIFIKATOR_ROLES.includes(localRole)) {
+    return <Navigate to="/login" replace />;
+  }
+  if (allowedGroup === "REKTOR" && localRole !== "rektor") {
+    return <Navigate to="/login" replace />;
+  }
+
+  // ✅ LAYER 4: Listener jika user hapus token manual via DevTools
+  useEffect(() => {
+    const handleStorageChange = () => {
+      if (!localStorage.getItem("authToken")) {
+        window.location.replace("/login");
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  // ✅ LAYER 5: Tunggu Context selesai load (sudah pasti lolos token & role di atas)
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#117065]" />
+      <div className="h-screen w-screen fixed inset-0 z-[9999] flex items-center justify-center bg-gray-50/80 backdrop-blur-sm">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-[#117065]" />
       </div>
     );
   }
 
+  // ✅ LAYER 6: Double-check dari Context state (setelah loading selesai)
   if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" replace />;
   }
 
-  const userRole = user?.role?.toLowerCase() || "";
-
-  if (allowedGroup === "ADMIN" && !ADMIN_ROLES.includes(userRole)) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  if (allowedGroup === "OPERATOR" && !OPERATOR_ROLES.includes(userRole)) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  if (allowedGroup === "VERIFIKATOR" && !VERIFIKATOR_ROLES.includes(userRole)) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  if (allowedGroup === "REKTOR" && userRole !== "rektor") {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  // allowedGroup === "ALL" → lolos semua role yang sudah login
   return children;
 };
 

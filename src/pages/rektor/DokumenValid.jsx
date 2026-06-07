@@ -42,7 +42,8 @@ const DUMMY_BATCH = Array.from({ length: 45 }, (_, i) => {
   };
 });
 
-const ITEMS_PER_PAGE = 10;
+// 🔥 PERBAIKAN: Menggunakan 300 item per page sesuai instruksimu
+const ITEMS_PER_PAGE = 300;
 
 const RektorDokumenValid = () => {
   const navigate = useNavigate();
@@ -128,96 +129,116 @@ const RektorDokumenValid = () => {
             Arsip digital ijazah dan transkrip mahasiswa yang telah melewati proses verifikasi institusi.
           </p>
         </div>
+      {/* 🔥 WRAPPER UTAMA: Membungkus Filter & Suggestions agar Click Outside tidak error */}
+        <div ref={filterBarRef} className="relative z-20">
+          
+          {/* ✅ FILTER BAR */}
+          <div className={`bg-white p-4 shadow-sm border border-gray-100 ${showSuggestions && searchSuggestions.length > 0 ? "rounded-t-xl" : "rounded-xl mb-6"}`}>
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
 
-        {/* ✅ FILTER BAR — bg-white, border, focus ring teal */}
-        <div ref={filterBarRef} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-0">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-
-            {/* Search — putih dengan border & focus ring teal */}
-            <div className="w-full lg:max-w-md">
-              <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
-                <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
-                <input
-                  type="text"
-                  placeholder="Cari: Nama, NIM, Prodi..."
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setShowSuggestions(true);
-                    setCurrentPage(1);
-                  }}
-                  onFocus={() => setShowSuggestions(true)}
-                  className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
-                />
-              </div>
-            </div>
-
-            {/* Dropdowns — putih dengan border & focus ring teal */}
-            <div className="flex items-center gap-3 w-full lg:w-auto">
-
-              {/* Semua Fakultas */}
-              <div className="relative w-full lg:w-72">
-                <select
-                  value={selectedFakultas}
-                  onChange={(e) => { setSelectedFakultas(e.target.value); setCurrentPage(1); }}
-                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-center"
-                >
-                  <option value="">Semua Fakultas</option>
-                  {fakultasList.map((f) => (
-                    <option key={f.kode} value={f.nama}>{f.nama}</option>
-                  ))}
-                </select>
-                <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
-              </div>
-
-              {/* Semua Tahun */}
-              <div className="relative w-full lg:w-44">
-                <select
-                  value={selectedYear}
-                  onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(1); }}
-                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-center"
-                >
-                  <option value="">Semua Tahun</option>
-                  {years.map((y) => <option key={y} value={y}>{y}</option>)}
-                </select>
-                <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ✅ SUGGESTIONS — in-flow, scrollbar otomatis muncul kalau data banyak */}
-        {showSuggestions && (
-          <div
-            className="bg-white border-x border-b border-gray-100 shadow-md rounded-b-xl mb-6 overflow-y-auto"
-            style={{ maxHeight: "260px" }}
-          >
-            {searchSuggestions.length > 0 ? (
-              searchSuggestions.map((student, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => {
-                    setShowSuggestions(false);
-                    navigate(`/rektor/detail-mahasiswa/${student.nim}`, { state: student });
-                  }}
-                  className="px-6 py-4 border-b border-gray-50 hover:bg-teal-50 cursor-pointer flex justify-between items-center transition-colors last:border-b-0"
-                >
-                  <div className="flex flex-col gap-0.5">
-                    <div className="font-bold text-[#1F2937] text-[14px] mb-0.5">{student.nama}</div>
-                    <div className="text-[12px] font-normal text-gray-500">{student.nim} • {student.prodi}</div>
-                    <div className="text-[12px] font-normal text-gray-400">{student.fakultas}</div>
-                  </div>
-                  <div className="text-[11px] font-semibold bg-[#F3F4F6] text-gray-500 px-3 py-1.5 rounded-md h-fit whitespace-nowrap ml-4">
-                    {student.batch}
-                  </div>
+              {/* Search */}
+              <div className="w-full lg:max-w-md">
+                <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
+                  <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Cari: Nama, NIM, Prodi..."
+                    value={search}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      setShowSuggestions(true);
+                      setCurrentPage(1);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
+                  />
                 </div>
-              ))
-            ) : (
-              <div className="p-6 text-center text-sm text-gray-400">Mahasiswa tidak ditemukan</div>
-            )}
+              </div>
+
+              {/* Dropdowns */}
+              <div className="flex items-center gap-3 w-full lg:w-auto">
+                <div className="relative w-full lg:w-72">
+                  <select
+                    value={selectedFakultas}
+                    onChange={(e) => { setSelectedFakultas(e.target.value); setCurrentPage(1); }}
+                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-center"
+                  >
+                    <option value="">Semua Fakultas</option>
+                    {fakultasList.map((f) => (
+                      <option key={f.kode} value={f.nama}>{f.nama}</option>
+                    ))}
+                  </select>
+                  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+                </div>
+
+                <div className="relative w-full lg:w-44">
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(1); }}
+                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-center"
+                  >
+                    <option value="">Semua Tahun</option>
+                    {years.map((y) => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+                </div>
+              </div>
+            </div>
           </div>
-        )}
-        {!showSuggestions && <div className="mb-6" />}
+
+          {/* ✅ SUGGESTIONS LIST */}
+          {showSuggestions && (
+            <div
+              className="absolute left-0 right-0 top-full bg-white border-x border-b border-gray-100 shadow-lg rounded-b-xl mb-6 overflow-y-auto"
+              style={{ maxHeight: "260px", marginTop: "-1px" }}
+            >
+              {searchSuggestions.length > 0 ? (
+                searchSuggestions.map((student, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => {
+                      setShowSuggestions(false);
+                      setSearch(""); 
+                      
+                      const mahasiswaWrapper = {
+                        nama_mahasiswa: student.nama,
+                        nim: student.nim,
+                        program_studi: student.prodi,
+                        fakultas: student.fakultas,
+                        status: "terbit" 
+                      };
+
+                      navigate(`/rektor/detail-mahasiswa/${encodeURIComponent(student.nim)}`, { 
+                        state: { 
+                          mahasiswa: mahasiswaWrapper, 
+                          source: "dokumen_valid" 
+                        } 
+                      });
+                    }}
+                    className="px-6 py-4 border-b border-gray-50 hover:bg-teal-50 cursor-pointer flex justify-between items-center transition-colors last:border-b-0"
+                  >
+                    <div className="flex flex-col gap-0.5">
+                      <div className="font-bold text-[#1F2937] text-[14px] mb-0.5">{student.nama}</div>
+                      <div className="text-[12px] font-normal text-gray-500">{student.nim} • {student.prodi}</div>
+                      <div className="text-[12px] font-normal text-gray-400">{student.fakultas}</div>
+                    </div>
+                    <div className="text-[11px] font-semibold bg-[#F3F4F6] text-gray-500 px-3 py-1.5 rounded-md h-fit whitespace-nowrap ml-4">
+                      {student.batch}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-6 text-center text-sm text-gray-400 border-t border-gray-100">
+                  Mahasiswa tidak ditemukan
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        {/* AKHIR WRAPPER */}
+
+        {/* Jarak penyeimbang jika dropdown tidak tampil */}
+        {!showSuggestions && <div className="mb-0" />}
 
         {/* TABLE */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">

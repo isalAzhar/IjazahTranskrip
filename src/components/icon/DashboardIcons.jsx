@@ -32,7 +32,7 @@ export const Icons = {
     </svg>
   ),
 
-  // Icon List + X — untuk "Ijazah Revoke / Dicabut"
+  // Icon List + X — untuk "Ijazah Revoke / Dicabut" (Original, Bold)
   List: (
     <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <line x1="4" y1="6" x2="20" y2="6" />
@@ -41,6 +41,15 @@ export const Icons = {
       <circle cx="18" cy="18" r="4.5" fill="#F59E0B" stroke="none" />
       <line x1="16.5" y1="16.5" x2="19.5" y2="19.5" stroke="white" />
       <line x1="19.5" y1="16.5" x2="16.5" y2="19.5" stroke="white" />
+    </svg>
+  ),
+
+  // 🔥 Icon Revoke / Banned (New, Thin Stroke)
+  // Berwarna kuning (#F59E0B), outline tipis (strokeWidth="1.5"), tidak bold (tanpa fill)
+  Revoke: (
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="8" />
+      <line x1="6.4" y1="6.4" x2="17.6" y2="17.6" />
     </svg>
   ),
 
