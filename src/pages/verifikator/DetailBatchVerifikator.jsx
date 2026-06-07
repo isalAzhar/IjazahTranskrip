@@ -49,8 +49,7 @@ const DetailBatchVerifikator = () => {
 
   const userRole = user?.role?.toLowerCase() || "";
   const isRektor = userRole === "rektor";
-  const pageDescription =
-    ROLE_DESCRIPTION[userRole] ?? "Kelola validasi dan kirim data mahasiswa";
+  const pageDescription = ROLE_DESCRIPTION[userRole] ?? "Kelola validasi dan kirim data mahasiswa";
 
   const batchFromState = location.state || {};
 
@@ -150,7 +149,10 @@ const DetailBatchVerifikator = () => {
     }
   };
 
-  const handleFinishRevoke = () => { setShowRevokeSuccess(false); setSelectedStudent(null); };
+  const handleFinishRevoke = () => {
+    setShowRevokeSuccess(false);
+    setSelectedStudent(null);
+  };
 
   const getFinalProcessFromResponse = (response) => {
     return response?.data?.final_process || response?.data?.approval?.final_process || response?.final_process || null;
@@ -195,7 +197,7 @@ const DetailBatchVerifikator = () => {
           <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#117065]"></div>
           <div className="flex flex-col">
             <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Nama Batch</span>
-            <span className="text-[14px] font-bold text-gray-800">{formatNamaBatch(batchInfo.nomor_batch_upload)}</span>
+           <span className="text-[14px] font-bold text-gray-800">{formatNamaBatch(batchInfo.nomor_batch_upload)}</span>
           </div>
           <div className="flex flex-col">
             <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Tahun Lulus</span>
@@ -207,7 +209,9 @@ const DetailBatchVerifikator = () => {
           </div>
           <div className="flex flex-col">
             <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Total Record</span>
-            <span className="text-[14px] font-bold text-[#117065] bg-teal-50 px-2 py-0.5 rounded-md inline-block text-center w-fit">{batchInfo.total_record} Mahasiswa</span>
+            <span className="text-[14px] font-bold text-[#117065] bg-teal-50 px-2 py-0.5 rounded-md inline-block text-center w-fit">
+              {batchInfo.total_record} Mahasiswa
+            </span>
           </div>
         </div>
 
@@ -237,7 +241,9 @@ const DetailBatchVerifikator = () => {
                     <td className="py-4 px-6 text-center text-gray-800">{item.fakultas || "-"}</td>
                     <td className="py-4 px-6 text-center font-semibold text-gray-700">{item.tahun_lulus}</td>
                     <td className="py-4 px-6 text-center">
-                      <button onClick={() => handleDetailMahasiswa(item)} className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto hover:bg-gray-200"><DetailIcon /></button>
+                      <button onClick={() => handleDetailMahasiswa(item)} className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto hover:bg-gray-200">
+                        <DetailIcon />
+                      </button>
                     </td>
                     <td className="py-4 px-6 text-center">
                       <button onClick={() => handleOpenRevoke(item)} className="p-1.5 w-8 h-8 rounded-md hover:bg-orange-200 bg-orange-100 text-orange-500 flex items-center justify-center mx-auto" title="Revoke Mahasiswa">
@@ -250,12 +256,144 @@ const DetailBatchVerifikator = () => {
             </table>
           </div>
           <div className="p-5 border-t border-gray-100 flex justify-end bg-white">
-            <button onClick={() => setShowValConfirm(true)} disabled={students.length === 0 || isLoading} className="bg-[#117065] text-white px-7 py-2.5 rounded-lg font-bold hover:bg-teal-800 flex items-center gap-2 disabled:opacity-50">
+            <button onClick={() => setShowValConfirm(true)} disabled={students.length === 0 || isLoading}
+              className="bg-[#117065] text-white px-7 py-2.5 rounded-lg font-bold hover:bg-teal-800 flex items-center gap-2 disabled:opacity-50">
               <BsSendFill size={16} /> {isRektor ? "Validasi Dokumen" : "Validasi Data"}
             </button>
           </div>
         </div>
       </div>
+
+      {/* MODAL: INPUT ALASAN REVOKE */}
+      {showRevokeReason && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl p-7 w-full max-w-md mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+                <FiAlertTriangle className="text-orange-500" size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-[16px]">Revoke Mahasiswa</h3>
+                <p className="text-gray-500 text-[13px]">{selectedStudent?.nama_mahasiswa} — {selectedStudent?.nim}</p>
+              </div>
+            </div>
+            <label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Alasan Revoke</label>
+            <textarea
+              value={revokeReason}
+              onChange={(e) => setRevokeReason(e.target.value)}
+              placeholder="Tuliskan alasan revoke mahasiswa ini..."
+              rows={3}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-orange-400 resize-none"
+            />
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setShowRevokeReason(false)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50">
+                Batal
+              </button>
+              <button onClick={handleSubmitRevokeReason} disabled={!revokeReason.trim()}
+                className="flex-1 py-2.5 rounded-xl bg-orange-500 text-white font-bold text-sm hover:bg-orange-600 disabled:opacity-50">
+                Lanjutkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: KONFIRMASI REVOKE */}
+      {showRevokeConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl p-7 w-full max-w-md mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <FiAlertTriangle className="text-red-500" size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-[16px]">Konfirmasi Revoke</h3>
+                <p className="text-gray-500 text-[13px]">Tindakan ini tidak dapat dibatalkan</p>
+              </div>
+            </div>
+            <p className="text-[13px] text-gray-700 mb-2">Mahasiswa: <span className="font-bold">{selectedStudent?.nama_mahasiswa}</span></p>
+            <p className="text-[13px] text-gray-700 mb-4">Alasan: <span className="font-bold">{revokeReason}</span></p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowRevokeConfirm(false)} disabled={isRevoking}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50">
+                Batal
+              </button>
+              <button onClick={handleConfirmRevoke} disabled={isRevoking}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-2">
+                {isRevoking ? <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white" /> : "Ya, Revoke"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: REVOKE BERHASIL */}
+      {showRevokeSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl p-7 w-full max-w-md mx-4 text-center">
+            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+              <FiCheckCircle className="text-green-500" size={28} />
+            </div>
+            <h3 className="font-bold text-gray-900 text-[17px] mb-2">Revoke Berhasil</h3>
+            <p className="text-gray-500 text-[13px] mb-6">Data mahasiswa berhasil di-revoke dari batch ini.</p>
+            <button onClick={handleFinishRevoke}
+              className="w-full py-2.5 rounded-xl bg-[#117065] text-white font-bold text-sm hover:bg-teal-800">
+              Selesai
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: KONFIRMASI VALIDASI */}
+      {showValConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl p-7 w-full max-w-md mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
+                <BsSendFill className="text-[#117065]" size={18} />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-[16px]">{isRektor ? "Validasi Dokumen" : "Validasi Data"}</h3>
+                <p className="text-gray-500 text-[13px]">Total {batchInfo.total_record} mahasiswa akan divalidasi</p>
+              </div>
+            </div>
+            <p className="text-[13px] text-gray-600 mb-5">Pastikan semua data sudah benar sebelum melanjutkan proses validasi.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowValConfirm(false)} disabled={isApproving}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50">
+                Batal
+              </button>
+              <button onClick={handleConfirmValidasi} disabled={isApproving}
+                className="flex-1 py-2.5 rounded-xl bg-[#117065] text-white font-bold text-sm hover:bg-teal-800 disabled:opacity-50 flex items-center justify-center gap-2">
+                {isApproving ? <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white" /> : "Ya, Validasi"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: VALIDASI BERHASIL */}
+      {showValSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl p-7 w-full max-w-md mx-4 text-center">
+            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+              <FiCheckCircle className="text-green-500" size={28} />
+            </div>
+            <h3 className="font-bold text-gray-900 text-[17px] mb-2">
+              {isRektor ? "Dokumen Berhasil Diterbitkan!" : "Data Berhasil Divalidasi!"}
+            </h3>
+            <p className="text-gray-500 text-[13px] mb-6">
+              {isRektor ? "Ijazah digital telah resmi diterbitkan." : "Data batch telah dikirim ke tahap validasi berikutnya."}
+            </p>
+            <button onClick={handleFinishValidasi}
+              className="w-full py-2.5 rounded-xl bg-[#117065] text-white font-bold text-sm hover:bg-teal-800">
+              Selesai
+            </button>
+          </div>
+        </div>
+      )}
+
     </DashboardLayout>
   );
 };
