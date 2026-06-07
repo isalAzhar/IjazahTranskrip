@@ -49,7 +49,7 @@ const getBadgeLabel = (status) => {
       return "Terbit";
     case "proses":
       return "Proses";
-    case "reject":
+    case "rejected":
       return "Reject";
     case "revoke":
       return "Revoke";

@@ -5,19 +5,23 @@ import { TbArrowBackUp } from "react-icons/tb";
 import { BsSendFill } from "react-icons/bs";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { useAuth } from "../context/AuthContext";
-import { getBatchDetail, revokeMahasiswa, approveBatch } from "../../services/api"; // Sesuaikan path jika perlu
+import {
+  getBatchDetail,
+  revokeMahasiswa,
+  approveBatch,
+} from "../../services/api"; // Sesuaikan path jika perlu
 
 // Role level rektorat — backend handle
 const REKTORAT_ROLES = ["tu_rektorat", "wakil_rektor_1", "rektor"];
 
 // Deskripsi halaman
 const ROLE_DESCRIPTION = {
-  tu_fakultas:    "Kelola validasi dan kirim data mahasiswa ke Wakil Dekan",
-  wakil_dekan_1:  "Kelola validasi dan kirim data mahasiswa ke Dekan",
-  dekan:          "Kelola validasi dan kirim data mahasiswa ke TU Rektorat",
-  tu_rektorat:    "Kelola validasi dan kirim data mahasiswa ke Wakil Rektor",
+  tu_fakultas: "Kelola validasi dan kirim data mahasiswa ke Wakil Dekan",
+  wakil_dekan_1: "Kelola validasi dan kirim data mahasiswa ke Dekan",
+  dekan: "Kelola validasi dan kirim data mahasiswa ke TU Rektorat",
+  tu_rektorat: "Kelola validasi dan kirim data mahasiswa ke Wakil Rektor",
   wakil_rektor_1: "Kelola validasi dan kirim data mahasiswa ke Rektor",
-  rektor:         "Kelola validasi dan penerbitan ijazah digital",
+  rektor: "Kelola validasi dan penerbitan ijazah digital",
 };
 
 const DetailBatchVerifikator = () => {
@@ -27,8 +31,10 @@ const DetailBatchVerifikator = () => {
   const { user } = useAuth();
 
   const userRole = user?.role?.toLowerCase() || "";
+  const isRektor = userRole === "rektor";
   const isRektorat = REKTORAT_ROLES.includes(userRole);
-  const pageDescription = ROLE_DESCRIPTION[userRole] ?? "Kelola validasi dan kirim data mahasiswa";
+  const pageDescription =
+    ROLE_DESCRIPTION[userRole] ?? "Kelola validasi dan kirim data mahasiswa";
 
   // Tangkap data batch dari halaman Daftar Batch sebagai Fallback (Penyelamat)
   const batchFromState = location.state || {};
@@ -55,7 +61,8 @@ const DetailBatchVerifikator = () => {
   const [showValConfirm, setShowValConfirm] = useState(false);
   const [showValSuccess, setShowValSuccess] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
-
+  const [approvalResult, setApprovalResult] = useState(null);
+  const [finalProcess, setFinalProcess] = useState(null);
   const fetchBatchDetail = async () => {
     setIsLoading(true);
     try {
@@ -65,8 +72,9 @@ const DetailBatchVerifikator = () => {
       const rawStudents = response.data?.mahasiswa || response.data?.data || [];
 
       // Update Header Info
-      setBatchInfo(prev => ({
-        nomor_batch_upload: dataApi.nomor_batch_upload || prev.nomor_batch_upload,
+      setBatchInfo((prev) => ({
+        nomor_batch_upload:
+          dataApi.nomor_batch_upload || prev.nomor_batch_upload,
         nama_file: dataApi.nama_file || prev.nama_file,
         tahun_lulus: dataApi.tahun_lulus || prev.tahun_lulus,
         periode: dataApi.periode || prev.periode,
@@ -76,18 +84,24 @@ const DetailBatchVerifikator = () => {
       // 🔥 JURUS RAHASIA: Membuang mahasiswa yang statusnya revoke
       // Dan membuang NIM yang tercatat di sessionStorage (karena backend belum fix)
       const activeStudents = rawStudents.filter((mhs) => {
-        const isLocallyRevoked = sessionStorage.getItem(`revoked_${mhs.nim}`) === "true";
-        const statusAPI = String(mhs.status || mhs.status_validasi || mhs.status_approval || "").toLowerCase();
-        const isApiRevoked = statusAPI.includes("revoke") || statusAPI.includes("reject");
-        
+        const isLocallyRevoked =
+          sessionStorage.getItem(`revoked_${mhs.nim}`) === "true";
+        const statusAPI = String(
+          mhs.status || mhs.status_validasi || mhs.status_approval || "",
+        ).toLowerCase();
+        const isApiRevoked =
+          statusAPI.includes("revoke") || statusAPI.includes("reject");
+
         return !isLocallyRevoked && !isApiRevoked;
       });
 
       setStudents(activeStudents);
-      
-      // Update sisa angka mahasiswa sesuai dengan tabel yang sudah difilter
-      setBatchInfo(prev => ({ ...prev, total_record: activeStudents.length }));
 
+      // Update sisa angka mahasiswa sesuai dengan tabel yang sudah difilter
+      setBatchInfo((prev) => ({
+        ...prev,
+        total_record: activeStudents.length,
+      }));
     } catch (error) {
       console.error("Gagal mengambil detail batch:", error);
     } finally {
@@ -96,51 +110,56 @@ const DetailBatchVerifikator = () => {
   };
 
   useEffect(() => {
-    if (batchId) fetchBatchDetail();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [batchId]);
+    fetchBatchDetail();
+  }, [location.state?.refresh]);
 
-  // Handler Detail Mahasiswa 
+  // Handler Detail Mahasiswa
   const handleDetailMahasiswa = (item) => {
     const safeNim = encodeURIComponent(item.nim);
-    
+
     // 🔥 PERBAIKAN: Hanya rektor yang masuk ke rute /rektor/...
     if (userRole === "rektor") {
-      navigate(`/rektor/detail-mahasiswa/${safeNim}`, { state: { mahasiswa: item, batch: batchInfo } });
+      navigate(`/rektor/detail-mahasiswa/${safeNim}`, {
+        state: { mahasiswa: item, batch: batchInfo },
+      });
     } else if (userRole.includes("operator")) {
-      navigate(`/operator/detail-mahasiswa/${safeNim}`, { state: { mahasiswa: item, batch: batchInfo } });
+      navigate(`/operator/detail-mahasiswa/${safeNim}`, {
+        state: { mahasiswa: item, batch: batchInfo },
+      });
     } else {
       // tu_fakultas, wakil_dekan_1, dekan, tu_rektorat, dan wakil_rektor_1 masuk ke sini
-      navigate(`/verifikator/detail-mahasiswa/${safeNim}`, { state: { mahasiswa: item, batch: batchInfo } });
+      navigate(`/verifikator/detail-mahasiswa/${safeNim}`, {
+        state: { mahasiswa: item, batch: batchInfo },
+      });
     }
   };
 
   // --- LOGIKA REVOKE ---
-  const handleOpenRevoke = (student) => { 
-    setSelectedStudent(student); 
-    setRevokeReason(""); 
-    setShowRevokeReason(true); 
+  const handleOpenRevoke = (student) => {
+    setSelectedStudent(student);
+    setRevokeReason("");
+    setShowRevokeReason(true);
   };
-  
-  const handleSubmitRevokeReason = () => { 
-    setShowRevokeReason(false); 
-    setShowRevokeConfirm(true); 
+
+  const handleSubmitRevokeReason = () => {
+    setShowRevokeReason(false);
+    setShowRevokeConfirm(true);
   };
-  
+
   const handleConfirmRevoke = async () => {
     if (!selectedStudent) return;
     setIsRevoking(true);
     try {
       await revokeMahasiswa(selectedStudent.nim, revokeReason);
-      
+
       // 🔥 1. Catat NIM di Session Storage agar tidak muncul saat halaman di-refresh
       sessionStorage.setItem(`revoked_${selectedStudent.nim}`, "true");
 
       // 🔥 2. Hapus mahasiswa dari tabel UI seketika
-      setStudents(prev => {
-        const newStudents = prev.filter(s => s.nim !== selectedStudent.nim);
+      setStudents((prev) => {
+        const newStudents = prev.filter((s) => s.nim !== selectedStudent.nim);
         // 🔥 3. Update angka Total Record di Header secara otomatis
-        setBatchInfo(info => ({ ...info, total_record: newStudents.length }));
+        setBatchInfo((info) => ({ ...info, total_record: newStudents.length }));
         return newStudents;
       });
 
@@ -154,65 +173,112 @@ const DetailBatchVerifikator = () => {
       setIsRevoking(false);
     }
   };
-  
-  const handleFinishRevoke = () => { 
-    setShowRevokeSuccess(false); 
-    setSelectedStudent(null); 
-  };
 
+  const handleFinishRevoke = () => {
+    setShowRevokeSuccess(false);
+    setSelectedStudent(null);
+  };
+  const getFinalProcessFromResponse = (response) => {
+    return (
+      response?.data?.final_process ||
+      response?.data?.approval?.final_process ||
+      response?.final_process ||
+      null
+    );
+  };
   // --- LOGIKA VALIDASI ---
   const handleConfirmValidasi = async () => {
     setIsApproving(true);
+    setApprovalResult(null);
+    setFinalProcess(null);
+
     try {
-      await approveBatch(batchId);
+      const response = await approveBatch(batchId);
+      const process = getFinalProcessFromResponse(response);
+
+      setApprovalResult(response);
+      setFinalProcess(process);
+
       setShowValConfirm(false);
       setShowValSuccess(true);
     } catch (error) {
       console.error("Gagal memvalidasi batch:", error);
-      alert(error.message || "Gagal memvalidasi batch.");
+      alert(
+        error.message ||
+          error?.response?.data?.message ||
+          "Gagal memvalidasi batch.",
+      );
       setShowValConfirm(false);
     } finally {
       setIsApproving(false);
     }
   };
-
   const handleFinishValidasi = () => {
     setShowValSuccess(false);
-    navigate(userRole === "rektor" ? "/rektor/daftar-batch" : "/verifikator/daftar-batch");
-  };
+    setApprovalResult(null);
+    setFinalProcess(null);
 
-  const DetailIcon = () => <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>;
+    navigate("/verifikator/daftar-batch", {
+      replace: true,
+      state: {
+        refresh: true,
+        message: isRektor
+          ? "Dokumen berhasil diterbitkan."
+          : "Data berhasil divalidasi.",
+      },
+    });
+  };
+  const DetailIcon = () => (
+    <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>
+  );
 
   return (
     <DashboardLayout title="Manajemen Data">
       <div className="w-full pb-10">
-
         <div className="mb-6">
-          <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">Manajemen Data</h1>
-          <p className="text-[#9CA3AF] text-[14px] font-medium mt-1">{pageDescription}</p>
+          <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">
+            Manajemen Data
+          </h1>
+          <p className="text-[#9CA3AF] text-[14px] font-medium mt-1">
+            {pageDescription}
+          </p>
         </div>
 
         {/* INFO BATCH (Sekarang tidak akan kosong) */}
         <div className="mb-6 px-6 py-4 bg-white border border-gray-200 rounded-xl flex flex-wrap items-center gap-x-12 gap-y-4 shadow-sm relative overflow-hidden">
           <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#117065]"></div>
-          
+
           <div className="flex flex-col">
-            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Nama Batch</span>
-            <span className="text-[14px] font-bold text-gray-800">{batchInfo.nomor_batch_upload}</span>
+            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">
+              Nama Batch
+            </span>
+            <span className="text-[14px] font-bold text-gray-800">
+              {batchInfo.nomor_batch_upload}
+            </span>
           </div>
-          
+
           <div className="flex flex-col">
-            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Tahun Lulus</span>
-            <span className="text-[14px] font-bold text-gray-800">{batchInfo.tahun_lulus}</span>
+            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">
+              Tahun Lulus
+            </span>
+            <span className="text-[14px] font-bold text-gray-800">
+              {batchInfo.tahun_lulus}
+            </span>
           </div>
-          
+
           <div className="flex flex-col">
-            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Periode</span>
-            <span className="text-[14px] font-bold text-gray-800">{batchInfo.periode}</span>
+            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">
+              Periode
+            </span>
+            <span className="text-[14px] font-bold text-gray-800">
+              {batchInfo.periode}
+            </span>
           </div>
-          
+
           <div className="flex flex-col">
-            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Total Record</span>
+            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">
+              Total Record
+            </span>
             <span className="text-[14px] font-bold text-[#117065] bg-teal-50 px-2 py-0.5 rounded-md inline-block text-center w-fit">
               {batchInfo.total_record} Mahasiswa
             </span>
@@ -230,30 +296,53 @@ const DetailBatchVerifikator = () => {
                   <th className="py-4 px-6 text-center w-[160px]">NIM</th>
                   <th className="py-4 px-6 text-center">Program Studi</th>
                   <th className="py-4 px-6 text-center">Fakultas</th>
-                  <th className="py-4 px-6 text-center w-[120px]">Tahun Lulus</th>
+                  <th className="py-4 px-6 text-center w-[120px]">
+                    Tahun Lulus
+                  </th>
                   <th className="py-4 px-6 text-center w-20">Detail</th>
                   <th className="py-4 px-6 text-center w-20">Revoke</th>
                 </tr>
               </thead>
-              <tbody className={`${isLoading ? "opacity-50" : ""} transition-opacity duration-200`}>
+              <tbody
+                className={`${isLoading ? "opacity-50" : ""} transition-opacity duration-200`}
+              >
                 {students.map((item, i) => (
-                  <tr key={item.nim} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-6 text-center font-bold text-gray-800">{i + 1}.</td>
-                    <td className="py-4 px-6 font-bold text-gray-900">{item.nama_mahasiswa}</td>
-                    <td className="py-4 px-6 text-center font-normal text-gray-800">{item.nim}</td>
-                    <td className="py-4 px-6 text-center font-normal text-gray-800">{item.program_studi || "-"}</td>
-                    <td className="py-4 px-6 text-center font-normal text-gray-800">{item.fakultas || "-"}</td>
-                    <td className="py-4 px-6 text-center font-semibold text-gray-700">{item.tahun_lulus}</td>
+                  <tr
+                    key={item.nim}
+                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="py-4 px-6 text-center font-bold text-gray-800">
+                      {i + 1}.
+                    </td>
+                    <td className="py-4 px-6 font-bold text-gray-900">
+                      {item.nama_mahasiswa}
+                    </td>
+                    <td className="py-4 px-6 text-center font-normal text-gray-800">
+                      {item.nim}
+                    </td>
+                    <td className="py-4 px-6 text-center font-normal text-gray-800">
+                      {item.program_studi || "-"}
+                    </td>
+                    <td className="py-4 px-6 text-center font-normal text-gray-800">
+                      {item.fakultas || "-"}
+                    </td>
+                    <td className="py-4 px-6 text-center font-semibold text-gray-700">
+                      {item.tahun_lulus}
+                    </td>
                     <td className="py-4 px-6 text-center">
-                      <button onClick={() => handleDetailMahasiswa(item)}
-                        className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0">
+                      <button
+                        onClick={() => handleDetailMahasiswa(item)}
+                        className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
+                      >
                         <DetailIcon />
                       </button>
                     </td>
                     <td className="py-4 px-6 text-center">
-                      <button onClick={() => handleOpenRevoke(item)}
+                      <button
+                        onClick={() => handleOpenRevoke(item)}
                         className="inline-flex items-center justify-center p-1.5 w-8 h-8 rounded-md hover:bg-orange-200 bg-orange-100 text-orange-500 transition-colors"
-                        title="Revoke Mahasiswa">
+                        title="Revoke Mahasiswa"
+                      >
                         <TbArrowBackUp size={20} />
                       </button>
                     </td>
@@ -261,7 +350,10 @@ const DetailBatchVerifikator = () => {
                 ))}
                 {students.length === 0 && !isLoading && (
                   <tr>
-                    <td colSpan="8" className="py-12 text-center text-gray-500 font-medium">
+                    <td
+                      colSpan="8"
+                      className="py-12 text-center text-gray-500 font-medium"
+                    >
                       Semua data mahasiswa telah divalidasi atau di-revoke.
                     </td>
                   </tr>
@@ -271,10 +363,13 @@ const DetailBatchVerifikator = () => {
           </div>
 
           <div className="p-5 border-t border-gray-100 flex justify-end bg-white">
-            <button onClick={() => setShowValConfirm(true)} disabled={students.length === 0 || isLoading}
-              className="bg-[#117065] text-white px-7 py-2.5 rounded-lg font-bold hover:bg-teal-800 transition shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+            <button
+              onClick={() => setShowValConfirm(true)}
+              disabled={students.length === 0 || isLoading}
+              className="bg-[#117065] text-white px-7 py-2.5 rounded-lg font-bold hover:bg-teal-800 transition shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <BsSendFill size={16} />
-              Validasi Data
+              {isRektor ? "Terbitkan Dokumen" : "Validasi Data"}
             </button>
           </div>
         </div>
@@ -283,16 +378,35 @@ const DetailBatchVerifikator = () => {
         {showRevokeReason && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-xl w-[90%] max-w-md p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-1">Alasan Revoke</h2>
-              <p className="text-sm text-gray-400 mb-4">Mahasiswa: <span className="font-semibold text-gray-600">{selectedStudent?.nama_mahasiswa}</span></p>
-              <textarea value={revokeReason} onChange={(e) => setRevokeReason(e.target.value)}
+              <h2 className="text-xl font-bold text-gray-800 mb-1">
+                Alasan Revoke
+              </h2>
+              <p className="text-sm text-gray-400 mb-4">
+                Mahasiswa:{" "}
+                <span className="font-semibold text-gray-600">
+                  {selectedStudent?.nama_mahasiswa}
+                </span>
+              </p>
+              <textarea
+                value={revokeReason}
+                onChange={(e) => setRevokeReason(e.target.value)}
                 placeholder="Berikan alasan revoke mahasiswa ini..."
-                className="w-full bg-[#F3F4F6] border border-transparent focus:border-[#117065] focus:bg-white rounded-xl p-4 text-sm font-medium outline-none resize-none h-32 transition-colors placeholder-gray-400" />
+                className="w-full bg-[#F3F4F6] border border-transparent focus:border-[#117065] focus:bg-white rounded-xl p-4 text-sm font-medium outline-none resize-none h-32 transition-colors placeholder-gray-400"
+              />
               <div className="flex justify-end gap-3 mt-6">
-                <button onClick={() => setShowRevokeReason(false)}
-                  className="px-6 py-2.5 rounded-lg font-bold text-gray-600 border border-gray-300 hover:bg-gray-50 transition-colors">Batal</button>
-                <button onClick={handleSubmitRevokeReason} disabled={!revokeReason.trim()}
-                  className="px-6 py-2.5 rounded-lg font-bold text-white bg-[#117065] hover:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Konfirmasi</button>
+                <button
+                  onClick={() => setShowRevokeReason(false)}
+                  className="px-6 py-2.5 rounded-lg font-bold text-gray-600 border border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleSubmitRevokeReason}
+                  disabled={!revokeReason.trim()}
+                  className="px-6 py-2.5 rounded-lg font-bold text-white bg-[#117065] hover:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Konfirmasi
+                </button>
               </div>
             </div>
           </div>
@@ -305,18 +419,30 @@ const DetailBatchVerifikator = () => {
               <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FiAlertTriangle className="text-orange-500 text-3xl" />
               </div>
-              <h2 className="text-lg font-bold text-gray-800 mb-1">Apakah Anda yakin ingin melakukan revoke?</h2>
+              <h2 className="text-lg font-bold text-gray-800 mb-1">
+                Apakah Anda yakin ingin melakukan revoke?
+              </h2>
               <div className="flex justify-center gap-3 mt-8">
-                <button onClick={() => setShowRevokeConfirm(false)} disabled={isRevoking}
-                  className="flex-1 px-4 py-2.5 rounded-lg font-bold text-gray-600 border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Batal</button>
-                <button onClick={handleConfirmRevoke} disabled={isRevoking}
-                  className="flex-1 flex justify-center items-center gap-2 px-4 py-2.5 rounded-lg font-bold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-75 disabled:cursor-wait">
+                <button
+                  onClick={() => setShowRevokeConfirm(false)}
+                  disabled={isRevoking}
+                  className="flex-1 px-4 py-2.5 rounded-lg font-bold text-gray-600 border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleConfirmRevoke}
+                  disabled={isRevoking}
+                  className="flex-1 flex justify-center items-center gap-2 px-4 py-2.5 rounded-lg font-bold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-75 disabled:cursor-wait"
+                >
                   {isRevoking ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       <span>Memproses...</span>
                     </>
-                  ) : "Revoke"}
+                  ) : (
+                    "Revoke"
+                  )}
                 </button>
               </div>
             </div>
@@ -330,10 +456,19 @@ const DetailBatchVerifikator = () => {
               <div className="w-20 h-20 bg-teal-50 rounded-full flex items-center justify-center mx-auto mb-5 border-4 border-white shadow-sm">
                 <FiCheckCircle className="text-[#117065] text-5xl" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Revoke Berhasil</h2>
-              <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8">Validasi dokumen telah berhasil dibatalkan dan status telah diperbarui</p>
-              <button onClick={handleFinishRevoke}
-                className="w-full px-4 py-3 rounded-xl font-bold text-white bg-[#117065] hover:bg-teal-800 transition-colors">Selesai</button>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                Revoke Berhasil
+              </h2>
+              <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8">
+                Validasi dokumen telah berhasil dibatalkan dan status telah
+                diperbarui
+              </p>
+              <button
+                onClick={handleFinishRevoke}
+                className="w-full px-4 py-3 rounded-xl font-bold text-white bg-[#117065] hover:bg-teal-800 transition-colors"
+              >
+                Selesai
+              </button>
             </div>
           </div>
         )}
@@ -342,18 +477,42 @@ const DetailBatchVerifikator = () => {
         {showValConfirm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-xl w-[90%] max-w-md p-8 text-center">
-              <h2 className="text-xl font-bold text-gray-800 mb-8">Apakah Anda yakin data ini sudah benar dan siap divalidasi?</h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-3">
+                {isRektor
+                  ? "Apakah Anda yakin ingin melakukan final approval dan menerbitkan dokumen?"
+                  : "Apakah Anda yakin data ini sudah benar dan siap divalidasi?"}
+              </h2>
+
+              <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8">
+                {isRektor
+                  ? "Setelah dikonfirmasi, sistem akan menerbitkan ijazah digital, transkrip digital, dan QR verifikasi untuk mahasiswa pada batch ini."
+                  : "Data akan diteruskan ke tahap validasi berikutnya."}
+              </p>
               <div className="flex justify-center gap-3">
-                <button onClick={() => setShowValConfirm(false)} disabled={isApproving}
-                  className="flex-1 px-4 py-3 rounded-xl font-bold text-gray-600 border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Batal</button>
-                <button onClick={handleConfirmValidasi} disabled={isApproving}
-                  className="flex-1 flex justify-center items-center gap-2 px-4 py-3 rounded-xl font-bold text-white bg-[#117065] hover:bg-teal-800 disabled:opacity-75 disabled:cursor-wait">
+                <button
+                  onClick={() => setShowValConfirm(false)}
+                  disabled={isApproving}
+                  className="flex-1 px-4 py-3 rounded-xl font-bold text-gray-600 border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleConfirmValidasi}
+                  disabled={isApproving}
+                  className="flex-1 flex justify-center items-center gap-2 px-4 py-3 rounded-xl font-bold text-white bg-[#117065] hover:bg-teal-800 disabled:opacity-75 disabled:cursor-wait"
+                >
                   {isApproving ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Memproses...</span>
+                      <span>
+                        {isRektor ? "Menerbitkan..." : "Memproses..."}
+                      </span>
                     </>
-                  ) : "Konfirmasi Validasi"}
+                  ) : isRektor ? (
+                    "Final Approve"
+                  ) : (
+                    "Konfirmasi Validasi"
+                  )}
                 </button>
               </div>
             </div>
@@ -367,14 +526,56 @@ const DetailBatchVerifikator = () => {
               <div className="w-20 h-20 bg-teal-50 rounded-full flex items-center justify-center mx-auto mb-5 border-4 border-white shadow-sm">
                 <FiCheckCircle className="text-[#117065] text-5xl" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Validasi Berhasil</h2>
-              <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8">Data mahasiswa telah berhasil divalidasi dan diteruskan ke tahap berikutnya</p>
-              <button onClick={handleFinishValidasi}
-                className="w-full px-4 py-3 rounded-xl font-bold text-white bg-[#117065] hover:bg-teal-800 transition-colors">Selesai</button>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                {isRektor
+                  ? "Dokumen Berhasil Diterbitkan"
+                  : "Validasi Berhasil"}
+              </h2>
+
+              <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8">
+                {isRektor
+                  ? "Final approval berhasil. Sistem telah memproses penerbitan ijazah digital, transkrip digital, dan QR verifikasi."
+                  : "Data mahasiswa telah berhasil divalidasi dan diteruskan ke tahap berikutnya"}
+              </p>
+              {isRektor && finalProcess && (
+                <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4 text-left">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-gray-500 font-semibold">
+                      Total Mahasiswa
+                    </span>
+                    <span className="font-bold text-gray-800">
+                      {finalProcess.total_mahasiswa ?? "-"}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-gray-500 font-semibold">
+                      Berhasil Terbit
+                    </span>
+                    <span className="font-bold text-[#117065]">
+                      {finalProcess.success_count ?? 0}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500 font-semibold">
+                      Gagal Terbit
+                    </span>
+                    <span className="font-bold text-red-500">
+                      {finalProcess.failed_count ?? 0}
+                    </span>
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={handleFinishValidasi}
+                className="w-full px-4 py-3 rounded-xl font-bold text-white bg-[#117065] hover:bg-teal-800 transition-colors"
+              >
+                Selesai
+              </button>
             </div>
           </div>
         )}
-
       </div>
     </DashboardLayout>
   );

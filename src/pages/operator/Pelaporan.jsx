@@ -12,15 +12,35 @@ const ITEMS_PER_PAGE = 10;
 // 🔥 Logika warna badge dari referensi (Kebal salah ketik)
 const badgeClass = (status) => {
   const normalizedStatus = status?.toLowerCase().trim() || "";
-  
-  if (normalizedStatus === "proses" || normalizedStatus === "pending") return "bg-[#3B82F6] text-white";
-  if (normalizedStatus === "terbit" || normalizedStatus === "approved") return "bg-[#16A36B] text-white";
-  if (normalizedStatus === "revoke" || normalizedStatus === "revoked") return "bg-[#F59E0B] text-white";
-  if (normalizedStatus === "reject" || normalizedStatus === "rejected") return "bg-[#EF4444] text-white";
+
+  if (normalizedStatus === "proses" || normalizedStatus === "pending")
+    return "bg-[#3B82F6] text-white";
+  if (normalizedStatus === "terbit" || normalizedStatus === "approved")
+    return "bg-[#16A36B] text-white";
+  if (normalizedStatus === "revoke" || normalizedStatus === "revoked")
+    return "bg-[#F59E0B] text-white";
+  if (normalizedStatus === "reject" || normalizedStatus === "rejected")
+    return "bg-[#EF4444] text-white";
 
   return "bg-gray-400 text-white";
 };
+const formatStatusLabel = (status) => {
+  const normalizedStatus = status?.toLowerCase().trim() || "";
 
+  if (normalizedStatus === "rejected") return "Reject";
+  if (normalizedStatus === "reject") return "Reject";
+
+  if (normalizedStatus === "revoked") return "Revoke";
+  if (normalizedStatus === "revoke") return "Revoke";
+
+  if (normalizedStatus === "approved") return "Terbit";
+  if (normalizedStatus === "terbit") return "Terbit";
+
+  if (normalizedStatus === "pending") return "Proses";
+  if (normalizedStatus === "proses") return "Proses";
+
+  return status || "-";
+};
 const formatTanggal = (value) => {
   if (!value) return "-";
   const date = new Date(value);
@@ -58,8 +78,22 @@ const Pelaporan = () => {
   const [error, setError] = useState("");
 
   // 🔥 Menyesuaikan dengan data persis dari backend (Revoked & Rejected)
-  const statusOptions = ["Semua Status", "Proses", "Terbit", "Revoked", "Rejected"];
+  const statusOptions = [
+    "Semua Status",
+    "Proses",
+    "Terbit",
+    "Revoke",
+    "Reject",
+  ];
+  const getStatusFilterValue = (value) => {
+    if (value === "Semua Status") return "";
+    if (value === "Reject") return "rejected";
+    if (value === "Revoke") return "revoked";
+    if (value === "Terbit") return "terbit";
+    if (value === "Proses") return "proses";
 
+    return value;
+  };
   const fetchLaporan = async () => {
     try {
       setLoading(true);
@@ -70,7 +104,7 @@ const Pelaporan = () => {
         limit: ITEMS_PER_PAGE,
         search,
         // 🔥 Kirim string kosong jika "Semua Status"
-        status: statusFilter === "Semua Status" ? "" : statusFilter, 
+        status: getStatusFilterValue(statusFilter),
       });
 
       setLaporanList(result.data || []);
@@ -80,14 +114,14 @@ const Pelaporan = () => {
           limit: ITEMS_PER_PAGE,
           total_data: 0,
           total_page: 1,
-        }
+        },
       );
     } catch (err) {
       console.error("Gagal mengambil data laporan:", err);
       setError(
         err?.message ||
           err?.response?.data?.message ||
-          "Gagal mengambil data laporan approval."
+          "Gagal mengambil data laporan approval.",
       );
       setLaporanList([]);
       setPagination({
@@ -125,8 +159,10 @@ const Pelaporan = () => {
     } else {
       if (currentPage === 1) pages = [1, 2, "...", totalPages];
       else if (currentPage === 2) pages = [1, 2, 3, "...", totalPages];
-      else if (currentPage === totalPages) pages = [1, "...", totalPages - 1, totalPages];
-      else if (currentPage === totalPages - 1) pages = [1, "...", totalPages - 2, totalPages - 1, totalPages];
+      else if (currentPage === totalPages)
+        pages = [1, "...", totalPages - 1, totalPages];
+      else if (currentPage === totalPages - 1)
+        pages = [1, "...", totalPages - 2, totalPages - 1, totalPages];
       else pages = [1, "...", currentPage, "...", totalPages];
     }
 
@@ -165,7 +201,6 @@ const Pelaporan = () => {
 
         {/* Filter Bar */}
         <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-4 border border-gray-100">
-          
           <div className="w-full lg:max-w-md">
             <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
               <FiSearch className="text-gray-400 text-lg mr-3" />
@@ -180,14 +215,17 @@ const Pelaporan = () => {
           </div>
 
           <div className="flex items-center gap-3 w-full lg:w-auto">
-            <div className="relative w-full lg:w-52">
+            <div className="relative w-full lg:w-40">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-center"
+                className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-5 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
               >
                 {statusOptions.map((item) => (
-                  <option key={item} value={item === "Semua Status" ? "" : item}>
+                  <option
+                    key={item}
+                    value={item === "Semua Status" ? "" : item}
+                  >
                     {item}
                   </option>
                 ))}
@@ -258,10 +296,10 @@ const Pelaporan = () => {
                         <td className="py-4 px-6 text-center">
                           <span
                             className={`inline-block px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${badgeClass(
-                              item.status
+                              item.status,
                             )}`}
                           >
-                            {item.status || "-"}
+                            {formatStatusLabel(item.status)}
                           </span>
                         </td>
 
@@ -272,9 +310,12 @@ const Pelaporan = () => {
                         <td className="py-4 px-6 text-center">
                           <button
                             onClick={() =>
-                              navigate(`/operator/detail-pelaporan/${item.nim}`, {
-                                state: item,
-                              })
+                              navigate(
+                                `/operator/detail-pelaporan/${item.nim}`,
+                                {
+                                  state: item,
+                                },
+                              )
                             }
                             className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
                           >
@@ -303,7 +344,8 @@ const Pelaporan = () => {
 
           <div className="p-6 bg-white border-t border-gray-100 flex justify-between items-center">
             <p className="text-sm text-gray-500 font-medium">
-              Menampilkan {laporanList.length} dari {pagination.total_data || 0} Data
+              Menampilkan {laporanList.length} dari {pagination.total_data || 0}{" "}
+              Data
             </p>
 
             <div className="flex items-center gap-2">
