@@ -1,4 +1,4 @@
-const RAW_API_BASE_URL ="/api";
+const RAW_API_BASE_URL = "/api";
 const API_BASE_URL = RAW_API_BASE_URL.replace(/\/$/, "");
 
 const DASHBOARD_API = `${API_BASE_URL}/dashboard`;
@@ -175,8 +175,8 @@ export const getMonthlyIssuance = async () => {
     const years = [
       ...new Set(
         rows.flatMap((item) =>
-          Object.keys(item).filter((key) => key !== "bulan")
-        )
+          Object.keys(item).filter((key) => key !== "bulan"),
+        ),
       ),
     ];
 
@@ -210,12 +210,14 @@ export const getMonthlyIssuance = async () => {
 // Endpoint backend:
 // GET /api/dashboard/statistik-validasi?year=2026
 
-export const getVerificationStatus = async (year = new Date().getFullYear()) => {
+export const getVerificationStatus = async (
+  year = new Date().getFullYear(),
+) => {
   try {
     const queryParams = buildQueryParams({ year });
 
     const result = await fetchJSON(
-      `${DASHBOARD_API}/statistik-validasi?${queryParams}`
+      `${DASHBOARD_API}/statistik-validasi?${queryParams}`,
     );
 
     const data = result.data || {};
@@ -288,7 +290,7 @@ export const getIjazahList = async (params = {}) => {
     });
 
     const result = await fetchJSON(
-      `${DASHBOARD_API}/validations/latest?${queryParams}`
+      `${DASHBOARD_API}/validations/latest?${queryParams}`,
     );
 
     const list = Array.isArray(result.data) ? result.data : [];
@@ -332,6 +334,13 @@ export const getIjazahList = async (params = {}) => {
           item.mahasiswa?.tahun_lulus ??
           "-",
 
+        periode:
+          item.periode ??
+          item.periode_lulus ??
+          item.batch_upload?.periode ??
+          item.mahasiswa?.batch_upload?.periode ??
+          "-",
+
         status:
           item.status ??
           item.status_dashboard ??
@@ -345,14 +354,19 @@ export const getIjazahList = async (params = {}) => {
           item.mahasiswa?.batch_upload?.nomor_batch_upload ??
           "-",
 
+        id_batch_upload:
+          item.id_batch_upload ??
+          item.batch_upload?.id_batch_upload ??
+          item.mahasiswa?.id_batch_upload ??
+          item.mahasiswa?.batch_upload?.id_batch_upload ??
+          null,
+
         raw: item,
       })),
 
       total: toNumber(pagination.total_data ?? pagination.total ?? 0),
       page: toNumber(pagination.page ?? page),
-      totalPages: toNumber(
-        pagination.total_page ?? pagination.totalPages ?? 1
-      ),
+      totalPages: toNumber(pagination.total_page ?? pagination.totalPages ?? 1),
 
       pagination,
       raw: result,
@@ -382,7 +396,7 @@ export const getIjazahList = async (params = {}) => {
 export const getDetailIjazah = async (idMahasiswa) => {
   try {
     const result = await fetchJSON(
-      `${DASHBOARD_API}/batches/mahasiswa/${idMahasiswa}`
+      `${DASHBOARD_API}/batches/mahasiswa/${idMahasiswa}`,
     );
 
     return result.data;
@@ -496,17 +510,93 @@ export const searchIjazah = async (query) => {
 // GET /api/dashboard/faculties
 // Aman ditambahkan. Kalau endpoint belum ada, return [].
 
-
 // ==================== ALIAS EXPORT ====================
 // Biar component lain bisa pakai nama yang lebih jelas
+
+// ==================== DEFAULT EXPORT OPSIONAL ====================
+// Tidak wajib dipakai, tapi aman kalau nanti mau import sebagai object.
+
+export const getDashboardBatches = async (params = {}) => {
+  try {
+    const page = params.page || 1;
+    const limit = params.limit || 10;
+    const search = params.search || "";
+    const tahun_lulus = params.tahun_lulus || params.tahun || "";
+    const periode = params.periode || "";
+
+    const queryParams = buildQueryParams({
+      page,
+      limit,
+      search,
+      tahun_lulus,
+      periode,
+    });
+
+    const response = await fetchJSON(
+      `${DASHBOARD_API}/batches/batch?${queryParams}`,
+    );
+
+    const rows = Array.isArray(response?.data) ? response.data : [];
+
+    return {
+      data: rows.map((item) => ({
+        id: item.id_batch_upload || item.id,
+        id_batch_upload: item.id_batch_upload,
+
+        batch: item.nomor_batch_upload || item.batch || "-",
+        nomor_batch_upload: item.nomor_batch_upload || "-",
+
+        fakultas:
+          item.fakultas ||
+          item.nama_fakultas ||
+          item.nama_unit ||
+          item.unit ||
+          "-",
+
+        tahun: item.tahun_lulus?.toString() || "-",
+        tahun_lulus: item.tahun_lulus,
+
+        periode: item.periode || "-",
+
+        total: Number(item.total_mahasiswa || 0),
+        total_mahasiswa: Number(item.total_mahasiswa || 0),
+
+        raw: item,
+      })),
+
+      pagination: {
+        page: Number(response?.pagination?.page || page),
+        limit: Number(response?.pagination?.limit || limit),
+        total_data: Number(response?.pagination?.total_data || 0),
+        total_page: Number(response?.pagination?.total_page || 1),
+      },
+
+      raw: response,
+    };
+  } catch (error) {
+    console.error("Error fetching dashboard batches:", error);
+
+    if (isAuthError(error)) {
+      throw error;
+    }
+
+    return {
+      data: [],
+      pagination: {
+        page: 1,
+        limit: 10,
+        total_data: 0,
+        total_page: 1,
+      },
+      raw: {},
+    };
+  }
+};
 
 export const getDashboardSummary = getStatistics;
 export const getStatistikValidasi = getVerificationStatus;
 export const getStatistikTahunan = getMonthlyIssuance;
 export const getLatestValidations = getIjazahList;
-
-// ==================== DEFAULT EXPORT OPSIONAL ====================
-// Tidak wajib dipakai, tapi aman kalau nanti mau import sebagai object.
 
 export default {
   getStatistics,
@@ -516,10 +606,9 @@ export default {
   getDetailIjazah,
   getBatchList,
   getDetailBatch,
+  getDashboardBatches,
   verifyIjazah,
   searchIjazah,
-
-
   getDashboardSummary,
   getStatistikValidasi,
   getStatistikTahunan,

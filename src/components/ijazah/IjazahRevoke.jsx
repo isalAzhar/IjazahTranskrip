@@ -31,6 +31,18 @@ const getBatchNumber = (batchName = "") => {
   return match ? Number(match[1]) : 0;
 };
 
+const getPeriodeValue = (item = {}) => {
+  return (
+    item.periode ||
+    item.raw?.periode ||
+    item.raw?.batch_upload?.periode ||
+    item.raw?.mahasiswa?.batch_upload?.periode ||
+    item.batch_upload?.periode ||
+    item.mahasiswa?.batch_upload?.periode ||
+    "-"
+  ).toString();
+};
+
 const buildBatchData = (rows = []) => {
   const revokeRows = rows.filter(
     (item) => normalizeStatus(item.status) === "revoke"
@@ -42,7 +54,7 @@ const buildBatchData = (rows = []) => {
     const batchName = item.batch || "Tanpa Batch";
     const fakultas = item.fakultas || "-";
     const tahun = item.tahun_lulus?.toString() || "-";
-    const periode = item.periode || "-";
+    const periode = getPeriodeValue(item);
 
     const key = `${batchName}-${fakultas}-${tahun}-${periode}`;
 
@@ -68,6 +80,7 @@ const buildBatchData = (rows = []) => {
       fakultas,
       tahun,
       tahun_lulus: tahun,
+      periode,
       status: item.status || "Revoke",
       batch: batchName,
       raw: item,
@@ -113,7 +126,6 @@ const IjazahRevoke = () => {
   const [tahun, setTahun] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [rawData, setRawData] = useState([]);
   const [batchData, setBatchData] = useState([]);
   const [fakultasList, setFakultasList] = useState([]);
   const [years, setYears] = useState([]);
@@ -137,7 +149,6 @@ const IjazahRevoke = () => {
 
         const rows = Array.isArray(result.data) ? result.data : [];
 
-        setRawData(rows);
         setBatchData(buildBatchData(rows));
         setFakultasList(buildFakultasOptions(rows));
         setYears(buildYearOptions(rows));
@@ -152,31 +163,6 @@ const IjazahRevoke = () => {
     fetchIjazahRevoke();
   }, []);
 
-  const searchResult = useMemo(() => {
-    if (!search) return [];
-
-    const keyword = search.toLowerCase();
-
-    return rawData
-      .filter((item) => normalizeStatus(item.status) === "revoke")
-      .filter((item) => {
-        const searchableText = [
-          item.nama,
-          item.nim,
-          item.prodi,
-          item.fakultas,
-          item.tahun_lulus,
-          item.status,
-          item.batch,
-        ]
-          .join(" ")
-          .toLowerCase();
-
-        return searchableText.includes(keyword);
-      })
-      .slice(0, 4);
-  }, [search, rawData]);
-
   const filtered = batchData
     .filter((item) => {
       const keyword = search.toLowerCase();
@@ -184,6 +170,7 @@ const IjazahRevoke = () => {
       const matchBatch = item.batch?.toLowerCase().includes(keyword);
       const matchFakultas = item.fakultas?.toLowerCase().includes(keyword);
       const matchTahun = item.tahun?.toString().toLowerCase().includes(keyword);
+      const matchPeriode = item.periode?.toLowerCase().includes(keyword);
 
       const matchMahasiswa = item.mahasiswa.some((mhs) => {
         const searchableText = [
@@ -192,6 +179,7 @@ const IjazahRevoke = () => {
           mhs.prodi,
           mhs.fakultas,
           mhs.tahun,
+          mhs.periode,
           mhs.status,
           mhs.batch,
         ]
@@ -202,7 +190,12 @@ const IjazahRevoke = () => {
       });
 
       const matchesSearch =
-        !search || matchBatch || matchFakultas || matchTahun || matchMahasiswa;
+        !search ||
+        matchBatch ||
+        matchFakultas ||
+        matchTahun ||
+        matchPeriode ||
+        matchMahasiswa;
 
       const matchesFakultas = fakultas ? item.fakultas === fakultas : true;
       const matchesTahun = tahun ? item.tahun?.toString() === tahun : true;
@@ -236,14 +229,6 @@ const IjazahRevoke = () => {
 
   const handleDetailBatch = (item) => {
     navigate(`/batch/revoke/${item.id}`, { state: item });
-  };
-
-  const handleDetailMahasiswa = (item) => {
-    navigate(`/rektor/detail-mahasiswa/${item.nim}`, {
-      state: {
-        mahasiswa: item,
-      },
-    });
   };
 
   const renderPaginationButtons = () => {
@@ -321,7 +306,6 @@ const IjazahRevoke = () => {
           )}
         </div>
 
-        {/* FILTER BOX */}
         <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm mb-6">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
             <div className="w-full lg:max-w-md">
@@ -343,7 +327,7 @@ const IjazahRevoke = () => {
                 <select
                   value={fakultas}
                   onChange={(e) => setFakultas(e.target.value)}
-                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-center"
+                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
                 >
                   <option value="">Semua Fakultas</option>
 
@@ -361,7 +345,7 @@ const IjazahRevoke = () => {
                 <select
                   value={tahun}
                   onChange={(e) => setTahun(e.target.value)}
-                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-center"
+                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
                 >
                   <option value="">Semua Tahun</option>
 
@@ -378,38 +362,6 @@ const IjazahRevoke = () => {
           </div>
         </div>
 
-        {/* HASIL SEARCH */}
-        {search && searchResult.length > 0 && (
-          <div className="bg-white border border-[#ECECEC] rounded-xl mb-4 overflow-hidden">
-            {searchResult.map((item, i) => (
-              <div
-                key={item.id || item.id_mahasiswa || i}
-                onClick={() => handleDetailMahasiswa(item)}
-                className="flex items-center justify-between px-4 py-2.5 hover:bg-[#FAFAFA] transition border-b border-[#F5F5F5] last:border-b-0 cursor-pointer"
-              >
-                <div>
-                  <p className="text-[13px] font-semibold text-[#111827] leading-none">
-                    {item.nama || "-"}
-                  </p>
-
-                  <p className="text-[11px] text-[#9CA3AF] mt-1">
-                    {item.nim || "-"} • {item.prodi || "-"}
-                  </p>
-
-                  <p className="text-[11px] text-[#9CA3AF] mt-1">
-                    {item.fakultas || "-"}
-                  </p>
-                </div>
-
-                <div className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-2 py-1 rounded-md">
-                  {item.batch || "-"}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* TABLE SECTION */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <table className="w-full table-fixed text-sm">
             <colgroup>
@@ -453,24 +405,17 @@ const IjazahRevoke = () => {
                         {item.batch}
                       </td>
 
-                      <td className="py-4 px-4 text-center text-gray-600 font-medium align-middle">
-                        <div
-                          className="whitespace-normal leading-snug overflow-hidden max-w-[260px] mx-auto"
-                          style={{
-                            display: "-webkit-box",
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: "vertical",
-                          }}
-                        >
+                      <td className="py-4 px-4 text-center font-medium align-middle">
+                  
+                       
                           {item.fakultas}
-                        </div>
                       </td>
 
-                      <td className="px-4 py-4 text-center align-middle">
+                      <td className="px-4 py-4 text-center font-medium align-middle">
                         {item.tahun}
                       </td>
 
-                      <td className="px-4 py-4 text-center align-middle">
+                      <td className="px-4 py-4 text-center font-medium align-middle">
                         {item.periode}
                       </td>
 
@@ -504,7 +449,6 @@ const IjazahRevoke = () => {
             </tbody>
           </table>
 
-          {/* PAGINATION */}
           <div className="p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-gray-100">
             <p className="text-xs text-gray-400">
               Menampilkan {paginatedData.length} dari {filtered.length} Data

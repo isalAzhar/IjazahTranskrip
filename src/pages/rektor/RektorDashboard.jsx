@@ -17,8 +17,6 @@ import {
   getStatistikValidasi,
 } from "../../services/dashboard.api";
 
-
-
 const normalizeStatus = (status) => {
   const value = status?.toString().toLowerCase();
 
@@ -80,7 +78,7 @@ const buildFacultyOptions = (rows = []) => {
     ...new Set(
       rows
         .map((item) => item.fakultas)
-        .filter((fakultas) => fakultas && fakultas !== "-")
+        .filter((fakultas) => fakultas && fakultas !== "-"),
     ),
   ];
 
@@ -92,7 +90,7 @@ const buildYearOptions = (rows = []) => {
     ...new Set(
       rows
         .map((item) => item.tahun_lulus?.toString())
-        .filter((tahun) => tahun && tahun !== "-")
+        .filter((tahun) => tahun && tahun !== "-"),
     ),
   ].sort((a, b) => Number(b) - Number(a));
 
@@ -143,66 +141,66 @@ const Dashboard = () => {
   // ==================== FETCH DATA DASHBOARD ====================
 
   useEffect(() => {
-  const fetchDashboardData = async () => {
-    try {
-      setIsLoading(true);
-      setApiError("");
+    const fetchDashboardData = async () => {
+      try {
+        setIsLoading(true);
+        setApiError("");
 
-      const [
-        summary,
-        latestValidations,
-        statistikTahunan,
-        statistikValidasi,
-      ] = await Promise.all([
-        getDashboardSummary(),
-        getLatestValidations({
-          page: 1,
-          limit: 100,
-          search: "",
-        }),
-        getStatistikTahunan(),
-        getStatistikValidasi(new Date().getFullYear()),
-      ]);
+        const [
+          summary,
+          latestValidations,
+          statistikTahunan,
+          statistikValidasi,
+        ] = await Promise.all([
+          getDashboardSummary(),
+          getLatestValidations({
+            page: 1,
+            limit: 100,
+            search: "",
+          }),
+          getStatistikTahunan(),
+          getStatistikValidasi(new Date().getFullYear()),
+        ]);
 
-      const rows = Array.isArray(latestValidations.data)
-        ? latestValidations.data
-        : [];
+        const rows = Array.isArray(latestValidations.data)
+          ? latestValidations.data
+          : [];
 
-      setStatsData({
-        terbit: summary.totalIjazahTerbit || 0,
-        proses: summary.permintaanVerifikasi || 0,
-        rejected: summary.dataReject || 0,
-        revoked: summary.dataRevoke || 0,
-      });
+        setStatsData({
+          terbit: summary.totalIjazahTerbit || 0,
+          proses: summary.permintaanVerifikasi || 0,
+          rejected: summary.dataReject || 0,
+          revoked: summary.dataRevoke || 0,
+        });
 
-      setTableData(rows);
+        setTableData(rows);
 
-      setIssuanceChartData(statistikTahunan);
-      setVerificationChartData(statistikValidasi);
+        setIssuanceChartData(statistikTahunan);
+        setVerificationChartData(statistikValidasi);
 
-      // Ini tetap binding, karena datanya dari backend validations/latest
-      setFaculties(buildFacultyOptions(rows));
-      setTahunOptions(buildYearOptions(rows));
-    } catch (err) {
-      console.error("Gagal mengambil data dashboard rektor:", err);
+        // Ini tetap binding, karena datanya dari backend validations/latest
+        setFaculties(buildFacultyOptions(rows));
+        setTahunOptions(buildYearOptions(rows));
+      } catch (err) {
+        console.error("Gagal mengambil data dashboard rektor:", err);
 
-      if (err.status === 401 || err.status === 403) {
-        logout();
-        return;
+        if (err.status === 401 || err.status === 403) {
+          logout();
+          return;
+        }
+
+        setApiError(err.message || "Gagal terhubung ke server backend.");
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      setApiError(err.message || "Gagal terhubung ke server backend.");
-    } finally {
+    if (token) {
+      fetchDashboardData();
+    } else {
       setIsLoading(false);
     }
-  };
-
-  if (token) {
-    fetchDashboardData();
-  } else {
-    setIsLoading(false);
-  }
-}, [token, logout]);
+  }, [token, logout]);
 
   // ==================== FETCH CHART STATUS SAAT TAHUN DIGANTI ====================
 
@@ -315,8 +313,8 @@ const Dashboard = () => {
           page === currentPage
             ? "bg-[#00897B] text-white"
             : page === "..."
-            ? "bg-transparent text-gray-400 cursor-default shadow-none"
-            : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"
+              ? "bg-transparent text-gray-400 cursor-default shadow-none"
+              : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"
         }`}
       >
         {page}
@@ -352,7 +350,11 @@ const Dashboard = () => {
       {/* STAT CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div
-          onClick={() => navigate("/ijazah/terbit")}
+          onClick={() =>
+            navigate("/ijazah/terbit", {
+              state: { status: "terbit" },
+            })
+          }
           className="cursor-pointer"
         >
           <StatCard
@@ -365,7 +367,11 @@ const Dashboard = () => {
         </div>
 
         <div
-          onClick={() => navigate("/ijazah/proses")}
+          onClick={() =>
+            navigate("/ijazah/proses", {
+              state: { status: "proses" },
+            })
+          }
           className="cursor-pointer"
         >
           <StatCard
@@ -378,7 +384,11 @@ const Dashboard = () => {
         </div>
 
         <div
-          onClick={() => navigate("/ijazah/reject")}
+          onClick={() =>
+            navigate("/ijazah/reject", {
+              state: { status: "reject" },
+            })
+          }
           className="cursor-pointer"
         >
           <StatCard
@@ -391,7 +401,11 @@ const Dashboard = () => {
         </div>
 
         <div
-          onClick={() => navigate("/ijazah/revoke")}
+          onClick={() =>
+            navigate("/ijazah/revoke", {
+              state: { status: "revoke" },
+            })
+          }
           className="cursor-pointer"
         >
           <StatCard
@@ -579,7 +593,7 @@ const Dashboard = () => {
                     <td className="px-4 py-4 text-center">
                       <span
                         className={`inline-block min-w-[86px] px-4 py-1.5 rounded-full text-xs font-bold ${getBadgeColor(
-                          row.status
+                          row.status,
                         )}`}
                       >
                         {getBadgeLabel(row.status)}
@@ -611,9 +625,7 @@ const Dashboard = () => {
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() =>
-                  setCurrentPage((prev) => Math.max(prev - 1, 1))
-                }
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
                 className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50"
               >
