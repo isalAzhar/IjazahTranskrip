@@ -12,7 +12,13 @@ import {
 } from "../../services/api";
 
 const ROW_H = 16;
-
+const TRANSKRIP_FOLLOW_TABLE_FIELDS = [
+  "TTD Dekan",
+  "Nama Dekan",
+  "NIDN Dekan",
+  "Paraf KATU Fakultas",
+  "Paraf Kaprodi",
+];
 const kualData = [
   ["A", "4.0", "Sangat Baik Sekali"],
   ["AB", "3.5", "Sangat Baik"],
@@ -71,6 +77,7 @@ const transkripFields = [
   "Nomor SK Akreditasi",
   "Status",
   "Tanggal Lulus",
+  "Tabel Mata Kuliah",
   "TTD Dekan",
   "Nama Dekan",
   "NIDN Dekan",
@@ -81,11 +88,422 @@ const FIELD_BY_TEMPLATE = {
   ijazah: ijazahFields,
   transkrip: transkripFields,
 };
+const DEFAULT_FIELD_META = {
+  field: null,
+  type: "text",
+  fontSize: 12,
+  fontFamily: "arial",
+  fontWeight: "400",
+  fontStyle: "normal",
+  textDecoration: "none",
+  align: "center",
+};
 
+const FIELD_META = {
+  ijazah: {
+    Nama: {
+      field: "mahasiswa.nama",
+      type: "text",
+      fontSize: 14,
+      fontFamily: "arial",
+      fontWeight: "700",
+      align: "left",
+    },
+    "Tempat & Tanggal Lahir": {
+      field: "mahasiswa.tempat_tanggal_lahir",
+      type: "text",
+      fontSize: 14,
+      fontFamily: "arial",
+      fontWeight: "700",
+      align: "left",
+    },
+    "Nomor Pokok Mahasiswa": {
+      field: "mahasiswa.nomor_pokok_mahasiswa",
+      type: "text",
+      fontSize: 14,
+      fontFamily: "arial",
+      fontWeight: "700",
+      align: "left",
+    },
+    NIK: {
+      field: "mahasiswa.nik",
+      type: "text",
+      fontSize: 14,
+      fontFamily: "arial",
+      fontWeight: "700",
+      align: "left",
+    },
+    Fakultas: {
+      field: "akademik.fakultas",
+      type: "text",
+      fontSize: 14,
+      fontFamily: "arial",
+      fontWeight: "700",
+      align: "left",
+    },
+    "Fakultas (English)": {
+      field: "akademik.fakultas_en",
+      type: "text",
+      fontSize: 11,
+      fontFamily: "arial",
+      fontWeight: "500",
+      align: "left",
+    },
+    "Program Studi": {
+      field: "akademik.program_studi",
+      type: "text",
+      fontSize: 14,
+      fontFamily: "arial",
+      fontWeight: "700",
+      align: "left",
+    },
+    "Program Studi (English)": {
+      field: "akademik.program_studi_en",
+      type: "text",
+      fontSize: 11,
+      fontFamily: "arial",
+      fontWeight: "500",
+      fontStyle: "italic",
+      align: "left",
+    },
+    Program: {
+      field: "akademik.program",
+      type: "text",
+      fontSize: 14,
+      fontFamily: "arial",
+      fontWeight: "700",
+      align: "left",
+    },
+    "Program (English)": {
+      field: "akademik.program_en",
+      type: "text",
+      fontSize: 11,
+      fontFamily: "arial",
+      fontWeight: "500",
+      align: "left",
+    },
+    "Tanggal Kelulusan": {
+      field: "akademik.tanggal_kelulusan_formatted",
+      type: "text",
+      fontSize: 12,
+      fontFamily: "arial",
+      fontWeight: "600",
+      align: "center",
+    },
+    PISN: {
+      field: "mahasiswa.pisn",
+      type: "text",
+      fontSize: 14,
+      fontFamily: "arial",
+      fontWeight: "500",
+      align: "center",
+    },
+    "Nomor Seri Ijazah": {
+      field: "mahasiswa.nomor_seri_ijazah",
+      type: "text",
+      fontSize: 14,
+      fontFamily: "arial",
+      fontWeight: "600",
+      align: "center",
+    },
+    "Akreditasi AIPT": {
+      field: "akademik.akreditasi_aipt",
+      type: "text",
+      fontSize: 14,
+      fontFamily: "arial",
+      fontWeight: "600",
+      align: "center",
+    },
+    Foto: {
+      field: "mahasiswa.foto",
+      type: "image",
+    },
+    "QR Code": {
+      field: "dokumen_placeholder.qr_code",
+      type: "qr",
+    },
+    Gelar: {
+      field: "mahasiswa.gelar",
+      type: "text",
+      fontSize: 28,
+      fontFamily: "arial",
+      fontWeight: "700",
+      align: "center",
+    },
+    "Tanggal Terbit": {
+      field: "dokumen_placeholder.tanggal_terbit_formatted",
+      type: "text",
+      fontSize: 12,
+      fontFamily: "arial",
+      fontWeight: "600",
+      align: "center",
+    },
+    "Nama Rektor": {
+      field: "pejabat.nama_rektor",
+      type: "text",
+      fontSize: 12,
+      fontFamily: "arial",
+      fontWeight: "600",
+      textDecoration: "underline",
+      align: "center",
+    },
+    "TTD Rektor": {
+      field: "assets.ttd_rektor",
+      type: "image",
+    },
+    "NIDN Rektor": {
+      field: "pejabat.nidn_rektor",
+      type: "text",
+      fontSize: 12,
+      fontFamily: "arial",
+      fontWeight: "500",
+      align: "center",
+    },
+    "Nama Dekan": {
+      field: "pejabat.nama_dekan",
+      type: "text",
+      fontSize: 12,
+      fontFamily: "arial",
+      fontWeight: "600",
+      align: "center",
+    },
+    "TTD Dekan": {
+      field: "assets.ttd_dekan",
+      type: "image",
+    },
+    "NIDN Dekan": {
+      field: "pejabat.nidn_dekan",
+      type: "text",
+      fontSize: 12,
+      fontFamily: "arial",
+      fontWeight: "500",
+      align: "center",
+    },
+    "Paraf KATU Rektor": {
+      field: "assets.paraf_katu_rektor",
+      type: "image",
+    },
+    "Paraf WAREK": {
+      field: "assets.paraf_warek",
+      type: "image",
+    },
+    "Paraf KATU Fakultas": {
+      field: "assets.paraf_katu_fakultas",
+      type: "image",
+    },
+    "Paraf Wadek": {
+      field: "assets.paraf_wadek",
+      type: "image",
+    },
+    "Stempel Rektor": {
+      field: "assets.stempel_rektor",
+      type: "image",
+    },
+    "Stempel Dekan": {
+      field: "assets.stempel_dekan",
+      type: "image",
+    },
+  },
+
+  transkrip: {
+    Nomor: {
+      field: "dokumen_placeholder.nomor_dokumen",
+      type: "text",
+      fontSize: 7,
+      fontFamily: "Times New Roman",
+      fontWeight: "500",
+      align: "center",
+    },
+    Nama: {
+      field: "mahasiswa.nama",
+      type: "text",
+      fontSize: 7,
+      fontFamily: "Times New Roman",
+      fontWeight: "500",
+      align: "left",
+    },
+    "Tempat & Tanggal Lahir": {
+      field: "mahasiswa.tempat_tanggal_lahir",
+      type: "text",
+      fontSize: 7,
+      fontFamily: "Times New Roman",
+      fontWeight: "500",
+      align: "left",
+    },
+    "Jenis Kelamin": {
+      field: "mahasiswa.jenis_kelamin",
+      type: "text",
+      fontSize: 7,
+      fontFamily: "Times New Roman",
+      fontWeight: "500",
+      align: "left",
+    },
+    "Nomor Pokok Mahasiswa": {
+      field: "mahasiswa.nomor_pokok_mahasiswa",
+      type: "text",
+      fontSize: 7,
+      fontFamily: "Times New Roman",
+      fontWeight: "500",
+      align: "left",
+    },
+    NINA: {
+      field: "mahasiswa.nina",
+      type: "text",
+      fontSize: 7,
+      fontFamily: "Times New Roman",
+      fontWeight: "500",
+      align: "left",
+    },
+    NIK: {
+      field: "mahasiswa.nik",
+      type: "text",
+      fontSize: 7,
+      fontFamily: "Times New Roman",
+      fontWeight: "500",
+      align: "left",
+    },
+    "Tahun Masuk": {
+      field: "mahasiswa.tahun_masuk",
+      type: "text",
+      fontSize: 7,
+      fontFamily: "Times New Roman",
+      fontWeight: "500",
+      align: "left",
+    },
+    "Program Pendidikan": {
+      field: "akademik.program",
+      type: "text",
+      fontSize: 7,
+      fontFamily: "Times New Roman",
+      fontWeight: "500",
+      align: "left",
+    },
+    Fakultas: {
+      field: "akademik.fakultas",
+      type: "text",
+      fontSize: 7,
+      fontFamily: "Times New Roman",
+      fontWeight: "500",
+      align: "left",
+    },
+    "Program Studi": {
+      field: "akademik.program_studi",
+      type: "text",
+      fontSize: 7,
+      fontFamily: "Times New Roman",
+      fontWeight: "500",
+      align: "left",
+    },
+    "Nomor SK Akreditasi": {
+      field: "akademik.nomor_sk_akreditasi",
+      type: "text",
+      fontSize: 7,
+      fontFamily: "Times New Roman",
+      fontWeight: "500",
+      align: "left",
+    },
+    Status: {
+      field: "akademik.status_kelulusan",
+      type: "text",
+      fontSize: 7,
+      fontFamily: "Times New Roman",
+      fontWeight: "500",
+      align: "left",
+    },
+    "Tanggal Lulus": {
+      field: "akademik.tanggal_kelulusan_formatted",
+      type: "text",
+      fontSize: 7,
+      fontFamily: "Times New Roman",
+      fontWeight: "500",
+      align: "left",
+    },
+    "Tabel Mata Kuliah": {
+      field: "transkrip",
+      type: "table",
+      fontSize: 7,
+      fontFamily: "Times New Roman",
+      fontWeight: "500",
+      align: "left",
+    },
+    "TTD Dekan": {
+      field: "assets.ttd_dekan",
+      type: "signature",
+      roleLabel: "Dekan,",
+      fontSize: 8,
+      fontFamily: "Times New Roman",
+      fontWeight: "600",
+      align: "center",
+    },
+    "Nama Dekan": {
+      field: "pejabat.nama_dekan",
+      type: "text",
+      fontSize: 8,
+      fontFamily: "Times New Roman",
+      fontWeight: "700",
+      align: "center",
+    },
+    "NIDN Dekan": {
+      field: "pejabat.nidn_dekan",
+      type: "text",
+      fontSize: 7,
+      fontFamily: "Times New Roman",
+      fontWeight: "500",
+      align: "center",
+    },
+    "Paraf KATU Fakultas": {
+      field: "assets.paraf_katu_fakultas",
+      type: "image",
+    },
+    "Paraf Kaprodi": {
+      field: "assets.paraf_kaprodi",
+      type: "image",
+    },
+  },
+};
+
+const getFieldMeta = (templateType, field) => {
+  const normalizedType = normalizeTemplateType(templateType);
+
+  const defaultByType = {
+    ...DEFAULT_FIELD_META,
+    fontSize: normalizedType === "transkrip" ? 7 : 12,
+    align: normalizedType === "transkrip" ? "left" : "center",
+  };
+
+  return {
+    ...defaultByType,
+    ...(FIELD_META?.[normalizedType]?.[field] || {}),
+  };
+};
 const normalizeTemplateType = (type) => {
   if (type === "transkrip") return "transkrip";
   if (type === "transkip") return "transkrip";
   return "ijazah";
+};
+
+const normalizeElementFromMeta = (templateType, element) => {
+  const meta = getFieldMeta(templateType, element.label);
+
+  return {
+    ...element,
+
+    // field dan type aman untuk template lama yang belum menyimpan meta
+    field: element.field || meta.field || null,
+    type: element.type || meta.type || "text",
+
+    // style selalu mengikuti FIELD_META agar cukup ubah konfigurasi per field
+    fontSize: meta.fontSize,
+    fontFamily: meta.fontFamily || "arial",
+    fontWeight: meta.fontWeight || "400",
+    fontStyle: meta.fontStyle || "normal",
+    textDecoration: meta.textDecoration || "none",
+    align: meta.align || "center",
+
+    ...(element.roleLabel || meta.roleLabel
+      ? { roleLabel: element.roleLabel || meta.roleLabel }
+      : {}),
+  };
 };
 
 const boxOnlyFields = [
@@ -297,7 +715,9 @@ const getTranskripFieldSize = (field) => {
     "Status",
     "Tanggal Lulus",
   ];
-
+  if (field === "Tabel Mata Kuliah") {
+    return { width: 700, height: 430 };
+  }
   if (transkripBiodataFields.includes(field)) {
     return { width: 145, height: 6 };
   }
@@ -346,21 +766,50 @@ const mapBackendTemplateToState = (template, fallbackImage) => {
   };
 };
 
+const getJustifyFromAlign = (align = "center") => {
+  if (align === "left") return "flex-start";
+  if (align === "right") return "flex-end";
+  return "center";
+};
+
 const WaitingDataText = ({
   small = false,
   value = "",
   align = "center",
   label = "",
   documentType = "ijazah",
+  fontSize,
+  fontFamily,
+  fontWeight,
+  fontStyle = "normal",
+  textDecoration = "none",
 }) => {
-  const alignClass =
-    align === "left" ? "justify-start text-left" : "justify-center text-center";
+  const fallbackFontSize = small
+    ? documentType === "transkrip"
+      ? 6
+      : 9
+    : documentType === "transkrip"
+      ? 7
+      : 12;
 
-  const textSize = getTextSizeClass(documentType, label, small);
+  const resolvedFontSize = Number(fontSize || fallbackFontSize);
+  const resolvedFontFamily = fontFamily || "Montserrat";
+  const resolvedFontWeight = fontWeight || "600";
+  const resolvedFontStyle = fontStyle || "normal";
+  const resolvedTextDecoration = textDecoration || "none";
 
   return (
     <div
-      className={`w-full h-full flex items-center ${alignClass} text-gray-800 font-semibold leading-none px-1 whitespace-nowrap ${textSize}`}
+      className="w-full h-full flex items-center text-gray-800 leading-none px-1 whitespace-nowrap"
+      style={{
+        justifyContent: getJustifyFromAlign(align),
+        textAlign: align,
+        fontSize: `${resolvedFontSize}px`,
+        fontFamily: resolvedFontFamily,
+        fontWeight: resolvedFontWeight,
+        fontStyle: resolvedFontStyle,
+        textDecoration: resolvedTextDecoration,
+      }}
     >
       {value || "Menunggu Data"}
     </div>
@@ -377,6 +826,76 @@ const renderElements = (
   previewData = {},
 ) =>
   elements.map((el) => {
+    if (el.label === "Tabel Mata Kuliah") {
+      return (
+        <div
+          key={el.id}
+          onMouseDown={(e) => handleMouseDownElement(e, el)}
+          className={`absolute z-30 group ${
+            !isSaved && !isLocked ? "cursor-move" : "cursor-default"
+          }`}
+          style={{
+            left: el.x,
+            top: el.y,
+            width: el.width || 700,
+            height: el.height || 430,
+          }}
+        >
+          {!isPreview && (
+            <div className="pointer-events-none absolute -top-7 left-0 z-50 hidden group-hover:block whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[10px] font-bold text-white shadow-lg">
+              {el.label}
+            </div>
+          )}
+
+          {!isPreview && (
+            <div className="w-full h-full border-2 border-dashed border-[#0B6B63] bg-[#0B6B63]/5 rounded-md flex items-center justify-center text-[#0B6B63] text-xs font-bold">
+              Tabel Mata Kuliah
+            </div>
+          )}
+        </div>
+      );
+    }
+    if (el.label === "TTD Dekan" && documentType === "transkrip") {
+      return (
+        <div
+          key={el.id}
+          onMouseDown={(e) => handleMouseDownElement(e, el)}
+          className={`absolute z-30 group ${
+            !isSaved && !isLocked ? "cursor-move" : "cursor-default"
+          }`}
+          style={{
+            left: el.x,
+            top: el.y,
+            width: el.width || 90,
+            height: el.height || 70,
+          }}
+        >
+          {!isPreview && (
+            <div className="pointer-events-none absolute -top-7 left-0 z-50 hidden group-hover:block whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[10px] font-bold text-white shadow-lg">
+              {el.label}
+            </div>
+          )}
+
+          <div
+            className="w-full h-full flex flex-col items-center justify-start text-black"
+            style={{
+              fontSize: `${el.fontSize || 8}px`,
+              fontFamily: el.fontFamily || "arial",
+              fontWeight: el.fontWeight || "600",
+              textAlign: el.align || "center",
+              fontStyle: el.fontStyle || "normal",
+              textDecoration: el.textDecoration || "none",
+            }}
+          >
+            <div className="mb-1">Dekan,</div>
+
+            <div className="w-[70px] h-[42px] border border-[#4b5563] rounded-sm flex items-center justify-center text-[7px] text-gray-500">
+              TTD
+            </div>
+          </div>
+        </div>
+      );
+    }
     const isBoxOnly = boxOnlyFields.includes(el.label);
     const isSignature = signatureFields.includes(el.label);
     const isNameLine = nameLineFields.includes(el.label);
@@ -395,15 +914,21 @@ const renderElements = (
         : fieldValue || "Menunggu Data"
       : "";
     const textAlign =
-      documentType === "transkrip"
-        ? "left"
-        : ijazahLeftAlignFields.includes(el.label)
-          ? "left"
-          : "center";
+      el.align ||
+      (ijazahLeftAlignFields.includes(el.label) ? "left" : "center");
+
+    const fieldFontSize = Number(
+      el.fontSize || (documentType === "transkrip" ? 7 : 12),
+    );
+
+    const fieldFontFamily = el.fontFamily || "arial";
+    const fieldFontWeight = el.fontWeight || "600";
+    const fieldFontStyle = el.fontStyle || "normal";
+    const fieldTextDecoration = el.textDecoration || "none";
 
     const size = getFieldSize(el.label, documentType);
-    const renderWidth = size.width;
-    const renderHeight = size.height;
+    const renderWidth = el.width || size.width;
+    const renderHeight = el.height || size.height;
 
     const isSmallBox =
       renderWidth <= 45 ||
@@ -427,6 +952,8 @@ const renderElements = (
         style={{
           left: el.x,
           top: el.y,
+          width: renderWidth,
+          height: renderHeight,
         }}
       >
         {!isPreview && (
@@ -445,11 +972,21 @@ const renderElements = (
           >
             {isPreview ? (
               <div className="inline-flex flex-col items-left text-left">
-                <span className="inline-block text-gray-800 font-semibold text-[12px] leading-none whitespace-nowrap px-1 text-center">
+                <span
+                  className="inline-block text-gray-800 leading-none whitespace-nowrap px-1"
+                  style={{
+                    fontSize: `${fieldFontSize}px`,
+                    fontFamily: fieldFontFamily,
+                    fontWeight: fieldFontWeight,
+                    fontStyle: fieldFontStyle,
+                    textDecoration: fieldTextDecoration,
+                    textAlign: textAlign,
+                  }}
+                >
                   {displayValue}
                 </span>
 
-                <div className="w-full border-t border-black mt-[2px]" />
+                <div/>
               </div>
             ) : (
               <>
@@ -461,12 +998,7 @@ const renderElements = (
                   }}
                 />
 
-                <div
-                  className="border-t border-black mt-[2px]"
-                  style={{
-                    width: renderWidth,
-                  }}
-                />
+                <div/>
               </>
             )}
           </div>
@@ -491,6 +1023,11 @@ const renderElements = (
                   align={textAlign}
                   label={el.label}
                   documentType={documentType}
+                  fontSize={fieldFontSize}
+                  fontFamily={fieldFontFamily}
+                  fontWeight={fieldFontWeight}
+                  fontStyle={fieldFontStyle}
+                  textDecoration={fieldTextDecoration}
                 />
               )}
           </div>
@@ -503,12 +1040,30 @@ const renderElements = (
               height: renderHeight,
             }}
           >
-            <span className="font-semibold text-gray-800 whitespace-nowrap text-[10px] leading-none">
+            <span
+              className="text-gray-800 whitespace-nowrap leading-none"
+              style={{
+                fontSize: `${fieldFontSize}px`,
+                fontFamily: fieldFontFamily,
+                fontWeight: fieldFontWeight,
+                fontStyle: fieldFontStyle,
+                textDecoration: fieldTextDecoration,
+              }}
+            >
               NIDN.
             </span>
 
             {isPreview ? (
-              <span className="inline-block text-gray-800 font-semibold text-[10px] leading-none whitespace-nowrap">
+              <span
+                className="inline-block text-gray-800 leading-none whitespace-nowrap"
+                style={{
+                  fontSize: `${fieldFontSize}px`,
+                  fontFamily: fieldFontFamily,
+                  fontWeight: fieldFontWeight,
+                  fontStyle: fieldFontStyle,
+                  textDecoration: fieldTextDecoration,
+                }}
+              >
                 {displayValue}
               </span>
             ) : (
@@ -543,6 +1098,11 @@ const renderElements = (
                   align={textAlign}
                   label={el.label}
                   documentType={documentType}
+                  fontSize={fieldFontSize}
+                  fontFamily={fieldFontFamily}
+                  fontWeight={fieldFontWeight}
+                  fontStyle={fieldFontStyle}
+                  textDecoration={fieldTextDecoration}
                 />
               )}
           </div>
@@ -563,6 +1123,11 @@ const renderElements = (
                 align={textAlign}
                 label={el.label}
                 documentType={documentType}
+                fontSize={fieldFontSize}
+                fontFamily={fieldFontFamily}
+                fontWeight={fieldFontWeight}
+                fontStyle={fieldFontStyle}
+                textDecoration={fieldTextDecoration}
               />
             )}
           </div>
@@ -572,22 +1137,34 @@ const renderElements = (
   });
 
 const TranskripTableOverlay = ({ elements, mataKuliahData = [] }) => {
-  const isActive = (label) => elements.some((el) => el.label === label);
+  const tableElement = elements.find((el) => el.label === "Tabel Mata Kuliah");
 
-  const summaryBox = (label) =>
-    isActive(label)
-      ? "absolute top-[2px] bottom-[2px] left-[2px] right-[2px] border border-[#8B8B8B] bg-[#00000008] rounded-[2px]"
-      : "";
+  if (!tableElement) {
+    return null;
+  }
 
-  const splitIndex = Math.ceil(mataKuliahData.length / 2);
-  const leftRows = mataKuliahData.slice(0, splitIndex);
-  const rightRows = mataKuliahData.slice(splitIndex);
+  const rows =
+    mataKuliahData.length > 0
+      ? mataKuliahData
+      : Array.from({ length: 40 }).map((_, index) => ({
+          no: index + 1,
+          kode: "",
+          nama: "",
+          hm: "",
+          am: "",
+          k: "",
+          t: "",
+        }));
 
-  const renderNilaiRows = (rows, startNumber = 1) =>
-    rows.map((mk, i) => (
-      <tr key={i} style={{ height: `${ROW_H}px` }}>
+  const splitIndex = Math.ceil(rows.length / 2);
+  const leftRows = rows.slice(0, splitIndex);
+  const rightRows = rows.slice(splitIndex);
+
+  const renderNilaiRows = (list) =>
+    list.map((mk, index) => (
+      <tr key={index} style={{ height: `${ROW_H}px` }}>
         <td className="border border-[#707070] text-center">
-          {startNumber + i}
+          {mk.no || index + 1}
         </td>
 
         <td className="border border-[#707070] text-center">
@@ -595,7 +1172,7 @@ const TranskripTableOverlay = ({ elements, mataKuliahData = [] }) => {
         </td>
 
         <td className="border border-[#707070] px-1">
-          {mk.mata_kuliah || mk.nama_mk || mk.nama_mata_kuliah || ""}
+          {mk.nama || mk.mata_kuliah || mk.nama_mk || mk.nama_mata_kuliah || ""}
         </td>
 
         <td className="border border-[#707070] text-center">{mk.hm || ""}</td>
@@ -605,194 +1182,159 @@ const TranskripTableOverlay = ({ elements, mataKuliahData = [] }) => {
       </tr>
     ));
 
+  const renderNilaiTable = (list, withFooter = false) => (
+    <table className="w-full border-collapse text-[7px] bg-transparent">
+      <thead>
+        <tr>
+          <th className="border border-[#707070] h-[18px] w-[24px] font-semibold">
+            NO
+          </th>
+          <th className="border border-[#707070] w-[52px] font-semibold">
+            KODE
+          </th>
+          <th className="border border-[#707070] font-semibold">MATA KULIAH</th>
+          <th colSpan={2} className="border border-[#707070] font-semibold">
+            NILAI
+          </th>
+          <th colSpan={2} className="border border-[#707070] font-semibold">
+            BOBOT
+          </th>
+        </tr>
+
+        <tr>
+          <th className="border border-[#707070]"></th>
+          <th className="border border-[#707070]"></th>
+          <th className="border border-[#707070]"></th>
+          <th className="border border-[#707070] w-[28px] font-semibold">HM</th>
+          <th className="border border-[#707070] w-[28px] font-semibold">AM</th>
+          <th className="border border-[#707070] w-[28px] font-semibold">K</th>
+          <th className="border border-[#707070] w-[28px] font-semibold">T</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {renderNilaiRows(list)}
+
+        {withFooter && (
+          <>
+            <tr style={{ height: `${ROW_H}px` }}>
+              <td className="border border-[#707070]"></td>
+              <td className="border border-[#707070]"></td>
+              <td className="border border-[#707070] px-1 font-bold">Jumlah</td>
+              <td className="border border-[#707070]"></td>
+              <td className="border border-[#707070]"></td>
+              <td className="border border-[#707070]"></td>
+              <td className="border border-[#707070] text-center font-bold">
+                0
+              </td>
+            </tr>
+
+            <tr style={{ height: `${ROW_H}px` }}>
+              <td className="border border-[#707070]"></td>
+              <td className="border border-[#707070]"></td>
+              <td
+                colSpan={5}
+                className="border border-[#707070] px-1 font-bold"
+              >
+                Indeks Prestasi Kumulatif
+                <span className="float-right">Menunggu Data</span>
+              </td>
+            </tr>
+
+            <tr style={{ height: `${ROW_H}px` }}>
+              <td className="border border-[#707070]"></td>
+              <td className="border border-[#707070]"></td>
+              <td
+                colSpan={5}
+                className="border border-[#707070] px-1 font-bold"
+              >
+                Predikat Kelulusan
+                <span className="float-right">Menunggu Data</span>
+              </td>
+            </tr>
+
+            <tr style={{ height: `${ROW_H}px` }}>
+              <td className="border border-[#707070]"></td>
+              <td className="border border-[#707070]"></td>
+              <td
+                colSpan={5}
+                className="border border-[#707070] px-1 font-bold"
+              >
+                Judul Skripsi :
+              </td>
+            </tr>
+          </>
+        )}
+      </tbody>
+    </table>
+  );
+
   return (
     <div
-      className="absolute inset-x-0 z-10 pointer-events-none"
-      style={{ top: "27%", paddingLeft: "3.5%", paddingRight: "3.5%" }}
+      className="absolute z-10 pointer-events-none"
+      style={{
+        left: tableElement.x,
+        top: tableElement.y,
+        width: tableElement.width || 700,
+      }}
     >
-      <div className="flex justify-between items-start">
-        <div style={{ width: "46%" }}>
-          <table className="w-full border-collapse text-[8px] bg-[#F2F2F2]">
+      <div className="grid grid-cols-2 gap-2">
+        <div>{renderNilaiTable(leftRows, false)}</div>
+        <div>{renderNilaiTable(rightRows, true)}</div>
+      </div>
+
+      <div className="mt-3 flex items-start justify-between gap-4">
+        <div className="w-[250px]">
+          <div className="text-[7px] font-bold leading-[1.35] mb-2">
+            <p>Keterangan</p>
+            <p>+ Mata Kuliah Konversi</p>
+            <p>++ Mata Kuliah Konsentrasi</p>
+            <p>+++ Mata Kuliah MBKM</p>
+          </div>
+
+          <p className="text-[7px] font-bold mb-1">Kualifikasi Nilai</p>
+
+          <table className="w-full border-collapse text-[7px]">
             <thead>
               <tr>
-                <th className="border border-[#707070] h-[20px] w-[24px] font-semibold">
-                  NO
+                <th colSpan={2} className="border border-[#707070] font-bold">
+                  Nilai
                 </th>
-                <th className="border border-[#707070] w-[52px] font-semibold">
-                  KODE
-                </th>
-                <th className="border border-[#707070] font-semibold">
-                  MATA KULIAH
-                </th>
-                <th
-                  colSpan={2}
-                  className="border border-[#707070] font-semibold"
-                >
-                  NILAI
-                </th>
-                <th
-                  colSpan={2}
-                  className="border border-[#707070] font-semibold"
-                >
-                  BOBOT
+                <th className="border border-[#707070] font-bold">
+                  Kualifikasi
                 </th>
               </tr>
 
               <tr>
-                <th className="border border-[#707070] h-[14px]" />
-                <th className="border border-[#707070]" />
-                <th className="border border-[#707070]" />
-                <th className="border border-[#707070] w-[18px]">HM</th>
-                <th className="border border-[#707070] w-[18px]">AM</th>
-                <th className="border border-[#707070] w-[16px]">K</th>
-                <th className="border border-[#707070] w-[16px]">T</th>
+                <th className="border border-[#707070] w-[36px] font-bold">
+                  Huruf
+                </th>
+                <th className="border border-[#707070] w-[36px] font-bold">
+                  Angka
+                </th>
+                <th className="border border-[#707070] font-bold"></th>
               </tr>
             </thead>
 
-            <tbody>{renderNilaiRows(leftRows, 1)}</tbody>
-          </table>
-        </div>
-
-        <div style={{ width: "46%" }}>
-          <table className="w-full border-collapse text-[8px] bg-[#F2F2F2]">
-            <thead>
-              <tr>
-                <th className="border border-[#707070] h-[20px] w-[24px] font-semibold">
-                  NO
-                </th>
-                <th className="border border-[#707070] w-[52px] font-semibold">
-                  KODE
-                </th>
-                <th className="border border-[#707070] font-semibold">
-                  MATA KULIAH
-                </th>
-                <th
-                  colSpan={2}
-                  className="border border-[#707070] font-semibold"
-                >
-                  NILAI
-                </th>
-                <th
-                  colSpan={2}
-                  className="border border-[#707070] font-semibold"
-                >
-                  BOBOT
-                </th>
-              </tr>
-
-              <tr>
-                <th className="border border-[#707070] h-[14px]" />
-                <th className="border border-[#707070]" />
-                <th className="border border-[#707070]" />
-                <th className="border border-[#707070] w-[18px]">HM</th>
-                <th className="border border-[#707070] w-[18px]">AM</th>
-                <th className="border border-[#707070] w-[16px]">K</th>
-                <th className="border border-[#707070] w-[16px]">T</th>
-              </tr>
-            </thead>
-
-            <tbody>{renderNilaiRows(rightRows, splitIndex + 1)}</tbody>
-          </table>
-
-          <table className="w-full border-collapse text-[7px] bg-[#F2F2F2]">
             <tbody>
-              <tr>
-                <td className="border border-[#707070] px-2 py-[3px] font-semibold w-[58%]">
-                  Jumlah
-                </td>
-                <td className="border border-[#707070] relative">
-                  <div className={summaryBox("Jumlah")} />
-                </td>
-                <td className="border border-[#707070] w-[40px]" />
-              </tr>
-
-              <tr>
-                <td className="border border-[#707070] px-2 py-[3px] font-semibold">
-                  Indeks Prestasi Kumulatif
-                </td>
-                <td className="border border-[#707070] relative">
-                  <div className={summaryBox("Indeks Prestasi Kumulatif")} />
-                </td>
-                <td className="border border-[#707070]" />
-              </tr>
-
-              <tr>
-                <td className="border border-[#707070] px-2 py-[3px] font-semibold">
-                  Predikat Kelulusan
-                </td>
-                <td className="border border-[#707070] relative">
-                  <div className={summaryBox("Predikat Kelulusan")} />
-                </td>
-                <td className="border border-[#707070]" />
-              </tr>
-
-              <tr>
-                <td className="border border-[#707070] px-2 py-[20px] font-semibold">
-                  Judul Skripsi :
-                </td>
-                <td colSpan={2} className="border border-[#707070] relative">
-                  <div className={summaryBox("Judul Skripsi")} />
-                </td>
-              </tr>
+              {kualData.map(([huruf, angka, kualifikasi]) => (
+                <tr key={huruf}>
+                  <td className="border border-[#707070] text-center font-bold">
+                    {huruf}
+                  </td>
+                  <td className="border border-[#707070] text-center font-bold">
+                    {angka}
+                  </td>
+                  <td className="border border-[#707070] px-2 font-bold">
+                    {kualifikasi}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
-      </div>
 
-      <div className="mt-[10px]">
-        <div
-          className="text-[7px] leading-[11px] mb-[4px]"
-          style={{ width: "44%" }}
-        >
-          <div className="font-semibold mb-[2px]">Keterangan</div>
-          <div>* Mata Kuliah Konversi</div>
-          <div>** Mata Kuliah Konsentrasi</div>
-          <div>*** Mata Kuliah MBKM</div>
-        </div>
-
-        <div className="flex justify-between items-start">
-          <div style={{ width: "44%" }}>
-            <div className="text-[7px] font-semibold mb-[2px]">
-              Kualifikasi Nilai
-            </div>
-
-            <table className="w-full border-collapse text-[7px] bg-[#F2F2F2]">
-              <thead>
-                <tr>
-                  <th colSpan={2} className="border border-[#707070] py-[2px]">
-                    Nilai
-                  </th>
-                  <th rowSpan={2} className="border border-[#707070] py-[2px]">
-                    Kualifikasi
-                  </th>
-                </tr>
-
-                <tr>
-                  <th className="border border-[#707070] py-[2px]">Huruf</th>
-                  <th className="border border-[#707070] py-[2px]">Angka</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {kualData.map((item, i) => (
-                  <tr key={i}>
-                    <td className="border border-[#707070] text-center py-[1px]">
-                      {item[0]}
-                    </td>
-
-                    <td className="border border-[#707070] text-center py-[1px]">
-                      {item[1]}
-                    </td>
-
-                    <td className="border border-[#707070] px-2 py-[1px]">
-                      {item[2]}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <div className="flex-1"></div>
       </div>
     </div>
   );
@@ -889,6 +1431,9 @@ const Template = () => {
   const applyTemplateFromBackend = (jenis, templateData) => {
     const fallbackImage = jenis === "ijazah" ? ijazahBg : transkripBg;
     const mapped = mapBackendTemplateToState(templateData, fallbackImage);
+    const normalizedElements = mapped.elements.map((element) =>
+      normalizeElementFromMeta(jenis, element),
+    );
 
     setTemplateImages((prev) => ({
       ...prev,
@@ -901,12 +1446,12 @@ const Template = () => {
     }));
 
     if (jenis === "ijazah") {
-      setIjazahElements(mapped.elements);
+      setIjazahElements(normalizedElements);
       setIjazahSaved(mapped.isSaved);
       setIjazahLocked(mapped.isLocked);
       setIjazahHasPreviewed(mapped.hasPreviewed);
     } else {
-      setTranskripElements(mapped.elements);
+      setTranskripElements(normalizedElements);
       setTranskripSaved(mapped.isSaved);
       setTranskripLocked(mapped.isLocked);
       setTranskripHasPreviewed(mapped.hasPreviewed);
@@ -1145,16 +1690,33 @@ const Template = () => {
 
     const templateArea = e.currentTarget.getBoundingClientRect();
 
-    let size = getFieldSize(field, activeTab);
+    const currentTemplateType = normalizeTemplateType(activeTab);
+
+    const size = getFieldSize(field, currentTemplateType);
+    const meta = getFieldMeta(currentTemplateType, field);
 
     const newElement = {
       id: Date.now(),
       label: field,
       placeholder: makePlaceholder(field),
+
+      field: meta.field || null,
+      type: meta.type || "text",
+
       x: e.clientX - templateArea.left,
       y: e.clientY - templateArea.top,
       width: size.width,
       height: size.height,
+
+      fontSize: meta.fontSize || (currentTemplateType === "transkrip" ? 7 : 12),
+      fontFamily: meta.fontFamily || "arial",
+      fontWeight: meta.fontWeight || "600",
+      fontStyle: meta.fontStyle || "normal",
+      textDecoration: meta.textDecoration || "none",
+      align:
+        meta.align || (currentTemplateType === "transkrip" ? "left" : "center"),
+
+      ...(meta.roleLabel ? { roleLabel: meta.roleLabel } : {}),
     };
 
     if (activeTab === "ijazah") {
@@ -1192,10 +1754,38 @@ const Template = () => {
     const newX = e.clientX - area.left - draggingElement.offsetX;
     const newY = e.clientY - area.top - draggingElement.offsetY;
 
-    const updater = (prev) =>
-      prev.map((el) =>
-        el.id === draggingElement.id ? { ...el, x: newX, y: newY } : el,
-      );
+    const updater = (prev) => {
+      const currentElement = prev.find((el) => el.id === draggingElement.id);
+
+      if (!currentElement) return prev;
+
+      const oldX = currentElement.x;
+      const oldY = currentElement.y;
+
+      const deltaY = newY - oldY;
+
+      return prev.map((el) => {
+        if (el.id === draggingElement.id) {
+          return {
+            ...el,
+            x: newX,
+            y: newY,
+          };
+        }
+
+        if (
+          currentElement.label === "Tabel Mata Kuliah" &&
+          TRANSKRIP_FOLLOW_TABLE_FIELDS.includes(el.label)
+        ) {
+          return {
+            ...el,
+            y: el.y + deltaY,
+          };
+        }
+
+        return el;
+      });
+    };
 
     if (activeTab === "ijazah") {
       setIjazahElements(updater);
@@ -1268,17 +1858,44 @@ const Template = () => {
     try {
       const jenis = activeTab === "ijazah" ? "ijazah" : "transkrip";
 
-      const elements = jenis === "ijazah" ? ijazahElements : transkripElements;
+      const currentElements =
+        jenis === "ijazah" ? ijazahElements : transkripElements;
+
+      // Normalisasi sebelum simpan agar field/type/style terbaru dari FIELD_META
+      // ikut tersimpan ke database template-service.
+      const elementsToSave = currentElements.map((element) =>
+        normalizeElementFromMeta(jenis, element),
+      );
+
       const isLockedValue = jenis === "ijazah" ? ijazahLocked : transkripLocked;
       const hasPreviewedValue =
         jenis === "ijazah" ? ijazahHasPreviewed : transkripHasPreviewed;
 
+      let imageNaturalWidth = null;
+      let imageNaturalHeight = null;
+      const currentImageSrc = templateImages[jenis];
+
+      if (currentImageSrc) {
+        await new Promise((resolve) => {
+          const img = new window.Image();
+          img.onload = () => {
+            imageNaturalWidth = img.naturalWidth;
+            imageNaturalHeight = img.naturalHeight;
+            resolve();
+          };
+          img.onerror = resolve;
+          img.src = currentImageSrc;
+        });
+      }
+
       const result = await saveTemplateLayout(
         jenis,
-        elements,
+        elementsToSave,
         true,
         isLockedValue,
         hasPreviewedValue,
+        imageNaturalWidth,
+        imageNaturalHeight,
       );
 
       const mapped = mapBackendTemplateToState(
@@ -1286,13 +1903,17 @@ const Template = () => {
         jenis === "ijazah" ? ijazahBg : transkripBg,
       );
 
+      const normalizedElements = (mapped.elements || []).map((element) =>
+        normalizeElementFromMeta(jenis, element),
+      );
+
       if (jenis === "ijazah") {
-        setIjazahElements(mapped.elements);
+        setIjazahElements(normalizedElements);
         setIjazahSaved(mapped.isSaved);
         setIjazahLocked(mapped.isLocked);
         setIjazahHasPreviewed(mapped.hasPreviewed);
       } else {
-        setTranskripElements(mapped.elements);
+        setTranskripElements(normalizedElements);
         setTranskripSaved(mapped.isSaved);
         setTranskripLocked(mapped.isLocked);
         setTranskripHasPreviewed(mapped.hasPreviewed);

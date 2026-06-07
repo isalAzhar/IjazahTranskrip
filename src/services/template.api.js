@@ -108,7 +108,9 @@ export const saveTemplateLayout = async (
   elements,
   isSaved,
   isLocked,
-  hasPreviewed
+  hasPreviewed,
+  imageNaturalWidth = null,
+  imageNaturalHeight = null,
 ) => {
   const token = getAuthToken();
 
@@ -128,6 +130,8 @@ export const saveTemplateLayout = async (
       isSaved,
       isLocked,
       hasPreviewed,
+      imageNaturalWidth,
+      imageNaturalHeight,
     }),
   });
 
