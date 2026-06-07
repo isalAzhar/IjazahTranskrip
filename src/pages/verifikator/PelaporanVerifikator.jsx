@@ -18,7 +18,37 @@ const badgeClass = (status) => {
 
   return "bg-gray-400 text-white";
 };
+const formatStatusLabel = (status) => {
+  const normalizedStatus = status?.toLowerCase().trim() || "";
 
+  if (normalizedStatus === "rejected" || normalizedStatus === "reject") {
+    return "Reject";
+  }
+
+  if (normalizedStatus === "revoked" || normalizedStatus === "revoke") {
+    return "Revoke";
+  }
+
+  if (normalizedStatus === "approved" || normalizedStatus === "terbit") {
+    return "Terbit";
+  }
+
+  if (normalizedStatus === "pending" || normalizedStatus === "proses") {
+    return "Proses";
+  }
+
+  return status || "-";
+};
+
+const getStatusFilterValue = (value) => {
+  if (!value || value === "Semua Status") return "";
+  if (value === "Reject") return "rejected";
+  if (value === "Revoke") return "revoked";
+  if (value === "Terbit") return "terbit";
+  if (value === "Proses") return "proses";
+
+  return value;
+};
 const formatTanggal = (value) => {
   if (!value) return "-";
   const date = new Date(value);
@@ -59,7 +89,7 @@ const PelaporanVerivikator = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const statusOptions = ["Semua Status", "Proses", "Terbit", "Revoked", "Rejected"];
+const statusOptions = ["Semua Status", "Proses", "Terbit", "Revoke", "Reject"];
 
   const fetchLaporan = async () => {
     try {
@@ -70,7 +100,7 @@ const PelaporanVerivikator = () => {
         page: currentPage,
         limit: ITEMS_PER_PAGE,
         search,
-        status: statusFilter === "Semua Status" ? "" : statusFilter,
+        status: getStatusFilterValue(statusFilter),
       });
 
       setLaporanList(result.data || []);
@@ -184,7 +214,7 @@ const PelaporanVerivikator = () => {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-center"
+                className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-5 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
               >
                 {statusOptions.map((item) => (
                   <option key={item} value={item === "Semua Status" ? "" : item}>

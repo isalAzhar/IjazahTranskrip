@@ -1,8 +1,9 @@
 @import "tailwindcss";
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap");
 
-/* ✅ Matikan icon mata bawaan browser di semua input password */
+/* Baru diikuti kode CSS untuk mematikan ikon mata dan lainnya di bawah sini */
 input[type="password"]::-ms-reveal,
+/* ... */
 input[type="password"]::-ms-clear,
 input::-webkit-credentials-auto-fill-button,
 input::-webkit-textfield-decoration-container,

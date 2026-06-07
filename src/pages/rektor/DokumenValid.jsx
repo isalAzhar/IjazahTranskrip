@@ -1,83 +1,108 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { FiSearch, FiChevronDown } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/ui/DashboardLayout";
+import { getValidDocumentBatches } from "../../services/document.api";
 
 const fakultasList = [
-  { nama: "Fakultas Agama Islam",                  kode: "FAI"   },
-  { nama: "Fakultas Keguruan dan Ilmu Pendidikan", kode: "FKIP"  },
-  { nama: "Fakultas Ekonomi dan Bisnis",           kode: "FEB"   },
-  { nama: "Fakultas Teknik dan Sains",             kode: "FTS"   },
-  { nama: "Fakultas Hukum",                        kode: "FH"    },
-  { nama: "Fakultas Ilmu Kesehatan",               kode: "FIKES" },
+  { nama: "Fakultas Agama Islam", kode: "FAI" },
+  { nama: "Fakultas Keguruan dan Ilmu Pendidikan", kode: "FKIP" },
+  { nama: "Fakultas Ekonomi dan Bisnis", kode: "FEB" },
+  { nama: "Fakultas Teknik dan Sains", kode: "FTS" },
+  { nama: "Fakultas Hukum", kode: "FH" },
+  { nama: "Fakultas Ilmu Kesehatan", kode: "FIKES" },
 ];
 
-const DUMMY_STUDENTS = [
-  { nama: "Adi Saputra",      nim: "231106040900", prodi: "Teknik Informatika",               fakultas: "Fakultas Teknik dan Sains",            batch: "Batch 1 - FTS"   },
-  { nama: "Rani Maharani",    nim: "231106040901", prodi: "Teknik Mesin",                     fakultas: "Fakultas Teknik dan Sains",            batch: "Batch 1 - FTS"   },
-  { nama: "Budi Pratama",     nim: "231106040902", prodi: "Teknik Sipil",                     fakultas: "Fakultas Teknik dan Sains",            batch: "Batch 1 - FTS"   },
-  { nama: "Kayla Keyla",      nim: "231106040903", prodi: "Sistem Informasi",                 fakultas: "Fakultas Teknik dan Sains",            batch: "Batch 1 - FTS"   },
-  { nama: "Siti Nurhaliza",   nim: "231106040905", prodi: "Pendidikan Agama Islam",           fakultas: "Fakultas Agama Islam",                 batch: "Batch 2 - FAI"   },
-  { nama: "Ahmad Fauzi",      nim: "231106040906", prodi: "Ekonomi Syariah",                  fakultas: "Fakultas Agama Islam",                 batch: "Batch 2 - FAI"   },
-  { nama: "Dimas Anggara",    nim: "231106040907", prodi: "Manajemen",                       fakultas: "Fakultas Ekonomi dan Bisnis",           batch: "Batch 3 - FEB"   },
-  { nama: "Chelsea Islan",    nim: "231106040908", prodi: "Akuntansi",                       fakultas: "Fakultas Ekonomi dan Bisnis",           batch: "Batch 3 - FEB"   },
-  { nama: "Reza Firmansyah",  nim: "231106040910", prodi: "Ilmu Hukum",                      fakultas: "Fakultas Hukum",                       batch: "Batch 4 - FH"    },
-  { nama: "Putri Andini",     nim: "231106040911", prodi: "Pendidikan Matematika",           fakultas: "Fakultas Keguruan dan Ilmu Pendidikan", batch: "Batch 5 - FKIP"  },
-  { nama: "Bagas Saputro",    nim: "231106040912", prodi: "Kesehatan Masyarakat",            fakultas: "Fakultas Ilmu Kesehatan",              batch: "Batch 6 - FIKES" },
-  { nama: "Nicholas Saputra", nim: "231106040909", prodi: "Ilmu Gizi",                       fakultas: "Fakultas Ilmu Kesehatan",              batch: "Batch 6 - FIKES" },
-  { nama: "Rizky Gusti",      nim: "231106040839", prodi: "Rekayasa Pertanian dan Biosistem",fakultas: "Fakultas Teknik dan Sains",            batch: "Batch 1 - FTS"   },
-  { nama: "Risma Puspita",    nim: "231106040290", prodi: "Teknik Elektro",                  fakultas: "Fakultas Teknik dan Sains",            batch: "Batch 1 - FTS"   },
-  { nama: "Dewi Rahayu",      nim: "231106040291", prodi: "Pendidikan Bahasa Inggris",       fakultas: "Fakultas Keguruan dan Ilmu Pendidikan", batch: "Batch 5 - FKIP"  },
-];
-
-const DUMMY_BATCH = Array.from({ length: 45 }, (_, i) => {
-  const f = fakultasList[i % fakultasList.length];
-  return {
-    id: i + 1,
-    batch: `Batch ${i + 1} - ${f.kode}`,
-    fakultas: f.nama,
-    tahun: 2021 + (i % 6),
-    periode: i % 2 === 0 ? "Semester Ganjil" : "Semester Genap",
-    total: 10,
-  };
-});
-
-// 🔥 PERBAIKAN: Menggunakan 300 item per page sesuai instruksimu
-const ITEMS_PER_PAGE = 300;
+const ITEMS_PER_PAGE = 10;
 
 const RektorDokumenValid = () => {
   const navigate = useNavigate();
 
-  const [search, setSearch]                     = useState("");
+  const [search, setSearch] = useState("");
   const [selectedFakultas, setSelectedFakultas] = useState("");
-  const [selectedYear, setSelectedYear]         = useState("");
-  const [currentPage, setCurrentPage]           = useState(1);
-  const [showSuggestions, setShowSuggestions]   = useState(false);
+  const [selectedYear, setSelectedYear] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const filterBarRef = useRef(null);
 
+  const [batches, setBatches] = useState([]);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: ITEMS_PER_PAGE,
+    total_data: 0,
+    total_page: 1,
+  });
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: currentYear - 2021 + 1 }, (_, i) => currentYear - i);
+  const years = Array.from(
+    { length: currentYear - 2021 + 1 },
+    (_, i) => currentYear - i,
+  );
 
-  const filtered = useMemo(() => {
-    return DUMMY_BATCH.filter((item) => {
-      const matchSearch   = item.batch.toLowerCase().includes(search.toLowerCase());
-      const matchFakultas = !selectedFakultas || item.fakultas === selectedFakultas;
-      const matchYear     = !selectedYear || item.tahun.toString() === selectedYear;
-      return matchSearch && matchFakultas && matchYear;
-    });
-  }, [search, selectedFakultas, selectedYear]);
+  const totalPages = pagination.total_page || 1;
+  const currentData = batches;
 
-  const searchSuggestions = useMemo(() => {
-    if (!search.trim()) return DUMMY_STUDENTS;
-    return DUMMY_STUDENTS.filter(
-      (s) => s.nama.toLowerCase().includes(search.toLowerCase()) || s.nim.includes(search)
+  const searchSuggestions = batches.filter((item) => {
+    if (!search.trim()) return true;
+
+    const keyword = search.toLowerCase();
+
+    return (
+      item.batch?.toLowerCase().includes(keyword) ||
+      item.nomor_batch_upload?.toLowerCase().includes(keyword) ||
+      item.fakultas?.toLowerCase().includes(keyword) ||
+      item.nama_file?.toLowerCase().includes(keyword)
     );
-  }, [search]);
+  });
 
-  const totalPages  = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
-  const currentData = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const fetchValidBatches = async () => {
+    setIsLoading(true);
+    setErrorMessage("");
 
-  const handlePage = (p) => { if (p >= 1 && p <= totalPages) setCurrentPage(p); };
+    try {
+      const result = await getValidDocumentBatches({
+        page: currentPage,
+        limit: ITEMS_PER_PAGE,
+        search,
+        fakultas: selectedFakultas,
+        tahun: selectedYear,
+      });
+
+      setBatches(result.data || []);
+      setPagination(
+        result.pagination || {
+          page: currentPage,
+          limit: ITEMS_PER_PAGE,
+          total_data: 0,
+          total_page: 1,
+        },
+      );
+    } catch (error) {
+      console.error("Gagal mengambil dokumen valid:", error);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Gagal mengambil dokumen valid.",
+      );
+      setBatches([]);
+      setPagination({
+        page: 1,
+        limit: ITEMS_PER_PAGE,
+        total_data: 0,
+        total_page: 1,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchValidBatches();
+  }, [currentPage, search, selectedFakultas, selectedYear]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -85,27 +110,68 @@ const RektorDokumenValid = () => {
         setShowSuggestions(false);
       }
     };
+
     document.addEventListener("mousedown", handleClickOutside);
+
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handlePage = (p) => {
+    if (p >= 1 && p <= totalPages) {
+      setCurrentPage(p);
+    }
+  };
+
+  const handleSearchChange = (e) => {
+    setSearch(e.target.value);
+    setCurrentPage(1);
+    setShowSuggestions(true);
+  };
+
+  const handleFakultasChange = (e) => {
+    setSelectedFakultas(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleYearChange = (e) => {
+    setSelectedYear(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleGoDetail = (item) => {
+    navigate(`/rektor/detail-dokumen-valid/${item.id_batch_upload || item.id}`, {
+      state: item,
+    });
+  };
+
   const renderPages = () => {
     let pages = [];
-    if (totalPages <= 4) pages = Array.from({ length: totalPages }, (_, i) => i + 1);
-    else if (currentPage <= 2) pages = [1, 2, "...", totalPages];
-    else if (currentPage >= totalPages - 1) pages = [1, "...", totalPages - 1, totalPages];
-    else pages = [1, "...", currentPage, "...", totalPages];
+
+    if (totalPages <= 4) {
+      pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+    } else if (currentPage <= 2) {
+      pages = [1, 2, "...", totalPages];
+    } else if (currentPage >= totalPages - 1) {
+      pages = [1, "...", totalPages - 1, totalPages];
+    } else {
+      pages = [1, "...", currentPage, "...", totalPages];
+    }
 
     return pages.map((p, idx) => {
-      const isActive   = p === currentPage;
+      const isActive = p === currentPage;
       const isEllipsis = p === "...";
+
       return (
         <button
           key={idx}
           onClick={() => !isEllipsis && handlePage(p)}
           disabled={isEllipsis}
           className={`w-9 h-9 flex items-center justify-center rounded-md text-sm font-bold transition-all
-            ${isActive   ? "bg-[#117065] text-white shadow-md" : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"}
+            ${
+              isActive
+                ? "bg-[#117065] text-white shadow-md"
+                : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"
+            }
             ${isEllipsis ? "cursor-default" : "cursor-pointer"}`}
         >
           {p}
@@ -121,12 +187,13 @@ const RektorDokumenValid = () => {
   return (
     <DashboardLayout title="Dokumen Valid">
       <div className="w-full pb-10">
-
-        {/* HEADER */}
         <div className="mb-6">
-          <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">Daftar Dokumen Valid</h1>
+          <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">
+            Daftar Dokumen Valid
+          </h1>
           <p className="text-[#9CA3AF] text-[14px] font-medium mt-1">
-            Arsip digital ijazah dan transkrip mahasiswa yang telah melewati proses verifikasi institusi.
+            Arsip digital ijazah dan transkrip mahasiswa yang telah melewati
+            proses verifikasi institusi.
           </p>
         </div>
       {/* 🔥 WRAPPER UTAMA: Membungkus Filter & Suggestions agar Click Outside tidak error */}
@@ -240,7 +307,14 @@ const RektorDokumenValid = () => {
         {/* Jarak penyeimbang jika dropdown tidak tampil */}
         {!showSuggestions && <div className="mb-0" />}
 
-        {/* TABLE */}
+        {(!showSuggestions || !search.trim()) && <div className="mb-6" />}
+
+        {errorMessage && (
+          <div className="mb-5 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm font-semibold text-red-600">
+            {errorMessage}
+          </div>
+        )}
+
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left whitespace-nowrap">
@@ -255,31 +329,63 @@ const RektorDokumenValid = () => {
                   <th className="py-4 px-6 text-center w-20">Detail</th>
                 </tr>
               </thead>
+
               <tbody>
-                {currentData.map((item, i) => (
-                  <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-6 text-center font-semibold text-gray-800">
-                      {(currentPage - 1) * ITEMS_PER_PAGE + i + 1}.
-                    </td>
-                    <td className="py-4 px-6 font-semibold text-gray-900">{item.batch}</td>
-                    <td className="py-4 px-6 font-normal text-gray-700">{item.fakultas}</td>
-                    <td className="py-4 px-6 text-center font-normal text-gray-700">{item.tahun}</td>
-                    <td className="py-4 px-6 text-center font-normal text-gray-700">{item.periode}</td>
-                    <td className="py-4 px-6 text-center font-normal text-gray-700">{item.total}</td>
-                    <td className="py-4 px-6 text-center">
-                      <button
-                        onClick={() => navigate(`/rektor/detail-dokumen-valid/${item.id}`, { state: item })}
-                        className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
-                      >
-                        <DetailIcon />
-                      </button>
+                {isLoading ? (
+                  <tr>
+                    <td
+                      colSpan="7"
+                      className="py-12 text-center text-gray-400 font-medium"
+                    >
+                      Memuat data dokumen valid...
                     </td>
                   </tr>
-                ))}
+                ) : currentData.length > 0 ? (
+                  currentData.map((item, i) => (
+                    <tr
+                      key={item.id_batch_upload || item.id}
+                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="py-4 px-6 text-center font-semibold text-gray-800">
+                        {(currentPage - 1) * ITEMS_PER_PAGE + i + 1}.
+                      </td>
 
-                {currentData.length === 0 && (
+                      <td className="py-4 px-6 font-semibold text-gray-900">
+                        {item.batch || item.nomor_batch_upload || "-"}
+                      </td>
+
+                      <td className="py-4 px-6 font-normal text-gray-700">
+                        {item.fakultas || "-"}
+                      </td>
+
+                      <td className="py-4 px-6 text-center font-normal text-gray-700">
+                        {item.tahun || "-"}
+                      </td>
+
+                      <td className="py-4 px-6 text-center font-normal text-gray-700">
+                        {item.periode || "-"}
+                      </td>
+
+                      <td className="py-4 px-6 text-center font-normal text-gray-700">
+                        {item.total || 0}
+                      </td>
+
+                      <td className="py-4 px-6 text-center">
+                        <button
+                          onClick={() => handleGoDetail(item)}
+                          className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
+                        >
+                          <DetailIcon />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
                   <tr>
-                    <td colSpan="7" className="py-12 text-center text-gray-400 font-medium">
+                    <td
+                      colSpan="7"
+                      className="py-12 text-center text-gray-400 font-medium"
+                    >
                       <div className="flex flex-col items-center justify-center">
                         <FiSearch className="text-4xl mb-3 text-gray-300" />
                         <p>Data dokumen tidak ditemukan.</p>
@@ -291,11 +397,12 @@ const RektorDokumenValid = () => {
             </table>
           </div>
 
-          {/* PAGINATION */}
           <div className="px-6 py-5 border-t border-gray-100 bg-white flex justify-between items-center">
             <p className="text-sm text-gray-400 font-medium">
-              Menampilkan {currentData.length} dari {filtered.length} data
+              Menampilkan {currentData.length} dari{" "}
+              {pagination.total_data || 0} data
             </p>
+
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handlePage(currentPage - 1)}
@@ -304,7 +411,9 @@ const RektorDokumenValid = () => {
               >
                 &lt;
               </button>
+
               {renderPages()}
+
               <button
                 onClick={() => handlePage(currentPage + 1)}
                 disabled={currentPage === totalPages}
@@ -315,7 +424,6 @@ const RektorDokumenValid = () => {
             </div>
           </div>
         </div>
-
       </div>
     </DashboardLayout>
   );

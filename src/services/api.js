@@ -7,3 +7,4 @@ export * from "./approval.api.js";
 export * from "./dashboard.api.js";
 export * from "./unit.service.js";
 export * from "./template.api.js";
+export * from "./document.api.js";
