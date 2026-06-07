@@ -1,176 +1,347 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import DashboardLayout from "../../components/ui/DashboardLayout";
-import { FiSearch } from "react-icons/fi";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { useAuth } from "../../pages/context/AuthContext";
+import { getLatestValidations } from "../../services/dashboard.api";
+
+const normalizeStatus = (status) => {
+  const value = status?.toString().toLowerCase();
+
+  if (value === "terbit" || value === "approved" || value === "valid") {
+    return "terbit";
+  }
+
+  if (value === "proses" || value === "pending") {
+    return "proses";
+  }
+
+  if (value === "reject" || value === "rejected" || value === "ditolak") {
+    return "reject";
+  }
+
+  if (value === "revoke" || value === "revoked" || value === "dicabut") {
+    return "revoke";
+  }
+
+  return value || "";
+};
+
+const getBatchIdentity = (item = {}) => {
+  const batchName = item.batch || "Tanpa Batch";
+  const fakultas = item.fakultas || "-";
+  const tahun = item.tahun_lulus?.toString() || item.tahun?.toString() || "-";
+  const periode = item.periode || "-";
+
+  const key = `${batchName}-${fakultas}-${tahun}-${periode}`;
+
+  return {
+    batchName,
+    fakultas,
+    tahun,
+    periode,
+    key,
+  };
+};
+
+const getBatchFromState = (state) => {
+  if (!state) return null;
+
+  if (state.batch && typeof state.batch === "object") {
+    return state.batch;
+  }
+
+  return state;
+};
+
+const getMahasiswaFromState = (state) => {
+  if (!state) return [];
+
+  if (Array.isArray(state.mahasiswa)) {
+    return state.mahasiswa;
+  }
+
+  if (Array.isArray(state.batch?.mahasiswa)) {
+    return state.batch.mahasiswa;
+  }
+
+  return [];
+};
+
+const formatMahasiswa = (item, index, batchData) => {
+  return {
+    ...item,
+
+    id: item.id || item.id_mahasiswa || index + 1,
+
+    id_mahasiswa: item.id_mahasiswa,
+
+    nim: item.nim || item.npm || "-",
+
+    nama: item.nama || item.nama_mahasiswa || "-",
+
+    nama_mahasiswa: item.nama_mahasiswa || item.nama || "-",
+
+    prodi: item.prodi || item.program_studi || "-",
+
+    program_studi: item.program_studi || item.prodi || "-",
+
+    fakultas: item.fakultas || batchData?.fakultas || "-",
+
+    tahun: item.tahun || item.tahun_lulus || batchData?.tahun || "-",
+
+    tahun_lulus: item.tahun_lulus || item.tahun || batchData?.tahun || "-",
+
+    periode: item.periode || batchData?.periode || "-",
+
+    status: item.status || batchData?.status || "Proses",
+
+    batch: item.batch || batchData?.batch || "-",
+
+    raw: item.raw || item,
+  };
+};
+
+const getBadgeColor = (status) => {
+  const normalized = normalizeStatus(status);
+
+  switch (normalized) {
+    case "terbit":
+      return "bg-[#27AE60] text-white";
+
+    case "proses":
+      return "bg-[#3B82F6] text-white";
+
+    case "reject":
+      return "bg-[#EF4444] text-white";
+
+    case "revoke":
+      return "bg-[#F59E0B] text-white";
+
+    default:
+      return "bg-gray-400 text-white";
+  }
+};
+
+const getBadgeLabel = (status) => {
+  const normalized = normalizeStatus(status);
+
+  switch (normalized) {
+    case "terbit":
+      return "Terbit";
+
+    case "proses":
+      return "Proses";
+
+    case "reject":
+      return "Reject";
+
+    case "revoke":
+      return "Revoke";
+
+    default:
+      return status || "-";
+  }
+};
 
 const BatchProses = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
 
-  const [search, setSearch] = useState("");
+  const { user } = useAuth();
+  const userRole = user?.role?.toLowerCase() || "";
 
-  // Ambil data dari halaman IjazahProses.jsx (dari Kode 2)
-  const batchDariHalamanSebelumnya = location.state?.batch;
-  const mahasiswaDariHalamanSebelumnya =
-    location.state?.mahasiswa || batchDariHalamanSebelumnya?.mahasiswa || [];
+  const decodedId = decodeURIComponent(id || "");
 
-  const batchData = batchDariHalamanSebelumnya || {
-    batch: `Batch ${id || "1"}`,
-    fakultas: "Fakultas Teknik dan Sains",
-    tahun: "2025",
-    status: "Proses",
-  };
+  const initialBatch = getBatchFromState(location.state);
+  const initialMahasiswa = getMahasiswaFromState(location.state);
 
-  const names = [
-    "Adi Saputra",
-    "Rani Maharani",
-    "Budi Pratama",
-    "Kayla Key",
-    "Rizky Gusti A",
-    "Risma Puspita",
-    "Budi Doremi",
-    "Siti Aisyah",
-    "Eagle Al-Haikal",
-    "Zahra Nabil",
-    "Daffa Zaidan",
-    "Fitri Handayani",
-    "Gilang Ramadhan",
-    "Hana Pertiwi",
-    "Indra Wijaya",
-  ];
-
-  const prodiMap = {
-    "Fakultas Teknik dan Sains": [
-      "Teknik Informatika",
-      "Teknik Mesin",
-      "Teknik Sipil",
-      "Teknik Elektro",
-    ],
-    "Fakultas Hukum": ["Ilmu Hukum", "Hukum Bisnis"],
-    "Fakultas Ekonomi dan Bisnis": [
-      "Manajemen",
-      "Akuntansi",
-      "Keuangan dan Perbankan",
-    ],
-    "Fakultas Agama Islam": [
-      "Pendidikan Agama Islam",
-      "Ekonomi Syariah",
-      "Komunikasi dan Penyiaran Islam",
-    ],
-    "Fakultas Ilmu Kesehatan": ["Kesehatan Masyarakat", "Ilmu Gizi"],
-    "Fakultas Keguruan dan Ilmu Pendidikan": [
-      "Pendidikan Bahasa Inggris",
-      "Teknologi Pendidikan",
-    ],
-  };
-
-  // DATA DUMMY CADANGAN (dari Kode 2)
-  const dummyMahasiswa = useMemo(() => {
-    const selectedProdis = prodiMap[batchData.fakultas] || [
-      "Program Studi Umum",
-    ];
-
-    return Array.from({ length: 45 }, (_, i) => ({
-      id: i + 1,
-      nim: `2311060409${(i + 1).toString().padStart(2, "0")}`,
-      nama: names[i % names.length],
-      prodi: selectedProdis[i % selectedProdis.length],
-      tahun: batchData.tahun || "2025",
+  const [batchData, setBatchData] = useState(
+    initialBatch || {
+      batch: `Batch ${decodedId || "-"}`,
+      fakultas: "-",
+      tahun: "-",
+      periode: "-",
       status: "Proses",
-      batch: batchData.batch,
-      fakultas: batchData.fakultas,
-    }));
-  }, [batchData]);
+    }
+  );
 
-  // Gunakan data dari halaman sebelumnya jika ada, else gunakan dummy
-  const mahasiswa =
-    mahasiswaDariHalamanSebelumnya.length > 0
-      ? mahasiswaDariHalamanSebelumnya.map((mhs, index) => ({
-          ...mhs,
-          id: mhs.id || index + 1,
-          nim:
-            mhs.nim ||
-            mhs.npm ||
-            `2311060409${(index + 1).toString().padStart(2, "0")}`,
-          nama: mhs.nama || names[index % names.length],
-          prodi: mhs.prodi || "Program Studi Umum",
-          fakultas: mhs.fakultas || batchData.fakultas,
-          tahun: mhs.tahun || batchData.tahun || "2025",
-          status: mhs.status || "Proses",
-          batch: batchData.batch,
-        }))
-      : dummyMahasiswa;
+  const [mahasiswa, setMahasiswa] = useState(
+    initialMahasiswa.map((item, index) =>
+      formatMahasiswa(item, index, initialBatch)
+    )
+  );
 
-  const filteredData = mahasiswa
-    .filter((item) => {
-      const keyword = search.toLowerCase();
-      return (
-        item.nama.toLowerCase().includes(keyword) ||
-        String(item.nim).includes(keyword) ||
-        item.prodi.toLowerCase().includes(keyword)
+  const [isLoading, setIsLoading] = useState(initialMahasiswa.length === 0);
+  const [apiError, setApiError] = useState("");
+
+  useEffect(() => {
+    const stateBatch = getBatchFromState(location.state);
+    const stateMahasiswa = getMahasiswaFromState(location.state);
+
+    if (stateMahasiswa.length > 0) {
+      const formattedBatch = stateBatch || {
+        batch: `Batch ${decodedId || "-"}`,
+        fakultas: "-",
+        tahun: "-",
+        periode: "-",
+        status: "Proses",
+      };
+
+      setBatchData(formattedBatch);
+
+      setMahasiswa(
+        stateMahasiswa.map((item, index) =>
+          formatMahasiswa(item, index, formattedBatch)
+        )
       );
-    })
-    .sort((a, b) => {
-      return a.nama.localeCompare(b.nama);
-    });
 
-  const getBadgeColor = (status) => {
-    switch (status) {
-      case "Terbit":
-        return "bg-[#27AE60] text-white";
-      case "Proses":
-        return "bg-[#3B82F6] text-white";
-      case "Reject":
-        return "bg-[#EF4444] text-white";
-      case "Revoke":
-        return "bg-[#F59E0B] text-white";
-      default:
-        return "bg-gray-400 text-white";
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchBatchProses = async () => {
+      try {
+        setIsLoading(true);
+        setApiError("");
+
+        const result = await getLatestValidations({
+          page: 1,
+          limit: 10000,
+          search: "",
+        });
+
+        const rows = Array.isArray(result.data) ? result.data : [];
+
+        const prosesRows = rows.filter(
+          (item) => normalizeStatus(item.status) === "proses"
+        );
+
+        const selectedRows = prosesRows.filter((item) => {
+          const identity = getBatchIdentity(item);
+
+          const possibleIds = [
+            item.id_batch,
+            item.id_batch_upload,
+            item.batch_id,
+            identity.key,
+            identity.batchName,
+          ]
+            .filter(Boolean)
+            .map((value) => String(value));
+
+          return possibleIds.includes(decodedId);
+        });
+
+        if (selectedRows.length === 0) {
+          setMahasiswa([]);
+
+          setBatchData({
+            batch: `Batch ${decodedId || "-"}`,
+            fakultas: "-",
+            tahun: "-",
+            periode: "-",
+            status: "Proses",
+          });
+
+          return;
+        }
+
+        const firstIdentity = getBatchIdentity(selectedRows[0]);
+
+        const newBatchData = {
+          batch: firstIdentity.batchName,
+          fakultas: firstIdentity.fakultas,
+          tahun: firstIdentity.tahun,
+          periode: firstIdentity.periode,
+          status: "Proses",
+        };
+
+        setBatchData(newBatchData);
+
+        setMahasiswa(
+          selectedRows.map((item, index) =>
+            formatMahasiswa(item, index, newBatchData)
+          )
+        );
+      } catch (error) {
+        console.error("Gagal mengambil detail batch proses:", error);
+        setApiError(error.message || "Gagal mengambil data dari server.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBatchProses();
+  }, [decodedId, location.state]);
+
+  const sortedMahasiswa = useMemo(() => {
+    return [...mahasiswa].sort((a, b) => {
+      return (a.nama || "").localeCompare(b.nama || "");
+    });
+  }, [mahasiswa]);
+
+  const handleDetailMahasiswa = (item) => {
+    const safeNim = encodeURIComponent(item.nim || "-");
+
+    const formattedMahasiswa = {
+      ...item,
+      nama_mahasiswa: item.nama_mahasiswa || item.nama,
+      program_studi: item.program_studi || item.prodi,
+      tahun_lulus: item.tahun_lulus || item.tahun,
+      fakultas: item.fakultas || batchData?.fakultas,
+      batch: item.batch || batchData?.batch,
+    };
+
+    const navState = {
+      state: {
+        mahasiswa: formattedMahasiswa,
+        batch: batchData,
+      },
+    };
+
+    if (userRole === "rektor") {
+      navigate(`/rektor/detail-mahasiswa/${safeNim}`, navState);
+    } else if (userRole.includes("operator")) {
+      navigate(`/operator/detail-mahasiswa/${safeNim}`, navState);
+    } else if (userRole.includes("admin")) {
+      navigate(`/admin/detail-mahasiswa/${safeNim}`, navState);
+    } else {
+      navigate(`/verifikator/detail-mahasiswa/${safeNim}`, navState);
     }
   };
 
-  // ==========================================================================
-  // HANDLE DETAIL MAHASISWA - ROUTE DARI KODE 1 (TIDAK DIUBAH)
-  // ==========================================================================
-  const handleDetailMahasiswa = (item) => {
-    navigate(`/detail-mahasiswa/${item.nim}`, {
-      state: item,
-    });
-  };
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex justify-center items-center h-[70vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3B82F6]"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
       <div className="w-full pb-10">
-        {/* HEADER - gaya dari Kode 2 */}
-        <div className="mb-6">
+        <div className="bg-white p-5 md:p-6 rounded-xl shadow-sm border border-gray-200 mb-6 flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">
+            <h1 className="text-[24px] md:text-[28px] font-bold text-gray-900 tracking-tight">
               Jumlah Ijazah di Proses
             </h1>
 
-            <p className="text-[#9CA3AF] text-[14px] font-medium">
-              Update terakhir: 17 Januari 2026, 09:10 WIB •{" "}
-              {batchData.fakultas}
+            <p className="text-[#9CA3AF] text-[13px] md:text-[14px] font-medium">
+              Jumlah ijazah diproses
             </p>
+
+            {apiError && (
+              <p className="text-sm text-red-500 mt-1 font-semibold">
+                {apiError}
+              </p>
+            )}
           </div>
         </div>
 
-        {/* FILTER BOX - DIUBAH JADI PUTIH */}
-        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-200">
-          <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-[44px] w-full transition-all shadow-sm">
-            <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
-            <input
-              type="text"
-              placeholder="Cari: Nama, NIM, Prodi"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
-            />
-          </div>
-        </div>
-
-        {/* TABLE SECTION - gaya dari Kode 2 */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-[#F7F7F7] text-gray-500 border-b border-gray-200">
@@ -186,59 +357,59 @@ const BatchProses = () => {
             </thead>
 
             <tbody>
-              {filteredData.map((item, i) => (
-                <tr
-                  key={item.id || i}
-                  className="border-t border-gray-200 hover:bg-gray-50 transition-colors"
-                >
-                  <td className="px-4 py-3 text-center">{i + 1}</td>
+              {sortedMahasiswa.length > 0 ? (
+                sortedMahasiswa.map((item, i) => (
+                  <tr
+                    key={item.id || item.id_mahasiswa || i}
+                    className="border-t border-gray-200 hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="px-4 py-3 text-center">{i + 1}</td>
 
-                  <td className="px-4 py-3 font-semibold text-gray-800">
-                    {item.nama}
-                  </td>
+                    <td className="px-4 py-3 font-semibold text-gray-800">
+                      {item.nama || "-"}
+                    </td>
 
-                  <td className="px-4 py-3 font-medium text-gray-800 text-center">
-                    {item.nim}
-                  </td>
+                    <td className="px-4 py-3 font-medium text-gray-800 text-center">
+                      {item.nim || "-"}
+                    </td>
 
-                  <td className="px-4 py-3 font-medium text-gray-800 text-center">
-                    {item.prodi}
-                  </td>
+                    <td className="px-4 py-3 font-medium text-gray-800 text-center">
+                      {item.prodi || "-"}
+                    </td>
 
-                  <td className="px-4 py-3 font-medium text-gray-800 text-center">
-                    {item.tahun}
-                  </td>
+                    <td className="px-4 py-3 font-medium text-gray-800 text-center">
+                      {item.tahun || item.tahun_lulus || "-"}
+                    </td>
 
-                  <td className="px-4 py-3 text-center">
-                    <span
-                      className={`inline-block min-w-[86px] px-4 py-1.5 rounded-full text-xs font-bold ${getBadgeColor(
-                        item.status || "Proses"
-                      )}`}
-                    >
-                      {item.status || "Proses"}
-                    </span>
-                  </td>
+                    <td className="px-4 py-3 text-center">
+                      <span
+                        className={`inline-block min-w-[86px] px-4 py-1.5 rounded-full text-xs font-bold ${getBadgeColor(
+                          item.status
+                        )}`}
+                      >
+                        {getBadgeLabel(item.status)}
+                      </span>
+                    </td>
 
-                  <td className="px-4 py-3 text-center">
-                    <button
-                      type="button"
-                      onClick={() => handleDetailMahasiswa(item)}
-                      className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-100 transition"
-                      title="Lihat Detail Mahasiswa"
-                    >
-                      <div className="w-3 h-3 border-t-2 border-b-2 border-gray-400"></div>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-
-              {filteredData.length === 0 && (
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        type="button"
+                        onClick={() => handleDetailMahasiswa(item)}
+                        className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-100 transition"
+                        title="Lihat Detail Mahasiswa"
+                      >
+                        <div className="w-3 h-3 border-t-2 border-b-2 border-gray-400"></div>
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
                 <tr>
                   <td
                     colSpan="7"
                     className="px-4 py-8 text-center text-gray-400"
                   >
-                    Data mahasiswa tidak ditemukan.
+                    Data mahasiswa proses tidak ditemukan.
                   </td>
                 </tr>
               )}

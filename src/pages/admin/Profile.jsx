@@ -92,7 +92,6 @@ const Profile = () => {
     navigate("/login");
   };
 
-  // 🔥 2. FUNGSI SUBMIT UBAH SANDI KE API
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     

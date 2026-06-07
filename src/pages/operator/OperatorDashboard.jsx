@@ -1,293 +1,136 @@
-// src/pages/operator/OperatorDashboard.jsx
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiSearch } from "react-icons/fi";
+
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import StatCard from "../../components/ui/StatCard";
 import IssuanceChart from "../../components/ui/IssuanceChart";
 import VerificationStatusChart from "../../components/ui/VerificationStatusChart";
-import { OperatorIcons } from "../../components/icon/OperatorIcons";
 
-// ============================================================
-// GENERATE DUMMY DATA (LENGKAP DENGAN SPECIAL DATA & REVOKE)
-// ============================================================
-const generateDummyData = () => {
-  const data = [];
+import { Icons } from "../../components/icon/DashboardIcons";
+import { useAuth } from "../context/AuthContext";
 
-  const specialData = {
-    1: {
-      n: "Adi Saputra",
-      b: "Batch 1 - FEB",
-      npm: "231106040902",
-      f: "Fakultas Ekonomi dan Bisnis",
-      p: "Manajemen",
-      t: "2026",
-      s: "Terbit",
-    },
-    2: {
-      n: "Rani Maharani",
-      b: "Batch 1 - FEB",
-      npm: "231106040903",
-      f: "Fakultas Ekonomi dan Bisnis",
-      p: "Akuntansi",
-      t: "2026",
-      s: "Terbit",
-    },
-    3: {
-      n: "Budi Pratama",
-      b: "Batch 1 - FEB",
-      npm: "231106040910",
-      f: "Fakultas Ekonomi dan Bisnis",
-      p: "Bisnis Digital",
-      t: "2026",
-      s: "Terbit",
-    },
-    4: {
-      n: "Kayla Key",
-      b: "Batch 21 - FTS",
-      npm: "231106040912",
-      f: "Fakultas Teknik dan Sains",
-      p: "Teknik Mesin",
-      t: "2026",
-      s: "Proses",
-    },
-    5: {
-      n: "Rizky Gusti A",
-      b: "Batch 21 - FTS",
-      npm: "231106040839",
-      f: "Fakultas Teknik dan Sains",
-      p: "Teknik Informatika",
-      t: "2026",
-      s: "Proses",
-    },
-    6: {
-      n: "Risma Puspita",
-      b: "Batch 21 - FTS",
-      npm: "231106040290",
-      f: "Fakultas Teknik dan Sains",
-      p: "Teknik Informatika",
-      t: "2026",
-      s: "Proses",
-    },
-    7: {
-      n: "Budi Doremi",
-      b: "Batch 3 - FEB",
-      npm: "231106040923",
-      f: "Fakultas Ekonomi dan Bisnis",
-      p: "Bisnis Digital",
-      t: "2026",
-      s: "Reject",
-    },
-    8: {
-      n: "Siti Aisyah",
-      b: "Batch 3 - FEB",
-      npm: "231106040906",
-      f: "Fakultas Ekonomi dan Bisnis",
-      p: "Bisnis Digital",
-      t: "2026",
-      s: "Reject",
-    },
-    9: {
-      n: "Eagle Al-Haikal",
-      b: "Batch 3 - FEB",
-      npm: "231106040907",
-      f: "Fakultas Ekonomi dan Bisnis",
-      p: "Manajemen",
-      t: "2026",
-      s: "Reject",
-    },
-    10: {
-      n: "Zahra Nabil",
-      b: "Batch 3 - FEB",
-      npm: "231106040918",
-      f: "Fakultas Ekonomi dan Bisnis",
-      p: "Manajemen",
-      t: "2026",
-      s: "Reject",
-    },
-    11: {
-      n: "Dila Fadilla",
-      b: "Batch 3 - FEB",
-      npm: "231106040902",
-      f: "Fakultas Ekonomi dan Bisnis",
-      p: "Akuntansi",
-      t: "2026",
-      s: "Reject",
-    },
-    12: {
-      n: "Nayla Nim",
-      b: "Batch 3 - FEB",
-      npm: "231106040903",
-      f: "Fakultas Ekonomi dan Bisnis",
-      p: "Akuntansi",
-      t: "2026",
-      s: "Reject",
-    },
-    13: {
-      n: "Samsul Jun",
-      b: "Batch 3 - FEB",
-      npm: "231106040910",
-      f: "Fakultas Ekonomi dan Bisnis",
-      p: "Bisnis Digital",
-      t: "2026",
-      s: "Reject",
-    },
-    14: {
-      n: "Rayyan Hesa",
-      b: "Batch 3 - FEB",
-      npm: "231106040912",
-      f: "Fakultas Ekonomi dan Bisnis",
-      p: "Bisnis Digital",
-      t: "2026",
-      s: "Reject",
-    },
-    15: {
-      n: "Zahra Nur",
-      b: "Batch 3 - FEB",
-      npm: "231106040839",
-      f: "Fakultas Ekonomi dan Bisnis",
-      p: "Manajemen",
-      t: "2026",
-      s: "Reject",
-    },
-    16: {
-      n: "Zulvikri",
-      b: "Batch 3 - FEB",
-      npm: "231106040290",
-      f: "Fakultas Ekonomi dan Bisnis",
-      p: "Manajemen",
-      t: "2026",
-      s: "Reject",
-    },
-    17: {
-      n: "Tasya Cantika",
-      b: "Batch 4 - FH",
-      npm: "231106040923",
-      f: "Fakultas Hukum",
-      p: "Ilmu Hukum",
-      t: "2026",
-      s: "Proses",
-    },
-    18: {
-      n: "Baedilah",
-      b: "Batch 4 - FH",
-      npm: "231106040906",
-      f: "Fakultas Hukum",
-      p: "Ilmu Hukum",
-      t: "2026",
-      s: "Proses",
-    },
-    19: {
-      n: "Mutqin",
-      b: "Batch 4 - FH",
-      npm: "231106040907",
-      f: "Fakultas Hukum",
-      p: "Ilmu Hukum",
-      t: "2026",
-      s: "Proses",
-    },
-    20: {
-      n: "Husni Haqiqi",
-      b: "Batch 4 - FH",
-      npm: "231106040918",
-      f: "Fakultas Hukum",
-      p: "Ilmu Hukum",
-      t: "2026",
-      s: "Proses",
-    },
-    6131: {
-      n: "Dila Fadilla",
-      b: "Batch 53 - FH",
-      npm: "231106040902",
-      f: "Fakultas Hukum",
-      p: "Ilmu Hukum",
-      t: "2021",
-      s: "Terbit",
-    },
-    6132: {
-      n: "Nayla Nim",
-      b: "Batch 53 - FH",
-      npm: "231106040903",
-      f: "Fakultas Hukum",
-      p: "Ilmu Hukum",
-      t: "2021",
-      s: "Terbit",
-    },
-    6133: {
-      n: "Samsul Jun",
-      b: "Batch 53 - FH",
-      npm: "231106040910",
-      f: "Fakultas Hukum",
-      p: "Ilmu Hukum",
-      t: "2021",
-      s: "Terbit",
-    },
-    6134: {
-      n: "Rayyan Hesa",
-      b: "Batch 53 - FH",
-      npm: "231106040912",
-      f: "Fakultas Agama Islam",
-      p: "Penyiaran islam",
-      t: "2021",
-      s: "Terbit",
-    },
-    6135: {
-      n: "Zahra Nur",
-      b: "Batch 53 - FH",
-      npm: "231106040839",
-      f: "Fakultas Agama Islam",
-      p: "Penyiaran islam",
-      t: "2021",
-      s: "Terbit",
-    },
-  };
+import {
+  getDashboardSummary,
+  getLatestValidations,
+  getStatistikTahunan,
+  getStatistikValidasi,
+} from "../../services/dashboard.api";
 
-  for (let i = 1; i <= 6135; i++) {
-    const defaultItem = {
-      n: `Mahasiswa ${i}`,
-      b: `Batch ${Math.floor((i - 1) / 100) + 1} - FT`,
-      npm: `23110604${String(i).padStart(4, "0")}`,
-      f: "Fakultas Teknik dan Sains",
-      p: "Teknik Informatika",
-      t: "2026",
-      s:
-        i % 4 === 0
-          ? "Revoke"
-          : i % 3 === 0
-          ? "Reject"
-          : i % 2 === 0
-          ? "Proses"
-          : "Terbit",
-    };
 
-    data.push(specialData[i] || defaultItem);
+
+const normalizeStatus = (status) => {
+  const value = status?.toString().toLowerCase();
+
+  if (value === "terbit" || value === "approved" || value === "valid") {
+    return "terbit";
   }
 
-  return data;
+  if (value === "proses" || value === "pending") {
+    return "proses";
+  }
+
+  if (value === "reject" || value === "rejected" || value === "ditolak") {
+    return "reject";
+  }
+
+  if (value === "revoke" || value === "revoked" || value === "dicabut") {
+    return "revoke";
+  }
+
+  return value || "";
 };
 
-const fullDummyData = generateDummyData();
+const getBadgeLabel = (status) => {
+  const value = normalizeStatus(status);
 
-const OperatorDashboard = () => {
+  switch (value) {
+    case "terbit":
+      return "Terbit";
+    case "proses":
+      return "Proses";
+    case "reject":
+      return "Reject";
+    case "revoke":
+      return "Revoke";
+    default:
+      return status || "-";
+  }
+};
+
+const getBadgeColor = (status) => {
+  const value = normalizeStatus(status);
+
+  switch (value) {
+    case "terbit":
+      return "bg-[#27AE60] text-white";
+    case "proses":
+      return "bg-[#3B82F6] text-white";
+    case "reject":
+      return "bg-[#EF4444] text-white";
+    case "revoke":
+      return "bg-[#F59E0B] text-white";
+    default:
+      return "bg-gray-400 text-white";
+  }
+};
+
+const buildFacultyOptions = (rows = []) => {
+  const uniqueFaculties = [
+    ...new Set(
+      rows
+        .map((item) => item.fakultas)
+        .filter((fakultas) => fakultas && fakultas !== "-")
+    ),
+  ];
+
+  return ["Semua Fakultas", ...uniqueFaculties];
+};
+
+const buildYearOptions = (rows = []) => {
+  const uniqueYears = [
+    ...new Set(
+      rows
+        .map((item) => item.tahun_lulus?.toString())
+        .filter((tahun) => tahun && tahun !== "-")
+    ),
+  ].sort((a, b) => Number(b) - Number(a));
+
+  return ["Semua Tahun", ...uniqueYears];
+};
+
+const Dashboard = () => {
   const navigate = useNavigate();
+  const { token, logout } = useAuth();
+
+  // ==================== STATE DATA BACKEND ====================
+
+  const [statsData, setStatsData] = useState({
+    terbit: 0,
+    proses: 0,
+    rejected: 0,
+    revoked: 0,
+  });
+
+  const [tableData, setTableData] = useState([]);
+  const [issuanceChartData, setIssuanceChartData] = useState(null);
+  const [verificationChartData, setVerificationChartData] = useState(null);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiError, setApiError] = useState("");
+
+  // ==================== STATE FILTER & PAGINATION ====================
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFakultas, setSelectedFakultas] = useState("Semua Fakultas");
   const [selectedStatus, setSelectedStatus] = useState("Semua Status");
+  const [selectedTahun, setSelectedTahun] = useState("Semua Tahun");
+
+  const [faculties, setFaculties] = useState(["Semua Fakultas"]);
+  const [tahunOptions, setTahunOptions] = useState(["Semua Tahun"]);
+
   const [currentPage, setCurrentPage] = useState(1);
-
   const itemsPerPage = 10;
-
-  const faculties = [
-    "Semua Fakultas",
-    "Fakultas Teknik dan Sains",
-    "Fakultas Ekonomi dan Bisnis",
-    "Fakultas Keguruan & Ilmu Pendidikan",
-    "Fakultas Hukum",
-    "Fakultas Agama Islam",
-    "Fakultas Ilmu Kesehatan",
-  ];
 
   const statusOptions = [
     "Semua Status",
@@ -297,66 +140,154 @@ const OperatorDashboard = () => {
     "Revoke",
   ];
 
-  const filteredData = fullDummyData
+  // ==================== FETCH DATA DASHBOARD ====================
+
+  useEffect(() => {
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      setApiError("");
+
+      const [
+        summary,
+        latestValidations,
+        statistikTahunan,
+        statistikValidasi,
+      ] = await Promise.all([
+        getDashboardSummary(),
+        getLatestValidations({
+          page: 1,
+          limit: 100,
+          search: "",
+        }),
+        getStatistikTahunan(),
+        getStatistikValidasi(new Date().getFullYear()),
+      ]);
+
+      const rows = Array.isArray(latestValidations.data)
+        ? latestValidations.data
+        : [];
+
+      setStatsData({
+        terbit: summary.totalIjazahTerbit || 0,
+        proses: summary.permintaanVerifikasi || 0,
+        rejected: summary.dataReject || 0,
+        revoked: summary.dataRevoke || 0,
+      });
+
+      setTableData(rows);
+
+      setIssuanceChartData(statistikTahunan);
+      setVerificationChartData(statistikValidasi);
+
+      // Ini tetap binding, karena datanya dari backend validations/latest
+      setFaculties(buildFacultyOptions(rows));
+      setTahunOptions(buildYearOptions(rows));
+    } catch (err) {
+      console.error("Gagal mengambil data dashboard rektor:", err);
+
+      if (err.status === 401 || err.status === 403) {
+        logout();
+        return;
+      }
+
+      setApiError(err.message || "Gagal terhubung ke server backend.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (token) {
+    fetchDashboardData();
+  } else {
+    setIsLoading(false);
+  }
+}, [token, logout]);
+
+  // ==================== FETCH CHART STATUS SAAT TAHUN DIGANTI ====================
+
+  useEffect(() => {
+    const fetchChartByYear = async () => {
+      try {
+        if (!token) return;
+
+        const year =
+          selectedTahun === "Semua Tahun"
+            ? new Date().getFullYear()
+            : selectedTahun;
+
+        const statistikValidasi = await getStatistikValidasi(year);
+
+        setVerificationChartData(statistikValidasi);
+      } catch (err) {
+        console.error("Gagal mengambil chart status berdasarkan tahun:", err);
+
+        if (err.status === 401 || err.status === 403) {
+          logout();
+        }
+      }
+    };
+
+    fetchChartByYear();
+  }, [selectedTahun, token, logout]);
+
+  // ==================== FILTERING DATA LOKAL ====================
+
+  const filteredData = tableData
     .filter((item) => {
       const searchLower = searchQuery.toLowerCase();
 
-      const matchesSearch =
-        item.n.toLowerCase().includes(searchLower) ||
-        item.npm.toLowerCase().includes(searchLower) ||
-        item.p.toLowerCase().includes(searchLower) ||
-        item.f.toLowerCase().includes(searchLower) ||
-        item.t.toLowerCase().includes(searchLower) ||
-        item.s.toLowerCase().includes(searchLower);
+      const searchableText = [
+        item.nama,
+        item.nim,
+        item.prodi,
+        item.fakultas,
+        item.tahun_lulus,
+        item.status,
+        item.batch,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      const matchesSearch = searchableText.includes(searchLower);
 
       const matchesFakultas =
-        selectedFakultas === "Semua Fakultas" || item.f === selectedFakultas;
+        selectedFakultas === "Semua Fakultas" ||
+        item.fakultas === selectedFakultas;
 
       const matchesStatus =
-        selectedStatus === "Semua Status" || item.s === selectedStatus;
+        selectedStatus === "Semua Status" ||
+        normalizeStatus(item.status) === normalizeStatus(selectedStatus);
 
-      return matchesSearch && matchesFakultas && matchesStatus;
+      const matchesTahun =
+        selectedTahun === "Semua Tahun" ||
+        item.tahun_lulus?.toString() === selectedTahun;
+
+      return matchesSearch && matchesFakultas && matchesStatus && matchesTahun;
     })
-    .sort((a, b) => {
-      return (
-        a.f.localeCompare(b.f) ||
-        a.n.localeCompare(b.n) ||
-        a.p.localeCompare(b.p) ||
-        a.t.localeCompare(b.t) ||
-        a.s.localeCompare(b.s)
-      );
-    });
+    .sort((a, b) => (a.nama || "").localeCompare(b.nama || ""));
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedFakultas, selectedStatus]);
+  }, [searchQuery, selectedFakultas, selectedStatus, selectedTahun]);
+
+  // ==================== PAGINATION ====================
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentData = filteredData.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
-  const getBadgeColor = (status) => {
-    switch (status) {
-      case "Terbit":
-        return "bg-[#27AE60] text-white";
-      case "Proses":
-        return "bg-[#3B82F6] text-white";
-      case "Reject":
-        return "bg-[#EF4444] text-white";
-      case "Revoke":
-        return "bg-[#F59E0B] text-white";
-      default:
-        return "bg-gray-400 text-white";
-    }
-  };
-
   const renderPaginationButtons = () => {
     const pages = [];
 
+    if (totalPages <= 0) return pages;
+
     pages.push(1);
 
-    if (currentPage > 2 && totalPages > 3) pages.push("...");
+    if (currentPage > 2 && totalPages > 3) {
+      pages.push("...");
+    }
 
     if (currentPage === 1 && totalPages > 1) {
       pages.push(2);
@@ -366,9 +297,13 @@ const OperatorDashboard = () => {
       pages.push(currentPage);
     }
 
-    if (currentPage < totalPages - 1 && totalPages > 3) pages.push("...");
+    if (currentPage < totalPages - 1 && totalPages > 3) {
+      pages.push("...");
+    }
 
-    if (totalPages > 1 && !pages.includes(totalPages)) pages.push(totalPages);
+    if (totalPages > 1 && !pages.includes(totalPages)) {
+      pages.push(totalPages);
+    }
 
     return pages.map((page, index) => (
       <button
@@ -381,7 +316,7 @@ const OperatorDashboard = () => {
             ? "bg-[#00897B] text-white"
             : page === "..."
             ? "bg-transparent text-gray-400 cursor-default shadow-none"
-            : "bg-white border border-gray-300 text-gray-500 hover:bg-gray-100"
+            : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"
         }`}
       >
         {page}
@@ -389,17 +324,29 @@ const OperatorDashboard = () => {
     ));
   };
 
+  // ==================== LOADING ====================
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex justify-center items-center h-[70vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#27AE60]"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
-    <DashboardLayout title="Dashboard Operator">
+    <DashboardLayout>
       {/* HEADER */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">
           Ringkasan Statistik
         </h1>
 
-        <p className="text-sm text-gray-400 mt-1">
-          Update terakhir: 17 Januari 2026, 09:10 WIB
-        </p>
+        {apiError && (
+          <p className="text-sm text-red-500 mt-1 font-bold">{apiError}</p>
+        )}
       </div>
 
       {/* STAT CARDS */}
@@ -410,10 +357,10 @@ const OperatorDashboard = () => {
         >
           <StatCard
             title="Jumlah Ijazah Terbit"
-            value="5.625"
-            sub="20 Ijazah Terbit Minggu ini"
+            value={statsData.terbit.toLocaleString("id-ID")}
+            sub="Statistik Terkini"
             subColor="text-[#27AE60]"
-            icon={OperatorIcons.Badge}
+            icon={Icons.Badge}
           />
         </div>
 
@@ -423,10 +370,10 @@ const OperatorDashboard = () => {
         >
           <StatCard
             title="Jumlah Ijazah di Proses"
-            value="451"
-            sub="12 di Proses Minggu ini"
+            value={statsData.proses.toLocaleString("id-ID")}
+            sub="Statistik Terkini"
             subColor="text-[#3B82F6]"
-            icon={OperatorIcons.Check}
+            icon={Icons.Check}
           />
         </div>
 
@@ -436,10 +383,10 @@ const OperatorDashboard = () => {
         >
           <StatCard
             title="Jumlah Ijazah di Reject"
-            value="42"
-            sub="2 Data di Reject Minggu ini"
+            value={statsData.rejected.toLocaleString("id-ID")}
+            sub="Statistik Terkini"
             subColor="text-[#F97316]"
-            icon={OperatorIcons.Close}
+            icon={Icons.Close}
           />
         </div>
 
@@ -449,10 +396,10 @@ const OperatorDashboard = () => {
         >
           <StatCard
             title="Jumlah Ijazah di Revoke"
-            value="17"
-            sub="Tidak ada perubahan Minggu ini"
+            value={statsData.revoked.toLocaleString("id-ID")}
+            sub="Statistik Terkini"
             subColor="text-[#F59E0B]"
-            icon={OperatorIcons.List}
+            icon={Icons.List}
           />
         </div>
       </div>
@@ -464,15 +411,18 @@ const OperatorDashboard = () => {
             Statistik Penerbitan Ijazah Tahunan
           </h2>
 
-          <IssuanceChart />
+          <IssuanceChart chartData={issuanceChartData} />
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="font-bold text-gray-800 mb-4 text-lg">
-            Status Data Ijazah Tahun 2026
+            Status Data Ijazah Tahun{" "}
+            {selectedTahun === "Semua Tahun"
+              ? new Date().getFullYear()
+              : selectedTahun}
           </h2>
 
-          <VerificationStatusChart />
+          <VerificationStatusChart chartData={verificationChartData} />
         </div>
       </div>
 
@@ -481,31 +431,32 @@ const OperatorDashboard = () => {
         <div className="p-6 border-b border-gray-100">
           <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
             <h2 className="text-xl font-bold text-gray-800">
-              Status Verifikasi Ijazah Mahasiswa
+              Aktivitas Verifikasi Terbaru
             </h2>
 
             <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto xl:justify-end">
-              {/* SEARCH - DIUBAH JADI PUTIH */}
+              {/* SEARCH */}
               <div className="relative w-full sm:w-72">
                 <FiSearch
                   className="absolute left-3 top-2.5 text-gray-400"
                   size={16}
                 />
+
                 <input
                   type="text"
-                  placeholder="Cari: Nama, NPM, Prodi"
-                  className="w-full pl-9 pr-4 py-2 rounded-md bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm outline-none transition-all"
+                  placeholder="Cari: Nama, NIM, Prodi"
+                  className="w-full pl-9 pr-4 py-2 rounded-md bg-[#f3f4f6] text-sm outline-none border border-transparent focus:border-teal-500 transition-colors"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
 
-              {/* FILTER KANAN - DIUBAH JADI PUTIH */}
+              {/* FILTERS */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:ml-auto">
                 {/* FILTER FAKULTAS */}
                 <div className="relative w-full sm:w-64">
                   <select
-                    className="w-full appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none cursor-pointer transition-all"
+                    className="w-full appearance-none bg-[#f3f4f6] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-transparent focus:border-teal-500 cursor-pointer transition-colors"
                     value={selectedFakultas}
                     onChange={(e) => setSelectedFakultas(e.target.value)}
                   >
@@ -516,15 +467,15 @@ const OperatorDashboard = () => {
                     ))}
                   </select>
 
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                    {OperatorIcons.DropdownArrow}
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-600">
+                    {Icons.DropdownArrow}
                   </div>
                 </div>
 
                 {/* FILTER STATUS */}
                 <div className="relative w-full sm:w-44">
                   <select
-                    className="w-full appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none cursor-pointer transition-all"
+                    className="w-full appearance-none bg-[#f3f4f6] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-transparent focus:border-teal-500 cursor-pointer transition-colors"
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
                   >
@@ -535,8 +486,27 @@ const OperatorDashboard = () => {
                     ))}
                   </select>
 
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                    {OperatorIcons.DropdownArrow}
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-600">
+                    {Icons.DropdownArrow}
+                  </div>
+                </div>
+
+                {/* FILTER TAHUN */}
+                <div className="relative w-full sm:w-40">
+                  <select
+                    className="w-full appearance-none bg-[#f3f4f6] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-transparent focus:border-teal-500 cursor-pointer transition-colors"
+                    value={selectedTahun}
+                    onChange={(e) => setSelectedTahun(e.target.value)}
+                  >
+                    {tahunOptions.map((tahun, index) => (
+                      <option key={index} value={tahun}>
+                        {tahun}
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-600">
+                    {Icons.DropdownArrow}
                   </div>
                 </div>
               </div>
@@ -544,9 +514,9 @@ const OperatorDashboard = () => {
           </div>
         </div>
 
-        {/* TABLE */}
-        <div className="overflow-x-auto min-h-[620px]">
-          <table className="w-full table-fixed text-sm text-left">
+        {/* TABLE CONTENT */}
+        <div className="overflow-x-auto min-h-[700px]">
+          <table className="w-full table-fixed text-sm">
             <colgroup>
               <col className="w-[6%]" />
               <col className="w-[20%]" />
@@ -557,23 +527,15 @@ const OperatorDashboard = () => {
               <col className="w-[10%]" />
             </colgroup>
 
-            <thead className="bg-[#f3f4f6] text-gray-500">
+            <thead className="bg-[#f3f4f6] text-gray-500 border-b border-gray-200">
               <tr>
-                <th className="py-4 px-4 font-semibold text-left">No.</th>
-                <th className="py-4 px-4 font-semibold text-left">Nama</th>
-                <th className="py-4 px-4 font-semibold text-center">NPM</th>
-                <th className="py-4 px-4 font-semibold text-center">
-                  Fakultas
-                </th>
-                <th className="py-4 px-4 font-semibold text-center">
-                  Program Studi
-                </th>
-                <th className="py-4 px-4 font-semibold text-center">
-                  Tahun Lulus
-                </th>
-                <th className="py-4 px-4 font-semibold text-center">
-                  Status
-                </th>
+                <th className="px-4 py-4 text-center">No.</th>
+                <th className="px-4 py-4 text-left">Nama</th>
+                <th className="px-4 py-4 text-center">NIM</th>
+                <th className="px-4 py-4 text-center">Fakultas</th>
+                <th className="px-4 py-4 text-center">Program Studi</th>
+                <th className="px-4 py-4 text-center">Tahun Lulus</th>
+                <th className="px-4 py-4 text-center">Status</th>
               </tr>
             </thead>
 
@@ -581,57 +543,46 @@ const OperatorDashboard = () => {
               {currentData.length > 0 ? (
                 currentData.map((row, i) => (
                   <tr
-                    key={i}
-                    className="h-[76px] border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
+                    key={row.id || row.id_mahasiswa || i}
+                    className="border-t border-gray-200 hover:bg-gray-50"
                   >
-                    <td className="py-4 px-4 font-bold text-left">
+                    <td className="px-4 py-4 text-center font-semibold">
                       {indexOfFirstItem + i + 1}.
                     </td>
 
-                    <td className="py-4 px-4">
-                      <div className="font-bold text-gray-800 truncate">
-                        {row.n}
+                    <td className="px-4 py-4">
+                      <div className="font-semibold text-gray-800 truncate">
+                        {row.nama || "-"}
                       </div>
 
                       <div className="text-[11px] text-gray-400 mt-0.5 truncate">
-                        {row.b}
+                        {row.batch || "-"}
                       </div>
                     </td>
 
-                    <td className="py-4 px-4 text-center font-bold text-gray-700 truncate">
-                      {row.npm}
+                    <td className="px-4 py-4 text-center font-semibold text-gray-700 truncate">
+                      {row.nim || "-"}
                     </td>
 
-                    <td className="py-4 px-4 text-center text-gray-600 font-medium">
-                      <div
-                        className="whitespace-normal leading-snug overflow-hidden mx-auto max-w-[190px]"
-                        style={{
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                        }}
-                      >
-                        {row.f}
-                      </div>
+                    <td className="px-4 py-4 text-center text-gray-600 font-semibold whitespace-nowrap truncate">
+                      {row.fakultas || "-"}
                     </td>
 
-                    <td className="py-4 px-4 text-center text-gray-600 font-medium">
-                      <div className="truncate mx-auto max-w-[160px]">
-                        {row.p}
-                      </div>
+                    <td className="px-4 py-4 text-center text-gray-600 font-semibold truncate">
+                      {row.prodi || "-"}
                     </td>
 
-                    <td className="py-4 px-4 text-center font-bold text-gray-700">
-                      {row.t}
+                    <td className="px-4 py-4 text-center font-semibold text-gray-700">
+                      {row.tahun_lulus || "-"}
                     </td>
 
-                    <td className="py-4 px-4 text-center">
+                    <td className="px-4 py-4 text-center">
                       <span
                         className={`inline-block min-w-[86px] px-4 py-1.5 rounded-full text-xs font-bold ${getBadgeColor(
-                          row.s
+                          row.status
                         )}`}
                       >
-                        {row.s}
+                        {getBadgeLabel(row.status)}
                       </span>
                     </td>
                   </tr>
@@ -640,9 +591,9 @@ const OperatorDashboard = () => {
                 <tr>
                   <td
                     colSpan="7"
-                    className="py-10 text-center text-gray-500 font-medium"
+                    className="px-4 py-8 text-center text-gray-400"
                   >
-                    Data tidak ditemukan.
+                    Data tidak ditemukan atau belum ada data di server.
                   </td>
                 </tr>
               )}
@@ -650,7 +601,7 @@ const OperatorDashboard = () => {
           </table>
         </div>
 
-        {/* PAGINATION - DIUBAH JADI PUTIH */}
+        {/* PAGINATION */}
         <div className="p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-gray-100">
           <p className="text-xs text-gray-400">
             Menampilkan {currentData.length} dari {filteredData.length} Data
@@ -660,7 +611,9 @@ const OperatorDashboard = () => {
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                onClick={() =>
+                  setCurrentPage((prev) => Math.max(prev - 1, 1))
+                }
                 disabled={currentPage === 1}
                 className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50"
               >
@@ -687,4 +640,4 @@ const OperatorDashboard = () => {
   );
 };
 
-export default OperatorDashboard;
+export default Dashboard;

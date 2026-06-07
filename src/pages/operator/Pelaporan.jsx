@@ -9,24 +9,22 @@ import { getApprovalLaporan } from "@/services/api";
 
 const ITEMS_PER_PAGE = 10;
 
+// 🔥 Logika warna badge dari referensi (Kebal salah ketik)
 const badgeClass = (status) => {
-  const map = {
-    Proses: "bg-[#3B82F6] text-white",
-    Terbit: "bg-[#16A36B] text-white",  
-    Revoke: "bg-[#F59E0B] text-white",
-    Reject: "bg-[#EF4444] text-white",
-  };
+  const normalizedStatus = status?.toLowerCase().trim() || "";
+  
+  if (normalizedStatus === "proses" || normalizedStatus === "pending") return "bg-[#3B82F6] text-white";
+  if (normalizedStatus === "terbit" || normalizedStatus === "approved") return "bg-[#16A36B] text-white";
+  if (normalizedStatus === "revoke" || normalizedStatus === "revoked") return "bg-[#F59E0B] text-white";
+  if (normalizedStatus === "reject" || normalizedStatus === "rejected") return "bg-[#EF4444] text-white";
 
-  return map[status] || "bg-gray-400 text-white";
+  return "bg-gray-400 text-white";
 };
 
 const formatTanggal = (value) => {
   if (!value) return "-";
-
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) return "-";
-
   return date.toLocaleDateString("id-ID", {
     day: "2-digit",
     month: "2-digit",
@@ -36,18 +34,9 @@ const formatTanggal = (value) => {
 
 const formatWaktu = (value) => {
   if (!value) return "-";
-
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) return "-";
-
-  return `${date
-    .getHours()
-    .toString()
-    .padStart(2, "0")}.${date
-    .getMinutes()
-    .toString()
-    .padStart(2, "0")} WIB`;
+  return `${date.getHours().toString().padStart(2, "0")}.${date.getMinutes().toString().padStart(2, "0")} WIB`;
 };
 
 const Pelaporan = () => {
@@ -68,7 +57,8 @@ const Pelaporan = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const statusOptions = ["Semua Status", "Proses", "Terbit", "Revoke", "Reject"];
+  // 🔥 Menyesuaikan dengan data persis dari backend (Revoked & Rejected)
+  const statusOptions = ["Semua Status", "Proses", "Terbit", "Revoked", "Rejected"];
 
   const fetchLaporan = async () => {
     try {
@@ -79,7 +69,8 @@ const Pelaporan = () => {
         page: currentPage,
         limit: ITEMS_PER_PAGE,
         search,
-        status: statusFilter,
+        // 🔥 Kirim string kosong jika "Semua Status"
+        status: statusFilter === "Semua Status" ? "" : statusFilter, 
       });
 
       setLaporanList(result.data || []);
@@ -93,13 +84,11 @@ const Pelaporan = () => {
       );
     } catch (err) {
       console.error("Gagal mengambil data laporan:", err);
-
       setError(
         err?.message ||
           err?.response?.data?.message ||
           "Gagal mengambil data laporan approval."
       );
-
       setLaporanList([]);
       setPagination({
         page: currentPage,
@@ -129,46 +118,37 @@ const Pelaporan = () => {
   };
 
   const renderPaginationButtons = () => {
-    const pages = [];
+    let pages = [];
 
-    pages.push(1);
-
-    if (currentPage > 2 && totalPages > 3) {
-      pages.push("...");
+    if (totalPages <= 4) {
+      pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+    } else {
+      if (currentPage === 1) pages = [1, 2, "...", totalPages];
+      else if (currentPage === 2) pages = [1, 2, 3, "...", totalPages];
+      else if (currentPage === totalPages) pages = [1, "...", totalPages - 1, totalPages];
+      else if (currentPage === totalPages - 1) pages = [1, "...", totalPages - 2, totalPages - 1, totalPages];
+      else pages = [1, "...", currentPage, "...", totalPages];
     }
 
-    if (currentPage === 1 && totalPages > 1) {
-      pages.push(2);
-    } else if (currentPage === totalPages && totalPages > 2) {
-      pages.push(totalPages - 1);
-    } else if (currentPage > 1 && currentPage < totalPages) {
-      pages.push(currentPage);
-    }
+    return pages.map((page, index) => {
+      const isActive = page === currentPage;
+      const isEllipsis = page === "...";
 
-    if (currentPage < totalPages - 1 && totalPages > 3) {
-      pages.push("...");
-    }
-
-    if (totalPages > 1 && !pages.includes(totalPages)) {
-      pages.push(totalPages);
-    }
-
-    return pages.map((page, index) => (
-      <button
-        key={index}
-        onClick={() => typeof page === "number" && handlePageChange(page)}
-        disabled={page === "..."}
-        className={`w-8 h-8 flex items-center justify-center rounded text-xs font-bold shadow-sm transition-colors ${
-          page === currentPage
-            ? "bg-[#00897B] text-white"
-            : page === "..."
-            ? "bg-transparent text-gray-400 cursor-default shadow-none"
-            : "bg-white border border-gray-300 text-gray-500 hover:bg-gray-100"
-        }`}
-      >
-        {page}
-      </button>
-    ));
+      return (
+        <button
+          key={index}
+          onClick={() => !isEllipsis && handlePageChange(page)}
+          disabled={isEllipsis}
+          className={`w-9 h-9 flex items-center justify-center rounded-md text-sm font-bold transition-all ${
+            isActive
+              ? "bg-[#117065] text-white shadow-md"
+              : "bg-[#C4C4C4] text-white hover:bg-gray-400"
+          } ${isEllipsis ? "cursor-default" : "cursor-pointer"}`}
+        >
+          {page}
+        </button>
+      );
+    });
   };
 
   return (
@@ -183,27 +163,28 @@ const Pelaporan = () => {
           </p>
         </div>
 
-        {/* FILTER BOX - DIUBAH JADI PUTIH */}
-        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-200">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-            <div className="w-full lg:max-w-md">
-              <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
-                <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
-                <input
-                  type="text"
-                  placeholder="Cari: Nama, NIM"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
-                />
-              </div>
+        {/* Filter Bar */}
+        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-4 border border-gray-100">
+          
+          <div className="w-full lg:max-w-md">
+            <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
+              <FiSearch className="text-gray-400 text-lg mr-3" />
+              <input
+                type="text"
+                placeholder="Cari: Nama, NIM"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
+              />
             </div>
+          </div>
 
-            <div className="relative w-full lg:w-48">
+          <div className="flex items-center gap-3 w-full lg:w-auto">
+            <div className="relative w-full lg:w-52">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
+                className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-center"
               >
                 {statusOptions.map((item) => (
                   <option key={item} value={item === "Semua Status" ? "" : item}>
@@ -252,6 +233,7 @@ const Pelaporan = () => {
                         <td className="py-4 px-6 text-center font-medium text-gray-800 truncate">
                           {no}
                         </td>
+
                         <td className="py-4 px-6">
                           <div className="font-medium text-gray-900 truncate">
                             {item.nama || "-"}
@@ -260,15 +242,19 @@ const Pelaporan = () => {
                             {item.program_studi || "-"}
                           </div>
                         </td>
+
                         <td className="py-4 px-6 text-center font-medium text-gray-900 truncate">
                           {item.nim || "-"}
                         </td>
+
                         <td className="py-4 px-6 text-center text-gray-600 truncate">
                           {formatTanggal(tanggalValue)}
                         </td>
+
                         <td className="py-4 px-6 text-center text-gray-600 truncate">
                           {formatWaktu(tanggalValue)}
                         </td>
+
                         <td className="py-4 px-6 text-center">
                           <span
                             className={`inline-block px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${badgeClass(
@@ -278,9 +264,11 @@ const Pelaporan = () => {
                             {item.status || "-"}
                           </span>
                         </td>
+
                         <td className="py-4 px-6 text-gray-600 text-sm truncate">
                           {item.keterangan || "-"}
                         </td>
+
                         <td className="py-4 px-6 text-center">
                           <button
                             onClick={() =>
@@ -308,38 +296,37 @@ const Pelaporan = () => {
 
           {!loading && laporanList.length === 0 && (
             <div className="py-8 text-center text-gray-500 font-medium">
-              Data tidak ditemukan.
+              <FiSearch className="mx-auto text-4xl mb-3 text-gray-300" />
+              <p>Data tidak ditemukan.</p>
             </div>
           )}
 
-          {/* PAGINATION - DIUBAH JADI PUTIH */}
-          <div className="p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-gray-100">
-            <p className="text-xs text-gray-400">
-              Menampilkan {laporanList.length} dari{" "}
-              {pagination.total_data || 0} Data
+          <div className="p-6 bg-white border-t border-gray-100 flex justify-between items-center">
+            <p className="text-sm text-gray-500 font-medium">
+              Menampilkan {laporanList.length} dari {pagination.total_data || 0} Data
             </p>
 
-            {totalPages > 1 && (
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50"
-                >
-                  {"<"}
-                </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="text-[#C4C4C4] hover:text-gray-600 disabled:opacity-30 text-xl font-bold px-2 transition-colors cursor-pointer"
+              >
+                {"<"}
+              </button>
 
+              <div className="flex items-center gap-2">
                 {renderPaginationButtons()}
-
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50"
-                >
-                  {">"}
-                </button>
               </div>
-            )}
+
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="text-[#117065] hover:text-teal-900 disabled:opacity-30 text-xl font-bold px-2 transition-colors cursor-pointer"
+              >
+                {">"}
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 // 🔥 Pastikan path ke DashboardLayout sudah benar
-import DashboardLayout from "../components/ui/DashboardLayout";
+import DashboardLayout from "@/components/ui/DashboardLayout";
 import { FiUser, FiBook, FiFileText, FiArrowLeft, FiAlertCircle, FiExternalLink } from "react-icons/fi";
 import { getAkademikProfile } from "@/services/api"; 
-import { useAuth } from "./context/AuthContext"; // 🔥 Pastikan path ke AuthContext benar
+import { useAuth } from "../context/AuthContext"; // 🔥 Pastikan path ke AuthContext benar
 
 // Helper untuk format tanggal dari backend
 const formatTanggal = (value) => {

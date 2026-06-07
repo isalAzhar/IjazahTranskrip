@@ -114,15 +114,12 @@ setUsers(formattedUsers);
   }
 };
 
-  // 🔥 JALANKAN FETCH SAAT HALAMAN DIBUKA
   useEffect(() => {
     if (token) fetchUsers();
   }, [token]);
 
-  // 🔥 FUNGSI TAMBAH KE DATABASE
   const handleAddUser = async (newUser) => {
     try {
-      // 🎯 CATATAN: Sesuaikan rute ini dengan rute POST di Backend
       const response = await fetch("/api/user/createUser", {
         method: "POST",
         headers: {
@@ -133,7 +130,7 @@ setUsers(formattedUsers);
       });
 
       if (response.ok) {
-        fetchUsers(); // Tarik data terbaru dari DB
+        fetchUsers(); 
         setOpenTambah(false);
         setOpenSukses(true);
       } else {

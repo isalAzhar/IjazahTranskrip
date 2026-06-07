@@ -18,8 +18,8 @@ const Dashboard = () => {
   const [statsData, setStatsData] = useState({
     terbit: 0,
     proses: 0,
-    reject: 0,
-    revoke: 0
+    rejected: 0,
+    revoked: 0
   });
   const [tableData, setTableData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,8 +47,8 @@ const Dashboard = () => {
     "Semua Status",
     "Proses",
     "Terbit",
-    "Reject",
-    "Revoke",
+    "Rejected",
+    "Revoked",
     "Approved"
   ];
 
@@ -99,8 +99,8 @@ const Dashboard = () => {
           setStatsData({
             terbit: dataSummary.data.terbit || dataSummary.data.total_terbit || 0,
             proses: dataSummary.data.proses || dataSummary.data.total_proses || 0,
-            reject: dataSummary.data.reject || dataSummary.data.total_reject || 0,
-            revoke: dataSummary.data.revoke || dataSummary.data.total_revoke || 0
+            rejected: dataSummary.data.rejected || dataSummary.data.total_rejected || 0,
+            revoked: dataSummary.data.revoked || dataSummary.data.total_revoked || 0
           });
         }
 
@@ -269,7 +269,7 @@ const Dashboard = () => {
         <div onClick={() => navigate("/ijazah/reject")} className="cursor-pointer">
           <StatCard
             title="Jumlah Ijazah di Reject"
-            value={statsData.reject.toLocaleString('id-ID')}
+            value={statsData.rejected.toLocaleString('id-ID')}
             sub="Statistik Terkini"
             subColor="text-[#F97316]"
             icon={Icons.Close}
@@ -279,7 +279,7 @@ const Dashboard = () => {
         <div onClick={() => navigate("/ijazah/revoke")} className="cursor-pointer">
           <StatCard
             title="Jumlah Ijazah di Revoke"
-            value={statsData.revoke.toLocaleString('id-ID')}
+            value={statsData.revoked.toLocaleString('id-ID')}
             sub="Statistik Terkini"
             subColor="text-[#F59E0B]"
             icon={Icons.List}

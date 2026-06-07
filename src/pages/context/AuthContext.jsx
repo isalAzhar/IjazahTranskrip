@@ -1,4 +1,4 @@
-// src/pages/context/AuthContext.jsx
+// AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from "react";
 
 const AuthContext = createContext(null);
@@ -8,16 +8,59 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // 🔥 Blokir cache browser di level meta tag
+  useEffect(() => {
+    // Tambah meta no-cache secara dinamis
+    const metas = [
+      { httpEquiv: "Cache-Control", content: "no-cache, no-store, must-revalidate" },
+      { httpEquiv: "Pragma", content: "no-cache" },
+      { httpEquiv: "Expires", content: "0" },
+    ];
+    const addedMetas = metas.map(({ httpEquiv, content }) => {
+      const el = document.createElement("meta");
+      el.httpEquiv = httpEquiv;
+      el.content = content;
+      document.head.appendChild(el);
+      return el;
+    });
+    return () => addedMetas.forEach((el) => document.head.removeChild(el));
+  }, []);
+
+  // 🔥 Blokir tombol Back browser
+  useEffect(() => {
+    const blockBack = () => {
+      const token = localStorage.getItem("authToken");
+      if (!token && window.location.pathname !== "/login") {
+        window.location.replace("/login");
+      }
+    };
+
+    // Push state dummy supaya back button "ketahan"
+    window.history.pushState(null, "", window.location.href);
+
+    window.addEventListener("popstate", blockBack);
+    window.addEventListener("pageshow", (e) => {
+      // bfcache (back-forward cache) — paksa reload jika halaman dari cache
+      if (e.persisted) {
+        const token = localStorage.getItem("authToken");
+        if (!token) {
+          window.location.replace("/login");
+        } else {
+          window.location.reload();
+        }
+      }
+    });
+
+    return () => {
+      window.removeEventListener("popstate", blockBack);
+    };
+  }, []);
+
   useEffect(() => {
     const restoreSession = () => {
       try {
         const savedToken = localStorage.getItem("authToken");
         const userDataRaw = localStorage.getItem("user");
-
-        console.log("[AuthContext] Restoring session:", { 
-          hasToken: !!savedToken, 
-          hasUserData: !!userDataRaw
-        });
 
         if (savedToken && userDataRaw && userDataRaw !== "undefined" && userDataRaw !== "null") {
           const parsedUser = JSON.parse(userDataRaw);
@@ -27,8 +70,7 @@ export const AuthProvider = ({ children }) => {
           setUser(null);
           setToken(null);
         }
-      } catch (error) {
-        console.error("[AuthContext] Error restoring session:", error);
+      } catch {
         localStorage.clear();
         setUser(null);
         setToken(null);
@@ -40,40 +82,27 @@ export const AuthProvider = ({ children }) => {
     restoreSession();
   }, []);
 
-  // FUNGSI LOGIN (Menggunakan Promise agar bisa di-await oleh login.jsx)
   const login = (userData, accessToken) => {
     return new Promise((resolve) => {
-      console.log("[AuthContext] Login tersimpan:", { userData, hasToken: !!accessToken });
-      
-      // Simpan ke LocalStorage
       localStorage.setItem("authToken", accessToken);
       localStorage.setItem("user", JSON.stringify(userData));
-      
-      // Simpan ke State
       setUser(userData);
       setToken(accessToken);
-      
       resolve();
     });
   };
 
   const logout = () => {
-  console.log("[AuthContext] Logout dieksekusi");
-
-  sessionStorage.removeItem("inbound_uploaded_data");
-  sessionStorage.removeItem("inbound_uploaded_batch_ids");
-  sessionStorage.removeItem("inbound_uploaded_pagination");
-
-  localStorage.clear();
-  setUser(null);
-  setToken(null);
-
-  window.location.href = "/";
-};
+    sessionStorage.clear();
+    localStorage.clear();
+    setUser(null);
+    setToken(null);
+    // replace() agar history entry dihapus, bukan ditambah
+    window.location.replace("/login");
+  };
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout, loading, isAuthenticated: !!user }}>
-      {/* Tahan rendering aplikasi sampai pengecekan memori selesai */}
       {!loading && children}
     </AuthContext.Provider>
   );
