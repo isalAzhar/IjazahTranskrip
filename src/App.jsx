@@ -39,6 +39,9 @@ import DetailPelaporan from "./pages/operator/DetailPelaporan";
 import DetailBatchDokumenValid from "./pages/operator/DetailBatchDokumenValid";
 import DetailDokumenValid from "./pages/operator/DetailDokumenValid";
 
+// 🔥 IMPORT SCAN QR RESULT
+import ScanQRResult from "./pages/operator/ScanQRResult";
+
 // Verifikator
 import VerifikatorDashboard from "./pages/verifikator/VerifikatorDashboard.jsx";
 import VerifikatorProfile from "./pages/verifikator/Profile.jsx";
@@ -58,7 +61,7 @@ import RektorDetailDokumenValid from "./pages/rektor/DetailDokumenValid";
 const RoleBasedRedirect = () => {
   const { user, loading } = useAuth();
 
-  const localToken = localStorage.getItem("authToken"); // ✅ Tambah cek sinkron di sini juga
+  const localToken = localStorage.getItem("authToken");
   if (!localToken) return <Navigate to="/login" replace />;
 
   if (loading) return (
@@ -108,8 +111,11 @@ function App() {
           <Route path="/operator/batch/reject/:id" element={<ProtectedRoute allowedGroup="OPERATOR"><BatchReject /></ProtectedRoute>} />
           <Route path="/operator/batch/revoke/:id" element={<ProtectedRoute allowedGroup="OPERATOR"><BatchRevoke /></ProtectedRoute>} />
           <Route path="/operator/detail-mahasiswa/:nim" element={<ProtectedRoute allowedGroup="OPERATOR"><DetailMahasiswa /></ProtectedRoute>} />
+          
+          {/* 🔥🔥🔥 RUTE UNTUK SCAN QR (TANPA PROTECTED - BISA DIAKSES SIAPA PUN) 🔥🔥🔥 */}
+          <Route path="/scan-result/:nim" element={<ScanQRResult />} />
        
-          {/* 🔥 VERIFIKATOR ROUTES */}
+          {/* VERIFIKATOR ROUTES */}
           <Route path="/verifikator/dashboard" element={<ProtectedRoute allowedGroup="VERIFIKATOR"><VerifikatorDashboard /></ProtectedRoute>} />
           <Route path="/verifikator/profile" element={<ProtectedRoute allowedGroup="VERIFIKATOR"><VerifikatorProfile /></ProtectedRoute>} />
           <Route path="/verifikator/daftar-batch" element={<ProtectedRoute allowedGroup="VERIFIKATOR"><VerifikatorDaftarBatch /></ProtectedRoute>} />
@@ -117,7 +123,7 @@ function App() {
           <Route path="/verifikator/detail-batch/:batchId" element={<ProtectedRoute allowedGroup="VERIFIKATOR"><VerifikatorDetailBatch /></ProtectedRoute>} />
           <Route path="/verifikator/detail-mahasiswa/:nim" element={<ProtectedRoute allowedGroup="VERIFIKATOR"><DetailMahasiswa /></ProtectedRoute>} />
 
-          {/* 🔥 REKTOR ROUTES */}
+          {/* REKTOR ROUTES */}
           <Route path="/rektor/dashboard" element={<ProtectedRoute allowedGroup="REKTOR"><RektorDashboard /></ProtectedRoute>} />
           <Route path="/rektor/profile" element={<ProtectedRoute allowedGroup="REKTOR"><RektorProfile /></ProtectedRoute>} />
           <Route path="/rektor/daftar-batch" element={<ProtectedRoute allowedGroup="REKTOR"><RektorDaftarBatch /></ProtectedRoute>} />
