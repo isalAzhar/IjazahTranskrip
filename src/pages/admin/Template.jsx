@@ -147,6 +147,7 @@ const FIELD_META = {
       fontSize: 11,
       fontFamily: "arial",
       fontWeight: "500",
+      fontStyle: "italic",
       align: "left",
     },
     "Program Studi": {
@@ -266,6 +267,7 @@ const FIELD_META = {
       fontFamily: "arial",
       fontWeight: "600",
       align: "center",
+      textDecoration: "underline",
     },
     "TTD Dekan": {
       field: "assets.ttd_dekan",
