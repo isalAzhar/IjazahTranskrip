@@ -4,379 +4,313 @@ import React, { useMemo, useState, useEffect } from "react";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { FiSearch, FiChevronDown } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+import { getLatestValidations } from "../../services/dashboard.api";
 
-// ==================== DATA BATCH LENGKAP ====================
-const generateBatchData = () => {
-  const data = [];
-  let id = 1;
-  
-  const tahunRandom = ["2021", "2022", "2023", "2024", "2025", "2026"];
-  
-  const daftarNama = [
-    "Adi Saputra", "Rani Maharani", "Budi Pratama", "Kayla Keyla", "Rizky Gusti A",
-    "Risma Puspita", "Budi Doremi", "Siti Aisyah", "Eagle Al-Haikal", "Zahra Nabil",
-    "Dila Fadilla", "Nayla Nim", "Samsul Jun", "Rayyan Hesa", "Zahra Nur",
-    "Zulvikri", "Tasya Cantika", "Baedilah", "Mutqin", "Husni Haqiqi"
-  ];
-  
-  const ftsBatch = ["Batch 1 - FTS", "Batch 2 - FTS", "Batch 3 - FTS", "Batch 4 - FTS", "Batch 5 - FTS", 
-                    "Batch 6 - FTS", "Batch 7 - FTS", "Batch 8 - FTS", "Batch 9 - FTS", "Batch 10 - FTS"];
-  const ftsPeriode = ["Semester Ganjil", "Semester Genap", "Semester Ganjil", "Semester Genap", "Semester Ganjil", "Semester Genap", "Semester Ganjil", "Semester Genap", "Semester Ganjil", "Semester Genap"];
-  const ftsProdi = ["Teknik Informatika", "Teknik Mesin", "Teknik Sipil", "Sistem Informasi", "Teknik Elektro"];
-  
-  for (let i = 0; i < ftsBatch.length; i++) {
-    const mahasiswaList = [];
-    for (let j = 0; j < 10; j++) {
-      const nama = daftarNama[(i + j) % daftarNama.length] + (j >= daftarNama.length ? ` ${Math.floor(j / daftarNama.length) + 1}` : "");
-      mahasiswaList.push({
-        id: j + 1,
-        nama: nama,
-        nim: `23110604${String(900 + i * 10 + j).padStart(3, "0")}`,
-        prodi: ftsProdi[j % ftsProdi.length],
-        batch: ftsBatch[i],
-        fakultas: "Fakultas Teknik dan Sains",
-        tahunLulus: tahunRandom[i % tahunRandom.length],
-        jenisKelamin: j % 2 === 0 ? "Laki-laki" : "Perempuan",
-        ipk: (3.0 + (j % 100) / 100).toFixed(2),
-        tempatLahir: ["Bogor", "Jakarta", "Bandung", "Depok", "Bekasi", "Tangerang"][j % 6],
-        tanggalLahir: `${15 + j} ${["Januari", "Februari", "Maret"][j % 3]} 2004`,
-        email: `${nama.toLowerCase().replace(/\s+/g, ".")}@student.uika.ac.id`,
-        noTelp: `0812${String(345678900 + i * 10 + j).slice(0, 8)}`,
-        tahunMasuk: parseInt(tahunRandom[i % tahunRandom.length]) - 3,
-        totalSks: 144
-      });
-    }
-    
-    data.push({
-      id: id++,
-      listBatch: ftsBatch[i],
-      fakultas: "Fakultas Teknik dan Sains",
-      singkatan: "FTS",
-      tahunLulus: tahunRandom[i % tahunRandom.length],
-      periode: ftsPeriode[i],
-      totalData: 10,
-      mahasiswa: mahasiswaList,
-      status: "Terbit"
-    });
-  }
-  
-  const febBatch = ["Batch 1 - FEB", "Batch 2 - FEB", "Batch 3 - FEB", "Batch 4 - FEB", "Batch 5 - FEB",
-                    "Batch 6 - FEB", "Batch 7 - FEB", "Batch 8 - FEB", "Batch 9 - FEB", "Batch 10 - FEB"];
-  const febProdi = ["Manajemen", "Akuntansi", "Bisnis Digital"];
-  
-  for (let i = 0; i < febBatch.length; i++) {
-    const mahasiswaList = [];
-    for (let j = 0; j < 10; j++) {
-      const nama = daftarNama[(i + j + 5) % daftarNama.length] + (j >= daftarNama.length ? ` ${Math.floor(j / daftarNama.length) + 1}` : "");
-      mahasiswaList.push({
-        id: j + 1,
-        nama: nama,
-        nim: `23110604${String(950 + i * 10 + j).padStart(3, "0")}`,
-        prodi: febProdi[j % febProdi.length],
-        batch: febBatch[i],
-        fakultas: "Fakultas Ekonomi dan Bisnis",
-        tahunLulus: tahunRandom[i % tahunRandom.length],
-        jenisKelamin: j % 2 === 0 ? "Laki-laki" : "Perempuan",
-        ipk: (3.0 + (j % 100) / 100).toFixed(2),
-        tempatLahir: ["Bogor", "Jakarta", "Bandung", "Depok", "Bekasi", "Tangerang"][j % 6],
-        tanggalLahir: `${15 + j} ${["Januari", "Februari", "Maret"][j % 3]} 2004`,
-        email: `${nama.toLowerCase().replace(/\s+/g, ".")}@student.uika.ac.id`,
-        noTelp: `0812${String(345678900 + i * 10 + j).slice(0, 8)}`,
-        tahunMasuk: parseInt(tahunRandom[i % tahunRandom.length]) - 3,
-        totalSks: 144
-      });
-    }
-    
-    data.push({
-      id: id++,
-      listBatch: febBatch[i],
-      fakultas: "Fakultas Ekonomi dan Bisnis",
-      singkatan: "FEB",
-      tahunLulus: tahunRandom[i % tahunRandom.length],
-      periode: i % 2 === 0 ? "Semester Ganjil" : "Semester Genap",
-      totalData: 10,
-      mahasiswa: mahasiswaList,
-      status: "Proses"
-    });
-  }
-  
-  const fhBatch = ["Batch 1 - FH", "Batch 2 - FH", "Batch 3 - FH", "Batch 4 - FH",
-                   "Batch 5 - FH", "Batch 6 - FH", "Batch 7 - FH", "Batch 8 - FH"];
-  const fhProdi = ["Ilmu Hukum"];
-  
-  for (let i = 0; i < fhBatch.length; i++) {
-    const mahasiswaList = [];
-    for (let j = 0; j < 10; j++) {
-      const nama = daftarNama[(i + j + 10) % daftarNama.length] + (j >= daftarNama.length ? ` ${Math.floor(j / daftarNama.length) + 1}` : "");
-      mahasiswaList.push({
-        id: j + 1,
-        nama: nama,
-        nim: `23110604${String(1000 + i * 10 + j).padStart(3, "0")}`,
-        prodi: fhProdi[0],
-        batch: fhBatch[i],
-        fakultas: "Fakultas Hukum",
-        tahunLulus: tahunRandom[i % tahunRandom.length],
-        jenisKelamin: j % 2 === 0 ? "Laki-laki" : "Perempuan",
-        ipk: (3.0 + (j % 100) / 100).toFixed(2),
-        tempatLahir: ["Bogor", "Jakarta", "Bandung", "Depok", "Bekasi", "Tangerang"][j % 6],
-        tanggalLahir: `${15 + j} ${["Januari", "Februari", "Maret"][j % 3]} 2004`,
-        email: `${nama.toLowerCase().replace(/\s+/g, ".")}@student.uika.ac.id`,
-        noTelp: `0812${String(345678900 + i * 10 + j).slice(0, 8)}`,
-        tahunMasuk: parseInt(tahunRandom[i % tahunRandom.length]) - 3,
-        totalSks: 144
-      });
-    }
-    
-    data.push({
-      id: id++,
-      listBatch: fhBatch[i],
-      fakultas: "Fakultas Hukum",
-      singkatan: "FH",
-      tahunLulus: tahunRandom[i % tahunRandom.length],
-      periode: i % 2 === 0 ? "Semester Ganjil" : "Semester Genap",
-      totalData: 10,
-      mahasiswa: mahasiswaList,
-      status: "Revoke"
-    });
-  }
-  
-  const faiBatch = ["Batch 1 - FAI", "Batch 2 - FAI", "Batch 3 - FAI", "Batch 4 - FAI",
-                    "Batch 5 - FAI", "Batch 6 - FAI", "Batch 7 - FAI", "Batch 8 - FAI"];
-  const faiProdi = ["Pendidikan Agama Islam", "Ekonomi Syariah"];
-  
-  for (let i = 0; i < faiBatch.length; i++) {
-    const mahasiswaList = [];
-    for (let j = 0; j < 10; j++) {
-      const nama = daftarNama[(i + j + 15) % daftarNama.length] + (j >= daftarNama.length ? ` ${Math.floor(j / daftarNama.length) + 1}` : "");
-      mahasiswaList.push({
-        id: j + 1,
-        nama: nama,
-        nim: `23110604${String(1050 + i * 10 + j).padStart(3, "0")}`,
-        prodi: faiProdi[j % faiProdi.length],
-        batch: faiBatch[i],
-        fakultas: "Fakultas Agama Islam",
-        tahunLulus: tahunRandom[i % tahunRandom.length],
-        jenisKelamin: j % 2 === 0 ? "Laki-laki" : "Perempuan",
-        ipk: (3.0 + (j % 100) / 100).toFixed(2),
-        tempatLahir: ["Bogor", "Jakarta", "Bandung", "Depok", "Bekasi", "Tangerang"][j % 6],
-        tanggalLahir: `${15 + j} ${["Januari", "Februari", "Maret"][j % 3]} 2004`,
-        email: `${nama.toLowerCase().replace(/\s+/g, ".")}@student.uika.ac.id`,
-        noTelp: `0812${String(345678900 + i * 10 + j).slice(0, 8)}`,
-        tahunMasuk: parseInt(tahunRandom[i % tahunRandom.length]) - 3,
-        totalSks: 144
-      });
-    }
-    
-    data.push({
-      id: id++,
-      listBatch: faiBatch[i],
-      fakultas: "Fakultas Agama Islam",
-      singkatan: "FAI",
-      tahunLulus: tahunRandom[i % tahunRandom.length],
-      periode: i % 2 === 0 ? "Semester Ganjil" : "Semester Genap",
-      totalData: 10,
-      mahasiswa: mahasiswaList,
-      status: "Reject"
-    });
-  }
-  
-  const fikesBatch = ["Batch 1 - FIKES", "Batch 2 - FIKES", "Batch 3 - FIKES", "Batch 4 - FIKES",
-                      "Batch 5 - FIKES", "Batch 6 - FIKES", "Batch 7 - FIKES", "Batch 8 - FIKES"];
-  const fikesProdi = ["Kesehatan Masyarakat", "Ilmu Gizi"];
-  
-  for (let i = 0; i < fikesBatch.length; i++) {
-    const mahasiswaList = [];
-    for (let j = 0; j < 10; j++) {
-      const nama = daftarNama[(i + j + 2) % daftarNama.length] + (j >= daftarNama.length ? ` ${Math.floor(j / daftarNama.length) + 1}` : "");
-      mahasiswaList.push({
-        id: j + 1,
-        nama: nama,
-        nim: `23110604${String(1100 + i * 10 + j).padStart(3, "0")}`,
-        prodi: fikesProdi[j % fikesProdi.length],
-        batch: fikesBatch[i],
-        fakultas: "Fakultas Ilmu Kesehatan",
-        tahunLulus: tahunRandom[i % tahunRandom.length],
-        jenisKelamin: j % 2 === 0 ? "Laki-laki" : "Perempuan",
-        ipk: (3.0 + (j % 100) / 100).toFixed(2),
-        tempatLahir: ["Bogor", "Jakarta", "Bandung", "Depok", "Bekasi", "Tangerang"][j % 6],
-        tanggalLahir: `${15 + j} ${["Januari", "Februari", "Maret"][j % 3]} 2004`,
-        email: `${nama.toLowerCase().replace(/\s+/g, ".")}@student.uika.ac.id`,
-        noTelp: `0812${String(345678900 + i * 10 + j).slice(0, 8)}`,
-        tahunMasuk: parseInt(tahunRandom[i % tahunRandom.length]) - 3,
-        totalSks: 144
-      });
-    }
-    
-    data.push({
-      id: id++,
-      listBatch: fikesBatch[i],
-      fakultas: "Fakultas Ilmu Kesehatan",
-      singkatan: "FIKES",
-      tahunLulus: tahunRandom[i % tahunRandom.length],
-      periode: i % 2 === 0 ? "Semester Ganjil" : "Semester Genap",
-      totalData: 10,
-      mahasiswa: mahasiswaList,
-      status: "Terbit"
-    });
-  }
-  
-  const fkipBatch = ["Batch 1 - FKIP", "Batch 2 - FKIP", "Batch 3 - FKIP", "Batch 4 - FKIP",
-                     "Batch 5 - FKIP", "Batch 6 - FKIP", "Batch 7 - FKIP", "Batch 8 - FKIP"];
-  const fkipProdi = ["Pendidikan Bahasa Inggris", "Teknologi Pendidikan"];
-  
-  for (let i = 0; i < fkipBatch.length; i++) {
-    const mahasiswaList = [];
-    for (let j = 0; j < 10; j++) {
-      const nama = daftarNama[(i + j + 7) % daftarNama.length] + (j >= daftarNama.length ? ` ${Math.floor(j / daftarNama.length) + 1}` : "");
-      mahasiswaList.push({
-        id: j + 1,
-        nama: nama,
-        nim: `23110604${String(1150 + i * 10 + j).padStart(3, "0")}`,
-        prodi: fkipProdi[j % fkipProdi.length],
-        batch: fkipBatch[i],
-        fakultas: "Fakultas Keguruan dan Ilmu Pendidikan",
-        tahunLulus: tahunRandom[i % tahunRandom.length],
-        jenisKelamin: j % 2 === 0 ? "Laki-laki" : "Perempuan",
-        ipk: (3.0 + (j % 100) / 100).toFixed(2),
-        tempatLahir: ["Bogor", "Jakarta", "Bandung", "Depok", "Bekasi", "Tangerang"][j % 6],
-        tanggalLahir: `${15 + j} ${["Januari", "Februari", "Maret"][j % 3]} 2004`,
-        email: `${nama.toLowerCase().replace(/\s+/g, ".")}@student.uika.ac.id`,
-        noTelp: `0812${String(345678900 + i * 10 + j).slice(0, 8)}`,
-        tahunMasuk: parseInt(tahunRandom[i % tahunRandom.length]) - 3,
-        totalSks: 144
-      });
-    }
-    
-    data.push({
-      id: id++,
-      listBatch: fkipBatch[i],
-      fakultas: "Fakultas Keguruan dan Ilmu Pendidikan",
-      singkatan: "FKIP",
-      tahunLulus: tahunRandom[i % tahunRandom.length],
-      periode: i % 2 === 0 ? "Semester Ganjil" : "Semester Genap",
-      totalData: 10,
-      mahasiswa: mahasiswaList,
-      status: "Proses"
-    });
-  }
-  
-  return data;
+const itemsPerPage = 10;
+
+const extractRows = (response) => {
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.data)) return response.data;
+  if (Array.isArray(response?.data?.data)) return response.data.data;
+  if (Array.isArray(response?.result)) return response.result;
+  if (Array.isArray(response?.rows)) return response.rows;
+
+  return [];
 };
 
-const batchData = generateBatchData();
+const normalizeStatus = (status) => {
+  return String(status || "").toLowerCase().trim();
+};
 
-const fakultasOptions = [
-  "Semua Fakultas",
-  "Fakultas Teknik dan Sains",
-  "Fakultas Ekonomi dan Bisnis",
-  "Fakultas Hukum",
-  "Fakultas Agama Islam",
-  "Fakultas Ilmu Kesehatan",
-  "Fakultas Keguruan dan Ilmu Pendidikan"
-];
+const isDokumenValid = (item) => {
+  const status = normalizeStatus(item.status);
 
-const tahunOptions = ["Semua Tahun", "2021", "2022", "2023", "2024", "2025", "2026"];
+  return (
+    status === "terbit" ||
+    status === "valid" ||
+    status === "verified" ||
+    item.has_verified_document === true ||
+    item.has_verified_document === "true"
+  );
+};
+
+const formatPeriode = (periode) => {
+  const value = String(periode || "").toLowerCase().trim();
+
+  if (value === "ganjil") return "Semester Ganjil";
+  if (value === "genap") return "Semester Genap";
+  if (value.includes("ganjil")) return "Semester Ganjil";
+  if (value.includes("genap")) return "Semester Genap";
+
+  return periode || "-";
+};
+
+const getBatchName = (item) => {
+  return (
+    item.nomor_batch_upload ||
+    item.batch ||
+    item.listBatch ||
+    `Batch ${item.id_batch_upload || "-"}`
+  );
+};
+
+const getBatchKey = (item) => {
+  return [
+    item.id_batch_upload || item.nomor_batch_upload || item.batch || "tanpa-batch",
+    item.fakultas || "-",
+    item.tahun_lulus || item.tahunLulus || "-",
+    item.periode || "-",
+  ].join("-");
+};
+
+const formatMahasiswa = (item, index, batchData) => {
+  return {
+    id: item.id_mahasiswa || item.id || index + 1,
+    id_mahasiswa: item.id_mahasiswa,
+
+    nim: item.nim || "-",
+    nama: item.nama || item.nama_mahasiswa || "-",
+    nama_mahasiswa: item.nama_mahasiswa || item.nama || "-",
+
+    prodi: item.prodi || item.program_studi || "-",
+    program_studi: item.program_studi || item.prodi || "-",
+
+    batch: batchData.listBatch,
+    fakultas: item.fakultas || batchData.fakultas || "-",
+
+    tahunLulus: item.tahun_lulus || item.tahunLulus || batchData.tahunLulus || "-",
+    tahun_lulus: item.tahun_lulus || item.tahunLulus || batchData.tahunLulus || "-",
+
+    periode: formatPeriode(item.periode || batchData.periode),
+    status: "Terbit",
+
+    raw: item,
+  };
+};
+
+const groupByBatch = (rows = []) => {
+  const grouped = {};
+
+  rows.filter(isDokumenValid).forEach((item, index) => {
+    const key = getBatchKey(item);
+    const batchName = getBatchName(item);
+
+    if (!grouped[key]) {
+      grouped[key] = {
+        id: item.id_batch_upload || key,
+        id_batch_upload: item.id_batch_upload,
+
+        listBatch: batchName,
+        batch: batchName,
+
+        fakultas: item.fakultas || "-",
+        tahunLulus: item.tahun_lulus || item.tahunLulus || "-",
+        tahun_lulus: item.tahun_lulus || item.tahunLulus || "-",
+
+        periode: formatPeriode(item.periode),
+        totalData: 0,
+        mahasiswa: [],
+        status: "Terbit",
+      };
+    }
+
+    grouped[key].totalData += 1;
+    grouped[key].mahasiswa.push(formatMahasiswa(item, index, grouped[key]));
+  });
+
+  return Object.values(grouped);
+};
 
 const DokumenValid = () => {
   const navigate = useNavigate();
+
+  const [batchData, setBatchData] = useState([]);
   const [search, setSearch] = useState("");
   const [fakultas, setFakultas] = useState("");
   const [tahun, setTahun] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState("");
+
+  useEffect(() => {
+    const fetchDokumenValid = async () => {
+      try {
+        setIsLoading(true);
+        setApiError("");
+
+        let response;
+
+        try {
+          response = await getLatestValidations({
+            page: 1,
+            limit: 10000,
+            search: "",
+          });
+        } catch (error) {
+          response = await getLatestValidations(1, 10000, "");
+        }
+
+        const rows = extractRows(response);
+        const groupedData = groupByBatch(rows);
+
+        setBatchData(groupedData);
+      } catch (error) {
+        console.error("Gagal mengambil dokumen valid:", error);
+        setApiError(error.message || "Gagal mengambil data dokumen valid");
+        setBatchData([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDokumenValid();
+  }, []);
+
+  const fakultasOptions = useMemo(() => {
+    const options = batchData
+      .map((item) => item.fakultas)
+      .filter((item) => item && item !== "-");
+
+    return ["Semua Fakultas", ...new Set(options)];
+  }, [batchData]);
+
+  const tahunOptions = useMemo(() => {
+    const options = batchData
+      .map((item) => item.tahunLulus)
+      .filter((item) => item && item !== "-")
+      .map(String);
+
+    return ["Semua Tahun", ...new Set(options)];
+  }, [batchData]);
 
   const searchResult = useMemo(() => {
-    if (!search) return [];
+    if (!search.trim()) return [];
 
     const keyword = search.toLowerCase();
     const result = [];
 
     batchData.forEach((batch) => {
-      if (batch.mahasiswa) {
-        batch.mahasiswa.forEach((mhs) => {
-          const matchNama = mhs.nama.toLowerCase().includes(keyword);
-          const matchNim = String(mhs.nim).toLowerCase().includes(keyword);
-          const matchProdi = mhs.prodi.toLowerCase().includes(keyword);
+      batch.mahasiswa.forEach((mhs) => {
+        const match =
+          String(mhs.nama || "").toLowerCase().includes(keyword) ||
+          String(mhs.nim || "").toLowerCase().includes(keyword) ||
+          String(mhs.prodi || "").toLowerCase().includes(keyword);
 
-          if (matchNama || matchNim || matchProdi) {
-            result.push({
+        if (match) {
+          result.push({
+            nim: mhs.nim,
+            nama: mhs.nama,
+            prodi: mhs.prodi,
+            batch: mhs.batch || batch.listBatch,
+            fakultas: mhs.fakultas || batch.fakultas,
+            tahunLulus: mhs.tahunLulus || batch.tahunLulus,
+            tahun_lulus: mhs.tahun_lulus || batch.tahunLulus,
+            status: "Terbit",
+            mahasiswa: {
+              ...mhs,
               nim: mhs.nim,
               nama: mhs.nama,
               prodi: mhs.prodi,
               batch: mhs.batch || batch.listBatch,
               fakultas: mhs.fakultas || batch.fakultas,
               tahunLulus: mhs.tahunLulus || batch.tahunLulus,
-              status: batch.status,
-              mahasiswa: {
-                ...mhs,
-                nim: mhs.nim,
-                nama: mhs.nama,
-                prodi: mhs.prodi,
-                batch: mhs.batch || batch.listBatch,
-                fakultas: mhs.fakultas || batch.fakultas,
-                tahunLulus: mhs.tahunLulus || batch.tahunLulus,
-                status: batch.status,
-              },
-            });
-          }
-        });
-      }
+              tahun_lulus: mhs.tahun_lulus || batch.tahunLulus,
+              status: "Terbit",
+            },
+          });
+        }
+      });
     });
 
     return result;
-  }, [search]);
+  }, [search, batchData]);
 
   const filtered = useMemo(() => {
     return batchData.filter((item) => {
       const keyword = search.toLowerCase();
-      const matchSearch = item.listBatch.toLowerCase().includes(keyword) || 
-                         item.fakultas.toLowerCase().includes(keyword);
-      const matchFakultas = !fakultas || fakultas === "Semua Fakultas" || item.fakultas === fakultas;
-      const matchTahun = !tahun || tahun === "Semua Tahun" || item.tahunLulus === tahun;
+
+      const matchSearch =
+        item.listBatch.toLowerCase().includes(keyword) ||
+        item.fakultas.toLowerCase().includes(keyword) ||
+        String(item.tahunLulus).toLowerCase().includes(keyword) ||
+        String(item.periode).toLowerCase().includes(keyword) ||
+        item.mahasiswa.some((mhs) => {
+          return (
+            String(mhs.nama || "").toLowerCase().includes(keyword) ||
+            String(mhs.nim || "").toLowerCase().includes(keyword) ||
+            String(mhs.prodi || "").toLowerCase().includes(keyword)
+          );
+        });
+
+      const matchFakultas =
+        !fakultas ||
+        fakultas === "Semua Fakultas" ||
+        item.fakultas === fakultas;
+
+      const matchTahun =
+        !tahun ||
+        tahun === "Semua Tahun" ||
+        String(item.tahunLulus) === String(tahun);
+
       return matchSearch && matchFakultas && matchTahun;
     });
+  }, [batchData, search, fakultas, tahun]);
+
+  useEffect(() => {
+    setCurrentPage(1);
   }, [search, fakultas, tahun]);
 
-  useEffect(() => { 
-    setCurrentPage(1); 
-  }, [search, fakultas, tahun]);
+  const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
 
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const paginatedData = filtered.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
   const handleDetailClick = (item) => {
-    navigate(`/operator/dokumen-valid/batch/${item.id}`, { state: item });
+    navigate(`/operator/dokumen-valid/batch/${encodeURIComponent(item.id)}`, {
+      state: item,
+    });
   };
 
-  // Fungsi untuk handle klik hasil pencarian mahasiswa - navigasi sesuai status
   const handleMahasiswaClick = (item) => {
     const mahasiswaData = {
       nim: item.nim,
       nama: item.nama,
+      nama_mahasiswa: item.nama,
       prodi: item.prodi,
+      program_studi: item.prodi,
       fakultas: item.fakultas,
       tahunLulus: item.tahunLulus,
+      tahun_lulus: item.tahun_lulus || item.tahunLulus,
       batch: item.batch,
       status: item.status,
+      mahasiswa: item.mahasiswa,
     };
 
-    // Jika status "Terbit", navigasi ke detail dokumen valid
     if (item.status === "Terbit") {
-      navigate(`/operator/detail-dokumen-valid/${item.nim}`, { state: mahasiswaData });
+      navigate(`/operator/detail-dokumen-valid/${encodeURIComponent(item.nim)}`, {
+        state: mahasiswaData,
+      });
     } else {
-      // Jika status selain Terbit (Proses, Reject, Revoke), navigasi ke detail pelaporan
-      navigate(`/operator/detail-pelaporan/${item.nim}`, { state: mahasiswaData });
+      navigate(`/operator/detail-pelaporan/${encodeURIComponent(item.nim)}`, {
+        state: mahasiswaData,
+      });
     }
   };
 
   const renderPaginationButtons = () => {
     const pages = [];
+
     pages.push(1);
+
     if (currentPage > 2 && totalPages > 3) pages.push("...");
+
     if (currentPage === 1 && totalPages > 1) {
       pages.push(2);
     } else if (currentPage === totalPages && totalPages > 2) {
@@ -384,8 +318,12 @@ const DokumenValid = () => {
     } else if (currentPage > 1 && currentPage < totalPages) {
       pages.push(currentPage);
     }
+
     if (currentPage < totalPages - 1 && totalPages > 3) pages.push("...");
-    if (totalPages > 1 && !pages.includes(totalPages)) pages.push(totalPages);
+
+    if (totalPages > 1 && !pages.includes(totalPages)) {
+      pages.push(totalPages);
+    }
 
     return pages.map((page, index) => (
       <button
@@ -409,8 +347,20 @@ const DokumenValid = () => {
     <DashboardLayout title="Dokumen Valid">
       <div className="w-full">
         <div className="mb-6">
-          <h1 className="text-[26px] font-bold text-gray-900">Daftar Dokumen Valid</h1>
-          <p className="text-[#9CA3AF] text-sm mt-1">Arsip digital ijazah dan transkrip mahasiswa yang telah melewati proses verifikasi institusi.</p>
+          <h1 className="text-[26px] font-bold text-gray-900">
+            Daftar Dokumen Valid
+          </h1>
+
+          <p className="text-[#9CA3AF] text-sm mt-1">
+            Arsip digital ijazah dan transkrip mahasiswa yang telah melewati
+            proses verifikasi institusi.
+          </p>
+
+          {apiError && (
+            <p className="text-sm text-red-500 font-semibold mt-2">
+              {apiError}
+            </p>
+          )}
         </div>
 
         {/* FILTER BOX - PUTIH */}
@@ -419,74 +369,65 @@ const DokumenValid = () => {
             <div className="w-full lg:max-w-md">
               <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
                 <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
-                <input 
-                  type="text" 
-                  placeholder="Cari: Nama Mahasiswa, NIM, Prodi" 
-                  value={search} 
+
+                <input
+                  type="text"
+                  placeholder="Cari: Nama Mahasiswa, NIM, Prodi"
+                  value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400" 
+                  className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
                 />
               </div>
             </div>
 
             <div className="flex items-center gap-3 w-full lg:w-auto">
               <div className="relative w-full lg:w-56">
-                <select 
-                  value={fakultas || "Semua Fakultas"} 
-                  onChange={(e) => setFakultas(e.target.value === "Semua Fakultas" ? "" : e.target.value)}
+                <select
+                  value={fakultas || "Semua Fakultas"}
+                  onChange={(e) =>
+                    setFakultas(
+                      e.target.value === "Semua Fakultas"
+                        ? ""
+                        : e.target.value
+                    )
+                  }
                   className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
                 >
                   {fakultasOptions.map((item, index) => (
-                    <option key={index} value={item}>{item}</option>
+                    <option key={index} value={item}>
+                      {item}
+                    </option>
                   ))}
                 </select>
-                <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+
+                <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
               </div>
 
-              <div className="relative w-full lg:w-36">
-                <select 
-                  value={tahun || "Semua Tahun"} 
-                  onChange={(e) => setTahun(e.target.value === "Semua Tahun" ? "" : e.target.value)}
+              <div className="relative w-full lg:w-44">
+                <select
+                  value={tahun || "Semua Tahun"}
+                  onChange={(e) =>
+                    setTahun(
+                      e.target.value === "Semua Tahun" ? "" : e.target.value
+                    )
+                  }
                   className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
                 >
                   {tahunOptions.map((item, index) => (
-                    <option key={index} value={item}>{item}</option>
+                    <option key={index} value={item}>
+                      {item}
+                    </option>
                   ))}
                 </select>
-                <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+
+                <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
               </div>
             </div>
           </div>
         </div>
 
-        {/* HASIL SEARCH NAMA / NIM / PRODI */}
-        {search && searchResult.length > 0 && (
-          <div className="bg-white border border-[#ECECEC] rounded-xl mb-4 overflow-hidden">
-            {searchResult.slice(0, 4).map((item, i) => (
-              <div
-                key={i}
-                onClick={() => handleMahasiswaClick(item)}
-                className="flex items-center justify-between px-4 py-2.5 hover:bg-[#FAFAFA] transition border-b border-[#F5F5F5] last:border-b-0 cursor-pointer"
-              >
-                <div>
-                  <p className="text-[13px] font-semibold text-[#111827] leading-none">
-                    {item.nama}
-                  </p>
-                  <p className="text-[11px] text-[#9CA3AF] mt-1">
-                    {item.nim} • {item.prodi}
-                  </p>
-                  <p className="text-[11px] text-[#9CA3AF] mt-1">
-                    {item.fakultas}
-                  </p>
-                </div>
-                <div className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-2 py-1 rounded-md">
-                  {item.batch}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        
+      
+
         {/* TABLE */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
           <div className="min-w-[1000px]">
@@ -495,41 +436,86 @@ const DokumenValid = () => {
                 <tr>
                   <th className="py-4 px-6 text-center w-16">No.</th>
                   <th className="py-4 px-6 w-[200px]">List Batch</th>
-                  <th className="py-4 px-6 text-center w-[280px]">Fakultas</th>
-                  <th className="py-4 px-6 text-center w-[120px]">Tahun Lulus</th>
-                  <th className="py-4 px-6 text-center w-[150px]">Periode</th>
-                  <th className="py-4 px-6 text-center w-[100px]">Total Data</th>
+                  <th className="py-4 px-6 text-center w-[280px]">
+                    Fakultas
+                  </th>
+                  <th className="py-4 px-6 text-center w-[120px]">
+                    Tahun Lulus
+                  </th>
+                  <th className="py-4 px-6 text-center w-[150px]">
+                    Periode
+                  </th>
+                  <th className="py-4 px-6 text-center w-[100px]">
+                    Total Data
+                  </th>
                   <th className="py-4 px-6 text-center w-24">Detail</th>
                 </tr>
               </thead>
+
               <tbody>
-                {paginatedData.map((item, index) => {
-                  const actualIndex = (currentPage - 1) * itemsPerPage + index + 1;
-                  return (
-                    <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                      <td className="py-4 px-6 text-center font-medium text-gray-800 truncate">{actualIndex}.</td>
-                      <td className="py-4 px-6 font-medium text-gray-900 truncate">{item.listBatch}</td>
-                      <td className="py-4 px-6 text-center font-medium text-gray-900 truncate">{item.fakultas}</td>
-                      <td className="py-4 px-6 text-center font-medium text-gray-900 truncate">{item.tahunLulus}</td>
-                      <td className="py-4 px-6 text-center font-medium text-gray-900 truncate">{item.periode}</td>
-                      <td className="py-4 px-6 text-center font-medium text-gray-900 truncate">{item.totalData}</td>
-                      <td className="py-4 px-6 text-center">
-                        <button
-                          onClick={() => handleDetailClick(item)}
-                          className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
-                        >
-                          <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {isLoading ? (
+                  <tr>
+                    <td
+                      colSpan="7"
+                      className="py-8 text-center text-gray-500 font-medium"
+                    >
+                      Memuat data...
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedData.map((item, index) => {
+                    const actualIndex =
+                      (currentPage - 1) * itemsPerPage + index + 1;
+
+                    return (
+                      <tr
+                        key={item.id}
+                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="py-4 px-6 text-center font-medium text-gray-800 truncate">
+                          {actualIndex}.
+                        </td>
+
+                        <td className="py-4 px-6 font-medium text-gray-900 truncate">
+                          {item.listBatch}
+                        </td>
+
+                        <td className="py-4 px-6 text-center font-medium text-gray-900 truncate">
+                          {item.fakultas}
+                        </td>
+
+                        <td className="py-4 px-6 text-center font-medium text-gray-900 truncate">
+                          {item.tahunLulus}
+                        </td>
+
+                        <td className="py-4 px-6 text-center font-medium text-gray-900 truncate">
+                          {item.periode}
+                        </td>
+
+                        <td className="py-4 px-6 text-center font-medium text-gray-900 truncate">
+                          {item.totalData}
+                        </td>
+
+                        <td className="py-4 px-6 text-center">
+                          <button
+                            onClick={() => handleDetailClick(item)}
+                            className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
+                          >
+                            <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
 
-          {paginatedData.length === 0 && (
-            <div className="py-8 text-center text-gray-500 font-medium">Data tidak ditemukan.</div>
+          {!isLoading && paginatedData.length === 0 && (
+            <div className="py-8 text-center text-gray-500 font-medium">
+              Data tidak ditemukan.
+            </div>
           )}
 
           {/* PAGINATION */}
@@ -537,6 +523,7 @@ const DokumenValid = () => {
             <p className="text-xs text-gray-400">
               Menampilkan {paginatedData.length} dari {filtered.length} Data
             </p>
+
             {totalPages > 1 && (
               <div className="flex items-center gap-1.5">
                 <button
@@ -546,7 +533,9 @@ const DokumenValid = () => {
                 >
                   {"<"}
                 </button>
+
                 {renderPaginationButtons()}
+
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
