@@ -228,7 +228,7 @@ const RektorDokumenValid = () => {
                   <select
                     value={selectedFakultas}
                     onChange={(e) => { setSelectedFakultas(e.target.value); setCurrentPage(1); }}
-                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-center"
+                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
                   >
                     <option value="">Semua Fakultas</option>
                     {fakultasList.map((f) => (
@@ -242,7 +242,7 @@ const RektorDokumenValid = () => {
                   <select
                     value={selectedYear}
                     onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(1); }}
-                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-center"
+                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
                   >
                     <option value="">Semua Tahun</option>
                     {years.map((y) => <option key={y} value={y}>{y}</option>)}

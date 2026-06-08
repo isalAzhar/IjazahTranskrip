@@ -196,7 +196,7 @@ const DetailBatchVerifikator = () => {
         <div className="mb-6 px-6 py-4 bg-white border border-gray-200 rounded-xl flex flex-wrap items-center gap-x-12 gap-y-4 shadow-sm relative overflow-hidden">
           <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#117065]"></div>
           <div className="flex flex-col">
-            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Nama Batch</span>
+            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">No Batch</span>
            <span className="text-[14px] font-bold text-gray-800">{formatNamaBatch(batchInfo.nomor_batch_upload)}</span>
           </div>
           <div className="flex flex-col">
