@@ -269,7 +269,7 @@ const Verifikasi = () => {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </DashboardLayout> 
   );
 };
 

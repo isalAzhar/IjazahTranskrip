@@ -14,15 +14,9 @@ import DaftarUnit from "./pages/admin/DaftarUnit";
 import DaftarPengguna from "./pages/admin/DaftarPengguna";
 import Profile from "./pages/admin/Profile";
   
-// Ijazah & Batch Components
-import IjazahTerbit from "./components/ijazah/IjazahTerbit";
-import IjazahProses from "./components/ijazah/IjazahProses";
-import IjazahReject from "./components/ijazah/IjazahReject";
-import IjazahRevoke from "./components/ijazah/IjazahRevoke";
-import BatchTerbit from "./components/batch/BatchTerbit";
-import BatchProses from "./components/batch/BatchProses";
-import BatchReject from "./components/batch/BatchReject";
-import BatchRevoke from "./components/batch/BatchRevoke";
+// 🔥 NEW: Ijazah & Batch Components (Clean Code)
+import StatusIjazah from "./pages/admin/StatusIjazah";
+import Statusbatch from "./pages/admin/Statusbatch";
 
 // Admin
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -39,7 +33,7 @@ import DetailPelaporan from "./pages/operator/DetailPelaporan";
 import DetailBatchDokumenValid from "./pages/operator/DetailBatchDokumenValid";
 import DetailDokumenValid from "./pages/operator/DetailDokumenValid";
 
-// 🔥 IMPORT SCAN QR RESULT
+// IMPORT SCAN QR RESULT
 import ScanQRResult from "./pages/operator/ScanQRResult";
 
 // Verifikator
@@ -57,7 +51,6 @@ import RektorPelaporan from "./pages/verifikator/PelaporanVerifikator";
 import RektorDokumenValid from "./pages/rektor/DokumenValid"; 
 import RektorDetailDokumenValid from "./pages/rektor/DetailDokumenValid";
 
-  
 const RoleBasedRedirect = () => {
   const { user, loading } = useAuth();
 
@@ -106,13 +99,13 @@ function App() {
           <Route path="/operator/dokumen-valid/batch/:batchId" element={<ProtectedRoute allowedGroup="OPERATOR"><DetailBatchDokumenValid /></ProtectedRoute>} />
           <Route path="/operator/detail-dokumen-valid/:nim" element={<ProtectedRoute allowedGroup="OPERATOR"><DetailDokumenValid /></ProtectedRoute>} />
           <Route path="/operator/ijazah-digital/:nim" element={<ProtectedRoute allowedGroup="OPERATOR"><IjazahDigital /></ProtectedRoute>} />
-          <Route path="/operator/batch/terbit/:id" element={<ProtectedRoute allowedGroup="OPERATOR"><BatchTerbit /></ProtectedRoute>} />
-          <Route path="/operator/batch/proses/:id" element={<ProtectedRoute allowedGroup="OPERATOR"><BatchProses /></ProtectedRoute>} />
-          <Route path="/operator/batch/reject/:id" element={<ProtectedRoute allowedGroup="OPERATOR"><BatchReject /></ProtectedRoute>} />
-          <Route path="/operator/batch/revoke/:id" element={<ProtectedRoute allowedGroup="OPERATOR"><BatchRevoke /></ProtectedRoute>} />
+          
+          {/* 🔥 NEW: Operator dynamic batch status route */}
+          <Route path="/operator/batch/:status/:id" element={<ProtectedRoute allowedGroup="OPERATOR"><Statusbatch /></ProtectedRoute>} />
+          
           <Route path="/operator/detail-mahasiswa/:nim" element={<ProtectedRoute allowedGroup="OPERATOR"><DetailMahasiswa /></ProtectedRoute>} />
           
-          {/* 🔥🔥🔥 RUTE UNTUK SCAN QR (TANPA PROTECTED - BISA DIAKSES SIAPA PUN) 🔥🔥🔥 */}
+          {/* RUTE UNTUK SCAN QR (TANPA PROTECTED - BISA DIAKSES SIAPA PUN) */}
           <Route path="/scan-result/:nim" element={<ScanQRResult />} />
        
           {/* VERIFIKATOR ROUTES */}
@@ -133,16 +126,10 @@ function App() {
           <Route path="/rektor/detail-dokumen-valid/:id" element={<ProtectedRoute allowedGroup="REKTOR"><RektorDetailDokumenValid /></ProtectedRoute>} />
           <Route path="/rektor/detail-mahasiswa/:nim" element={<ProtectedRoute allowedGroup="REKTOR"><DetailMahasiswa /></ProtectedRoute>} />
 
-          {/* SHARED ROUTES */}
-          <Route path="/ijazah/terbit" element={<ProtectedRoute allowedGroup="ALL"><IjazahTerbit /></ProtectedRoute>} />
-          <Route path="/ijazah/proses" element={<ProtectedRoute allowedGroup="ALL"><IjazahProses /></ProtectedRoute>} />
-          <Route path="/ijazah/reject" element={<ProtectedRoute allowedGroup="ALL"><IjazahReject /></ProtectedRoute>} />
-          <Route path="/ijazah/revoke" element={<ProtectedRoute allowedGroup="ALL"><IjazahRevoke /></ProtectedRoute>} />
+          {/* 🔥 NEW: SHARED ROUTES (Bisa diakses semua role) */}
+          <Route path="/ijazah/:status" element={<ProtectedRoute allowedGroup="ALL"><StatusIjazah /></ProtectedRoute>} />
+          <Route path="/batch/:status/:id" element={<ProtectedRoute allowedGroup="ALL"><Statusbatch /></ProtectedRoute>} />
           <Route path="/ijazah-digital/:nim" element={<ProtectedRoute allowedGroup="ALL"><IjazahDigital /></ProtectedRoute>} />
-          <Route path="/batch/terbit/:id" element={<ProtectedRoute allowedGroup="ALL"><BatchTerbit /></ProtectedRoute>} />
-          <Route path="/batch/proses/:id" element={<ProtectedRoute allowedGroup="ALL"><BatchProses /></ProtectedRoute>} />
-          <Route path="/batch/reject/:id" element={<ProtectedRoute allowedGroup="ALL"><BatchReject /></ProtectedRoute>} />
-          <Route path="/batch/revoke/:id" element={<ProtectedRoute allowedGroup="ALL"><BatchRevoke /></ProtectedRoute>} />
           
           {/* REDIRECTS */}
           <Route path="/dashboard" element={<RoleBasedRedirect />} />

@@ -8,3 +8,4 @@ export * from "./dashboard.api.js";
 export * from "./unit.service.js";
 export * from "./template.api.js";
 export * from "./document.api.js";
+export * from "./daftarbatch.api.js"; 
