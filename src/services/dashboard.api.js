@@ -141,9 +141,24 @@ export const getStatistics = async () => {
 export const getMonthlyIssuance = async () => {
   try {
     const result = await fetchJSON(`${DASHBOARD_API}/statistik/tahunan`);
-    const rows = Array.isArray(result.data) ? result.data : [];
+
+    console.log("RESPONSE MONTHLY ISSUANCE:", result);
+
+    const rows = Array.isArray(result.raw)
+      ? result.raw
+      : Array.isArray(result.data)
+      ? result.data
+      : [];
+
     const labels = rows.map((item) => item.bulan);
-    const years = [...new Set(rows.flatMap((item) => Object.keys(item).filter((key) => key !== "bulan")))];
+
+    const years = [
+      ...new Set(
+        rows.flatMap((item) =>
+          Object.keys(item).filter((key) => key !== "bulan")
+        )
+      ),
+    ];
 
     const datasets = years.map((year) => ({
       label: year,
