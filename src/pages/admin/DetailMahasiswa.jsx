@@ -1,10 +1,11 @@
 // src/pages/operator/DetailPelaporan.jsx
 
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { FiUser, FiBook, FiFileText } from "react-icons/fi"; // FiArrowLeft sudah dihapus
+import { useNavigate, useParams, Navigate } from "react-router-dom";
+import { FiUser, FiBook, FiFileText } from "react-icons/fi";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { getAkademikProfile } from "@/services/api";
+import { decodeId } from "@/components/shared/hashId"; // ✅ Import helper
 
 const badgeClass = (status) => {
   const map = {
@@ -13,75 +14,58 @@ const badgeClass = (status) => {
     Revoke: "bg-[#F59E0B] text-white",
     Reject: "bg-[#EF4444] text-white",
   };
-
   return map[status] || "bg-gray-400 text-white";
 };
 
 const getImageUrl = (imagePath) => {
   if (!imagePath) return null;
-
-  if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-    return imagePath;
-  }
-
+  if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) return imagePath;
   const baseUrl = import.meta.env.VITE_API_PUBLIC_URL || "http://localhost:3000";
-
-  if (imagePath.startsWith("/")) {
-    return `${baseUrl}${imagePath}`;
-  }
-
+  if (imagePath.startsWith("/")) return `${baseUrl}${imagePath}`;
   return `${baseUrl}/${imagePath}`;
 };
 
 const formatTanggal = (value) => {
   if (!value) return "-";
-
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) return "-";
-
-  return date.toLocaleDateString("id-ID", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+  return date.toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
 };
 
-const DetailPelaporan = () => {
+const DetailMahasiswa = () => { // ✅ Ganti nama komponen
   const navigate = useNavigate();
-  const { nim } = useParams();
+  const { nim: encodedNim } = useParams();
+
+  // ✅ Decode NIM dari URL
+  const nim = decodeId(encodedNim);
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [imageError, setImageError] = useState(false);
 
+  // ✅ Validasi: jika NIM hasil decode tidak valid, tendang
+  if (!nim) {
+    return <Navigate to="/login" replace />;
+  }
+
   const fetchProfile = async () => {
     try {
       setLoading(true);
       setError("");
       setImageError(false);
-
       const result = await getAkademikProfile(nim);
-
       setProfile(result.data);
     } catch (err) {
       console.error("Gagal mengambil detail mahasiswa:", err);
-
-      setError(
-        err?.message ||
-          err?.response?.data?.message ||
-          "Gagal mengambil detail mahasiswa."
-      );
+      setError(err?.message || err?.response?.data?.message || "Gagal mengambil detail mahasiswa.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (nim) {
-      fetchProfile();
-    }
+    if (nim) fetchProfile();
   }, [nim]);
 
   const mahasiswa = profile?.mahasiswa;
@@ -91,18 +75,10 @@ const DetailPelaporan = () => {
   const transkrip = profile?.transkrip || [];
 
   const fotoMahasiswa = getImageUrl(mahasiswa?.foto);
-
-  const batchLabel =
-    batch?.id_batch_upload || mahasiswa?.id_batch_upload || "-";
-
+  const batchLabel = batch?.id_batch_upload || mahasiswa?.id_batch_upload || "-";
   const detailStatus = approval?.status || "Proses";
-
-  const detailKeterangan =
-    approval?.keterangan || "Di Proses Validasi oleh TU Fakultas";
-
-  const detailDeskripsi =
-    approval?.deskripsi ||
-    "Data sedang dalam proses verifikasi. Mohon menunggu hingga proses validasi selesai.";
+  const detailKeterangan = approval?.keterangan || "Di Proses Validasi oleh TU Fakultas";
+  const detailDeskripsi = approval?.deskripsi || "Data sedang dalam proses verifikasi. Mohon menunggu hingga proses validasi selesai.";
 
   if (loading) {
     return (
@@ -129,10 +105,7 @@ const DetailPelaporan = () => {
       <DashboardLayout title="Detail Mahasiswa">
         <div className="w-full text-center py-10">
           <p className="text-gray-500 mb-3">Data tidak ditemukan</p>
-          <button
-            onClick={() => navigate(-1)}
-            className="text-[#115E59] font-bold hover:underline"
-          >
+          <button onClick={() => navigate(-1)} className="text-[#115E59] font-bold hover:underline">
             ← Kembali
           </button>
         </div>
@@ -143,9 +116,6 @@ const DetailPelaporan = () => {
   return (
     <DashboardLayout title="Detail Mahasiswa">
       <div className="w-full">
-        {/* TOMBOL KEMBALI SUDAH DIHAPUS */}
-
-        {/* Header Mahasiswa */}
         <div className="bg-white rounded-xl px-8 py-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 shadow-sm border border-gray-200">
           <div className="flex items-center gap-6">
             <div className="w-[88px] h-[88px] rounded-full bg-[#E5F3EB] overflow-hidden flex items-center justify-center border-4 border-[#E5F3EB]">
@@ -164,14 +134,8 @@ const DetailPelaporan = () => {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <h2 className="font-bold text-[20px] text-gray-900">
-                {mahasiswa?.nama_mahasiswa || "-"}
-              </h2>
-
-              <p className="text-[14px] text-gray-600">
-                NIM: {mahasiswa?.nim || "-"}
-              </p>
-
+              <h2 className="font-bold text-[20px] text-gray-900">{mahasiswa?.nama_mahasiswa || "-"}</h2>
+              <p className="text-[14px] text-gray-600">NIM: {mahasiswa?.nim || "-"}</p>
               <div>
                 <span className="inline-block bg-[#115E59] text-white text-[12px] px-4 py-1.5 rounded-full font-bold shadow-sm">
                   Batch ID: {batchLabel}
@@ -181,59 +145,29 @@ const DetailPelaporan = () => {
           </div>
 
           <div className="text-right flex flex-col items-end gap-1 max-w-[320px]">
-            <span
-              className={`${badgeClass(
-                detailStatus
-              )} text-white text-[13px] px-6 py-1.5 rounded-full font-bold shadow-sm inline-block`}
-            >
+            <span className={`${badgeClass(detailStatus)} text-white text-[13px] px-6 py-1.5 rounded-full font-bold shadow-sm inline-block`}>
               {detailStatus}
             </span>
-
-            <p className="text-[11px] text-gray-500 font-medium">
-              {detailKeterangan}
-            </p>
-
-            <p className="text-[10px] text-gray-400 italic leading-relaxed text-right">
-              {detailDeskripsi}
-            </p>
+            <p className="text-[11px] text-gray-500 font-medium">{detailKeterangan}</p>
+            <p className="text-[10px] text-gray-400 italic leading-relaxed text-right">{detailDeskripsi}</p>
           </div>
         </div>
 
-        {/* Informasi Pribadi dan Akademik */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
             <div className="bg-[#F3F4F6] px-6 py-4 flex items-center gap-2 border-b border-gray-200">
               <FiUser size={16} className="text-gray-800" />
-              <h3 className="text-[14px] font-bold text-gray-800">
-                Informasi Pribadi
-              </h3>
+              <h3 className="text-[14px] font-bold text-gray-800">Informasi Pribadi</h3>
             </div>
-
             <div className="p-6 grid grid-cols-2 gap-y-6 gap-x-8 text-[14px]">
               <InfoItem label="Nama" value={mahasiswa?.nama_mahasiswa} />
               <InfoItem label="NIM" value={mahasiswa?.nim} />
               <InfoItem label="NIK" value={mahasiswa?.nik} />
-
-              <InfoItem
-                label="Tempat, Tanggal Lahir"
-                value={`${mahasiswa?.tempat_lahir || "-"}, ${formatTanggal(
-                  mahasiswa?.tanggal_lahir
-                )}`}
-              />
-
-              <InfoItem
-                label="Jenis Kelamin"
-                value={mahasiswa?.jenis_kelamin}
-              />
-
+              <InfoItem label="Tempat, Tanggal Lahir" value={`${mahasiswa?.tempat_lahir || "-"}, ${formatTanggal(mahasiswa?.tanggal_lahir)}`} />
+              <InfoItem label="Jenis Kelamin" value={mahasiswa?.jenis_kelamin} />
               <InfoItem label="Email" value={mahasiswa?.email} />
               <InfoItem label="No Telepon" value={mahasiswa?.telepon} />
-
-              <InfoItem
-                label="Nomor Seri Ijazah"
-                value={mahasiswa?.nomor_seri_ijazah}
-              />
-
+              <InfoItem label="Nomor Seri Ijazah" value={mahasiswa?.nomor_seri_ijazah} />
               <InfoItem label="PISN" value={mahasiswa?.pisn} />
             </div>
           </div>
@@ -241,11 +175,8 @@ const DetailPelaporan = () => {
           <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
             <div className="bg-[#F3F4F6] px-6 py-4 flex items-center gap-2 border-b border-gray-200">
               <FiBook size={16} className="text-gray-800" />
-              <h3 className="text-[14px] font-bold text-gray-800">
-                Informasi Akademik
-              </h3>
+              <h3 className="text-[14px] font-bold text-gray-800">Informasi Akademik</h3>
             </div>
-
             <div className="p-6 grid grid-cols-2 gap-y-6 gap-x-8 text-[14px]">
               <InfoItem label="Fakultas" value={akademik?.fakultas} />
               <InfoItem label="Program Studi" value={akademik?.program_studi} />
@@ -261,15 +192,11 @@ const DetailPelaporan = () => {
           </div>
         </div>
 
-        {/* Transkrip Nilai */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
           <div className="bg-[#F3F4F6] px-6 py-4 flex items-center gap-2 border-b border-gray-200">
             <FiFileText size={16} className="text-gray-800" />
-            <h3 className="text-[15px] font-bold text-gray-800">
-              Transkrip Nilai
-            </h3>
+            <h3 className="text-[15px] font-bold text-gray-800">Transkrip Nilai</h3>
           </div>
-
           <div className="max-h-[500px] overflow-y-auto">
             <table className="w-full text-[14px] text-gray-800">
               <thead className="sticky top-0 bg-[#F9FAFB] border-b border-gray-200 text-gray-500">
@@ -282,29 +209,15 @@ const DetailPelaporan = () => {
                   <th className="px-6 py-4 font-bold text-center">Nilai</th>
                 </tr>
               </thead>
-
               <tbody>
                 {transkrip.length > 0 ? (
                   transkrip.map((n, index) => (
-                    <tr
-                      key={`${n.kode || "matkul"}-${index}`}
-                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-6 py-4 font-semibold text-center">
-                        {n.kode || "-"}
-                      </td>
-                      <td className="px-6 py-4 font-semibold">
-                        {n.nama || "-"}
-                      </td>
-                      <td className="px-6 py-4 font-semibold text-center">
-                        {n.k ?? "-"}
-                      </td>
-                      <td className="px-6 py-4 font-semibold text-center">
-                        {n.am ?? "-"}
-                      </td>
-                      <td className="px-6 py-4 font-semibold text-center">
-                        {n.t ?? "-"}
-                      </td>
+                    <tr key={`${n.kode || "matkul"}-${index}`} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 font-semibold text-center">{n.kode || "-"}</td>
+                      <td className="px-6 py-4 font-semibold">{n.nama || "-"}</td>
+                      <td className="px-6 py-4 font-semibold text-center">{n.k ?? "-"}</td>
+                      <td className="px-6 py-4 font-semibold text-center">{n.am ?? "-"}</td>
+                      <td className="px-6 py-4 font-semibold text-center">{n.t ?? "-"}</td>
                       <td className="px-6 py-4 text-center">
                         <span className="inline-block bg-[#115E59] text-white px-4 py-1 rounded-full font-bold text-[12px]">
                           {n.hm || "-"}
@@ -328,13 +241,11 @@ const DetailPelaporan = () => {
   );
 };
 
-const InfoItem = ({ label, value }) => {
-  return (
-    <div>
-      <p className="text-gray-500 mb-1.5">{label}</p>
-      <p className="font-bold text-gray-800">{value ?? "-"}</p>
-    </div>
-  );
-};
+const InfoItem = ({ label, value }) => (
+  <div>
+    <p className="text-gray-500 mb-1.5">{label}</p>
+    <p className="font-bold text-gray-800">{value ?? "-"}</p>
+  </div>
+);
 
-export default DetailPelaporan;
+export default DetailMahasiswa; // ✅ Ganti export

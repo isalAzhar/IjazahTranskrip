@@ -142,8 +142,6 @@ export const getMonthlyIssuance = async () => {
   try {
     const result = await fetchJSON(`${DASHBOARD_API}/statistik/tahunan`);
 
-    console.log("RESPONSE MONTHLY ISSUANCE:", result);
-
     const rows = Array.isArray(result.raw)
       ? result.raw
       : Array.isArray(result.data)
@@ -274,7 +272,7 @@ export const getYearsData = async () => {
   }
 };
 
-// ==================== FUNGSI LAMA YANG DIKEMBALIKAN ====================
+// ==================== FUNGSI LAINNYA ====================
 
 export const getDetailIjazah = async (idMahasiswa) => {
   try {
@@ -302,17 +300,17 @@ export const getBatchList = async (params = {}) => {
   }
 };
 
-export const getDetailBatch = async (idBatch, status = "") => {
+// 🔥 FUNGSI DETAIL BATCH YANG SUDAH BERSIH DARI "batches/batch"
+export const getDetailBatch = async (idBatch) => {
   try {
-    const queryParams = buildQueryParams({ status });
-    const url = queryParams ? `${DASHBOARD_API}/batches/batch/${idBatch}?${queryParams}` : `${DASHBOARD_API}/batches/batch/${idBatch}`;
-    const result = await fetchJSON(url);
-    return result.data;
+    const response = await fetchJSON(`${DASHBOARD_API}/batch/${idBatch}`);
+    return response; 
   } catch (error) {
     throw error;
   }
 };
 
+// 🔥 FUNGSI VERIFY IJAZAH YANG SEKARANG SUDAH BALIK LAGI!
 export const verifyIjazah = async (npm) => {
   try {
     return await fetchJSON(`${API_BASE_URL}/approval/verify/${npm}`, { method: "POST" });
@@ -329,6 +327,7 @@ export const searchIjazah = async (query) => {
   }
 };
 
+// 🔥 FUNGSI LIST BATCH DASHBOARD YANG SUDAH BERSIH DARI "batches/batch"
 export const getDashboardBatches = async (params = {}) => {
   try {
     const queryParams = buildQueryParams({
@@ -337,36 +336,27 @@ export const getDashboardBatches = async (params = {}) => {
       search: params.search || "",
       tahun_lulus: params.tahun_lulus || params.tahun || "",
       periode: params.periode || "",
+      status: params.status || "", // Filter status jalan
     });
 
-    const response = await fetchJSON(`${DASHBOARD_API}/batches/batch?${queryParams}`);
+    const response = await fetchJSON(`${DASHBOARD_API}/batch?${queryParams}`);
     const rows = Array.isArray(response?.data) ? response.data : [];
 
     return {
       data: rows.map((item) => ({
-        id: item.id_batch_upload || item.id,
-        id_batch_upload: item.id_batch_upload,
-        batch: item.nomor_batch_upload || item.batch || "-",
-        nomor_batch_upload: item.nomor_batch_upload || "-",
+        id: item.id_batch_upload || item.id_batch || item.id, // Tambahan keamanan ID
+        batch: item.nomor_batch_upload || item.batch || item.nama_batch || "-",
         fakultas: item.fakultas || item.nama_fakultas || item.nama_unit || item.unit || "-",
-        tahun: item.tahun_lulus?.toString() || "-",
-        tahun_lulus: item.tahun_lulus,
-        periode: item.periode || "-",
-        total: Number(item.total_mahasiswa || 0),
-        total_mahasiswa: Number(item.total_mahasiswa || 0),
+        tahun: (item.tahun_lulus || item.tahun || "-").toString(),
+        periode: item.periode || item.periode_label || "-",
+        total: Number(item.total_mahasiswa || item.total_record || item.total_record_ditampilkan || 0),
         raw: item,
       })),
-      pagination: {
-        page: Number(response?.pagination?.page || params.page || 1),
-        limit: Number(response?.pagination?.limit || params.limit || 10),
-        total_data: Number(response?.pagination?.total_data || 0),
-        total_page: Number(response?.pagination?.total_page || 1),
-      },
-      raw: response,
+      pagination: response?.pagination || {},
     };
   } catch (error) {
     if (isAuthError(error)) throw error;
-    return { data: [], pagination: { page: 1, limit: 10, total_data: 0, total_page: 1 }, raw: {} };
+    return { data: [], pagination: {} };
   }
 };
 

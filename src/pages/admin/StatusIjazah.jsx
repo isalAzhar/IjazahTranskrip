@@ -2,7 +2,9 @@ import React, { useState, useEffect } from "react";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { FiSearch, FiChevronDown } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
-import { getBatches } from "../../services/api"; 
+// 🔥 IMPORT DARI DASHBOARD API, BUKAN API BIASA
+import { getDashboardBatches } from "../../services/dashboard.api"; 
+import { encodeId } from "@/components/shared/hashId";
 
 const normalizeStatus = (status) => {
   const value = status?.toString().toLowerCase();
@@ -24,24 +26,6 @@ const getBadgeLabel = (status) => {
   }
 };
 
-const getBatchNumber = (batchName = "") => {
-  const match = batchName.match(/Batch\s+(\d+)/i);
-  return match ? Number(match[1]) : 0;
-};
-
-const getPeriodeValue = (item = {}) => {
-  return (
-    item.periode_label ||
-    item.periode ||
-    item.raw?.periode_label ||
-    item.raw?.periode ||
-    item.raw?.batch_upload?.periode ||
-    item.batch_upload?.periode ||
-    "-"
-  ).toString();
-};
-
-// 🔥 Helper untuk menyeragamkan kata-kata dari backend agar pas dengan UI
 const formatStatusEmail = (statusKirimRaw) => {
   const raw = String(statusKirimRaw || "").toLowerCase();
   if (raw.includes("sudah") || (raw.includes("terkirim") && !raw.includes("belum"))) {
@@ -50,75 +34,12 @@ const formatStatusEmail = (statusKirimRaw) => {
   return "Belum Diemail";
 };
 
-const buildBatchData = (rows = [], targetStatus) => {
-  if (rows.length > 0 && (rows[0].nama_batch || rows[0].nomor_batch_upload) && !rows[0].nim) {
-    return rows.map((item) => ({
-      id: item.id_batch_upload || item.uuid || item.id_batch || Math.random().toString(),
-      batch: item.nama_batch || item.nomor_batch_upload || "Tanpa Batch",
-      fakultas: item.fakultas || "-",
-      tahun: (item.tahun_lulus || item.tahun || "-").toString(),
-      periode: item.periode_label || item.periode || "-",
-      total:item.total_mahasiswa ?? item.total_record ??item.total_record_ditampilkan ?? 0,
-      status: getBadgeLabel(targetStatus),
-      status_email: formatStatusEmail(item.status_kirim || item.statusKirim),
-      mahasiswa: item.mahasiswa || []
-    }));
-  }
-
-  const filteredRows = rows.filter(
-    (item) => normalizeStatus(item.status) === targetStatus
-  );
-
-  const grouped = {};
-
-  filteredRows.forEach((item, index) => {
-    const batchName = item.nama_batch || item.batch || "Tanpa Batch";
-    const fakultas = item.fakultas || "-";
-    const tahun = (item.tahun_lulus || item.tahun || "-").toString();
-    const periode = getPeriodeValue(item);
-    const key = `${batchName}-${fakultas}-${tahun}-${periode}`;
-
-    if (!grouped[key]) {
-      grouped[key] = {
-        id: item.id_batch || item.id_batch_upload || key,
-        batch: batchName,
-        fakultas,
-        tahun,
-        periode,
-        total: 0,
-        status: getBadgeLabel(targetStatus),
-        status_email: formatStatusEmail(item.status_kirim || item.statusKirim),
-        mahasiswa: [],
-      };
-    }
-
-    grouped[key].mahasiswa.push({
-      id: item.id || item.id_mahasiswa || index + 1,
-      id_mahasiswa: item.id_mahasiswa,
-      nama: item.nama || "-",
-      nim: item.nim || "-",
-      prodi: item.prodi || "-",
-      fakultas,
-      tahun,
-      tahun_lulus: tahun,
-      periode,
-      status: item.status || targetStatus,
-      batch: batchName,
-      raw: item,
-    });
-
-    grouped[key].total = grouped[key].mahasiswa.length;
-  });
-
-  return Object.values(grouped);
-};
-
 const buildFakultasOptions = (rows = []) => {
   return [...new Set(rows.map((item) => item.fakultas).filter((item) => item && item !== "-"))];
 };
 
 const buildYearOptions = (rows = []) => {
-  return [...new Set(rows.map((item) => (item.tahun_lulus || item.tahun)?.toString()).filter((item) => item && item !== "-"))]
+  return [...new Set(rows.map((item) => item.tahun).filter((item) => item && item !== "-"))]
     .sort((a, b) => Number(b) - Number(a));
 };
 
@@ -131,7 +52,6 @@ const StatusIjazah = () => {
   const [search, setSearch] = useState("");
   const [fakultas, setFakultas] = useState("");
   const [tahun, setTahun] = useState("");
-  // 🔥 State filter status email
   const [statusEmail, setStatusEmail] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -151,19 +71,24 @@ const StatusIjazah = () => {
         setApiError("");
         setStatusEmail(""); 
 
-        const result = await getBatches({
-          page: 1,
+        // 🔥 BIARKAN BACKEND YANG MENGELOMPOKKAN & FILTER STATUS
+        const result = await getDashboardBatches({
           limit: 10000,
           status: currentStatus 
         });
 
-        const rows = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
+        // Tambahkan properti UI (status email & label) ke data murni dari backend
+        const finalData = result.data.map(item => ({
+          ...item,
+          status: displayLabel,
+          status_email: formatStatusEmail(item.raw?.status_kirim || item.raw?.statusKirim)
+        }));
 
-        setBatchData(buildBatchData(rows, currentStatus));
-        setFakultasList(buildFakultasOptions(rows));
-        setYears(buildYearOptions(rows));
+        setBatchData(finalData);
+        setFakultasList(buildFakultasOptions(finalData));
+        setYears(buildYearOptions(finalData));
       } catch (error) {
-        console.error(`Gagal mengambil data via getBatches untuk status ${currentStatus}:`, error);
+        console.error(`Gagal mengambil data via getDashboardBatches:`, error);
         setApiError(error.message || "Gagal mengambil data dari server.");
       } finally {
         setIsLoading(false);
@@ -176,30 +101,21 @@ const StatusIjazah = () => {
   const filtered = batchData
     .filter((item) => {
       const keyword = search.toLowerCase();
-      const matchBatch = item.batch?.toLowerCase().includes(keyword);
-      const matchFakultas = item.fakultas?.toLowerCase().includes(keyword);
-      const matchPeriode = item.periode?.toLowerCase().includes(keyword);
-      const matchTahun = item.tahun?.toString().toLowerCase().includes(keyword);
+      const matchSearch = 
+        item.batch.toLowerCase().includes(keyword) || 
+        item.fakultas.toLowerCase().includes(keyword) || 
+        item.periode.toLowerCase().includes(keyword) || 
+        item.tahun.toLowerCase().includes(keyword);
 
-      const matchMahasiswa = item.mahasiswa?.some((mhs) => {
-        const searchableText = [mhs.nama, mhs.nim, mhs.prodi, mhs.fakultas, mhs.tahun, mhs.status, mhs.batch]
-          .join(" ").toLowerCase();
-        return searchableText.includes(keyword);
-      });
-
-      const matchesSearch = !search || matchBatch || matchFakultas || matchTahun || matchPeriode || matchMahasiswa;
-      
-      // Filter berjalan general tanpa membedakan role
       const matchesFakultas = fakultas ? item.fakultas === fakultas : true;
-      const matchesTahun = tahun ? item.tahun?.toString() === tahun : true;
-      
+      const matchesTahun = tahun ? item.tahun === tahun : true;
       const matchesStatusEmail = (currentStatus === "terbit" && statusEmail) 
         ? item.status_email === statusEmail
         : true;
 
-      return matchesSearch && matchesFakultas && matchesTahun && matchesStatusEmail;
+      return matchSearch && matchesFakultas && matchesTahun && matchesStatusEmail;
     })
-    .sort((a, b) => a.fakultas.localeCompare(b.fakultas) || getBatchNumber(a.batch) - getBatchNumber(b.batch) || a.tahun.localeCompare(b.tahun) || a.periode.localeCompare(b.periode));
+    .sort((a, b) => a.fakultas.localeCompare(b.fakultas) || a.tahun.localeCompare(b.tahun));
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -213,7 +129,8 @@ const StatusIjazah = () => {
   };
 
   const handleDetailBatch = (item) => {
-    navigate(`../batch/${currentStatus}/${item.id}`, { state: item });
+    const safeId = encodeId(item.id);
+    navigate(`../batch/${currentStatus}/${safeId}`, { state: item });
   };
 
   const renderPaginationButtons = () => {
@@ -296,7 +213,6 @@ const StatusIjazah = () => {
                 <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
               </div>
 
-              {/* 🔥 DROPDOWN FILTER STATUS EMAIL (Hanya Aktif di Halaman Terbit) */}
               {currentStatus === "terbit" && (
                 <div className="relative w-full sm:w-48">
                   <select value={statusEmail} onChange={(e) => setStatusEmail(e.target.value)} className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-[#117065] px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left">
@@ -333,7 +249,6 @@ const StatusIjazah = () => {
                 <th className="px-4 py-4 text-center">Periode</th>
                 <th className="px-4 py-4 text-center">Total</th>
                 
-                {/* 🔥 HEADER STATUS EMAIL */}
                 {currentStatus === "terbit" && (
                   <th className="px-4 py-4 text-center">Status Email</th>
                 )}
@@ -346,15 +261,14 @@ const StatusIjazah = () => {
                 paginatedData.map((item, i) => {
                   const actualIndex = (currentPage - 1) * itemsPerPage + i + 1;
                   return (
-                    <tr key={`${item.batch}-${item.fakultas}-${item.tahun}-${item.periode}`} className="h-[70px] border-t border-gray-200 hover:bg-gray-50">
+                    <tr key={item.id || i} className="h-[70px] border-t border-gray-200 hover:bg-gray-50">
                       <td className="px-4 py-4 text-center align-middle">{actualIndex}</td>
-                      <td className="px-4 py-4 font-medium text-gray-800 align-middle">{item.batch}</td>
+                      <td className="px-4 py-4 font-bold text-gray-900 align-middle">{item.batch}</td>
                       <td className="py-4 px-4 text-center font-medium align-middle">{item.fakultas}</td>
                       <td className="px-4 py-4 text-center font-semibold align-middle">{item.tahun}</td>
                       <td className="px-4 py-4 text-center font-semibold align-middle">{item.periode}</td>
                       <td className="px-4 py-4 text-center font-semibold align-middle">{item.total}</td>
                       
-                      {/* 🔥 ISI STATUS EMAIL */}
                       {currentStatus === "terbit" && (
                         <td className="px-4 py-4 text-center align-middle">
                           <span className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${

@@ -52,19 +52,29 @@ export const getBatches = async (params = {}) => {
 
 /**
  * GET /batch/:id
- * Mengambil detail spesifik satu batch & di-filter berdasarkan status.
+ * Mengambil detail spesifik satu batch & di-filter berdasarkan status via QUERY PARAMS.
  */
 export const getDetailBatch = async (id, statusFilter = "") => {
   if (!id) throw new Error("ID Batch diperlukan untuk melihat detail.");
 
   try {
+    // 🔥 1. SETUP PARAMS SESUAI ARAHAN BACKEND
+    const queryParams = {};
+    if (statusFilter) {
+      // Pastikan status diformat huruf kecil agar konsisten (misal: "terbit", "proses", dll)
+      queryParams.status = statusFilter.toLowerCase(); 
+    }
+
+    // Axios akan otomatis menerjemahkan queryParams menjadi URL seperti:
+    // /api/dashboard/batch/ID_NYA?status=terbit
     const response = await axios.get(`${BASE_URL}/batch/${id}`, {
       headers: getAuthHeaders(),
+      params: queryParams, // Tembak params ke backend di sini
     });
 
     const resData = response.data;
 
-    // 🔥 1. EKSTRAKSI SUPER AMAN UNTUK BATCH & MAHASISWA
+    // 🔥 2. EKSTRAKSI SUPER AMAN UNTUK BATCH & MAHASISWA
     let bData = resData?.batch || resData?.data?.batch || {};
     let mList = [];
 
@@ -76,22 +86,9 @@ export const getDetailBatch = async (id, statusFilter = "") => {
     else if (Array.isArray(resData?.data)) mList = resData.data;
     else if (Array.isArray(resData)) mList = resData;
 
-    // 🔥 2. SARING BERDASARKAN STATUS
-    if (statusFilter && mList.length > 0) {
-        const normalizedFilter = statusFilter.toLowerCase();
-        mList = mList.filter(item => {
-           const itemStatus = String(item?.status || item?.status_validasi || item?.status_approval || "").toLowerCase();
-           
-           if (normalizedFilter === "terbit") return itemStatus === "terbit" || itemStatus === "valid" || itemStatus === "approved";
-           if (normalizedFilter === "proses") return itemStatus === "proses" || itemStatus === "pending";
-           if (normalizedFilter === "reject") return itemStatus === "reject" || itemStatus === "ditolak";
-           if (normalizedFilter === "revoke") return itemStatus === "revoke" || itemStatus === "dicabut";
-           
-           return itemStatus === normalizedFilter;
-        });
-    }
+    // (Logika filter manual frontend DIHAPUS karena backend sudah mengirimkan data yang disaring)
 
-    // 3. SINKRONISASI DATA HEADER
+    // 🔥 3. SINKRONISASI DATA HEADER
     const firstItem = mList[0] || {};
     const rawBatchName = bData.nama_batch || bData.nomor_batch_upload || firstItem.nomor_batch_upload || firstItem.batch || id;
 
@@ -100,6 +97,7 @@ export const getDetailBatch = async (id, statusFilter = "") => {
         fakultas: bData.fakultas || firstItem.fakultas || "-",
         tahun_lulus: bData.tahun_lulus || firstItem.tahun_lulus || firstItem.tahun || "-",
         periode_label: bData.periode_label || formatPeriode(bData.periode || firstItem.periode),
+        // Jumlah record sekarang 100% akurat dari jumlah array yang diberikan backend
         total_record_label: `${mList.length} Mahasiswa`,
         total_record: mList.length,
     };

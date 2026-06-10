@@ -2,9 +2,10 @@ import React, { useMemo, useState, useEffect } from "react";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getDetailBatch } from "@/services/daftarbatch.api";
+// 🔥 HANYA IMPORT getDetailBatch
+import { getDetailBatch } from "../../services/dashboard.api";
+import { decodeId, encodeId } from "@/components/shared/hashId";
 
-// 1. Standarisasi status dari URL agar selalu seragam
 const normalizeStatus = (status) => {
   const value = status?.toString().toLowerCase().trim();
   if (value === "terbit" || value === "approved" || value === "valid") return "terbit";
@@ -14,21 +15,47 @@ const normalizeStatus = (status) => {
   return value || "";
 };
 
+const formatNamaBatch = (kode) => kode || "-";
+
+const formatPeriode = (periode) => {
+  const map = {
+    semester_ganjil: "Semester Ganjil",
+    semester_genap: "Semester Genap",
+    semester_pendek: "Semester Pendek",
+  };
+  return map[periode?.toString().toLowerCase()] || periode?.toString().replace(/_/g, ' ') || "-";
+};
+
+const formatSingkatanFakultas = (namaFakultas) => {
+  if (!namaFakultas) return "-";
+  const namaLower = namaFakultas.toLowerCase();
+  
+  if (namaLower.includes("agama islam")) return "FAI";
+  if (namaLower.includes("keguruan") || namaLower.includes("pendidikan")) return "FKIP";
+  if (namaLower.includes("ekonomi") || namaLower.includes("bisnis")) return "FEB";
+  if (namaLower.includes("hukum")) return "FH";
+  if (namaLower.includes("teknik") || namaLower.includes("sains")) return "FTS";
+  if (namaLower.includes("kesehatan")) return "FIKES";
+  
+  return namaFakultas; 
+};
+
 const formatMahasiswa = (item, index, batchData, targetStatus) => {
+  const coreMhs = item?.mahasiswa || item || {};
   return {
     ...item,
     id: item.id || item.id_mahasiswa || index + 1,
     id_mahasiswa: item.id_mahasiswa,
-    nim: item.nim || item.npm || "-",
-    nama: item.nama || item.nama_mahasiswa || "-",
-    nama_mahasiswa: item.nama_mahasiswa || item.nama || "-",
-    prodi: item.prodi || item.program_studi || "-",
-    program_studi: item.program_studi || item.prodi || "-",
+    nim: item.nim || item.npm || coreMhs.nim || "-",
+    nama: item.nama || item.nama_mahasiswa || coreMhs.nama || "-",
+    nama_mahasiswa: item.nama_mahasiswa || item.nama || coreMhs.nama || "-",
+    prodi: item.prodi || item.program_studi || item.nama_prodi || coreMhs.program_studi || "-",
+    program_studi: item.program_studi || item.prodi || item.nama_prodi || coreMhs.program_studi || "-",
     fakultas: item.fakultas || batchData?.fakultas || "-",
     tahun: item.tahun || item.tahun_lulus || batchData?.tahun_lulus || "-",
     tahun_lulus: item.tahun_lulus || item.tahun || batchData?.tahun_lulus || "-",
     periode: item.periode || batchData?.periode_label || "-",
-    status: item.status || targetStatus, // Set default status ke status halaman
+    status: targetStatus,
     batch: item.nama_batch || batchData?.nama_batch || "-",
     raw: item.raw || item,
   };
@@ -59,21 +86,22 @@ const getBadgeLabel = (status) => {
 const Statusbatch = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { status, id } = useParams(); // Mengambil status (terbit/proses/dll) & id batch dari URL
+  const { status, id } = useParams();
   const { user } = useAuth();
   const userRole = user?.role?.toLowerCase() || "";
 
-  // Decode parameter URL
-  const decodedId = decodeURIComponent(id || "");
+  const decodedId = decodeId(id);
   const currentStatus = normalizeStatus(status);
   const displayLabel = getBadgeLabel(currentStatus);
 
+  const batchFromState = location.state || {};
+
   const [batchData, setBatchData] = useState({
-    nama_batch: "-",
-    fakultas: "-",
-    tahun_lulus: "-",
-    periode_label: "-",
-    total_record_label: "-",
+    nama_batch: batchFromState.batch || "-",
+    fakultas: formatSingkatanFakultas(batchFromState.fakultas) || "-",
+    tahun_lulus: batchFromState.tahun || "-",
+    periode_label: batchFromState.periode || "-",
+    total_record_label: batchFromState.total ? `${batchFromState.total} Mahasiswa` : "-",
     status: displayLabel,
   });
 
@@ -83,39 +111,116 @@ const Statusbatch = () => {
 
   useEffect(() => {
     const fetchDetailBatch = async () => {
+      if (!decodedId) {
+        setApiError("ID Batch tidak valid.");
+        setIsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
         setApiError("");
 
-        // 🔥 FIX UTAMA: Melempar currentStatus (terbit/proses/reject/revoke) ke API Service
-        const result = await getDetailBatch(decodedId, currentStatus);
-        
         let bData = {};
         let mList = [];
 
-        // Ekstraksi data
-        if (result && result.batch) {
-          bData = result.batch;
-          mList = result.mahasiswa || [];
-        } else if (Array.isArray(result?.data)) {
-          mList = result.data;
-        } else if (Array.isArray(result)) {
-          mList = result;
+        // Di file Statusbatch.jsx
+        const result = await getDetailBatch(decodedId, currentStatus); // currentStatus = "terbit"
+        
+        if (result) {
+          if (Array.isArray(result)) mList = result;
+          else if (Array.isArray(result.mahasiswa)) { bData = result.batch || {}; mList = result.mahasiswa; }
+          else if (Array.isArray(result.data)) mList = result.data;
+          else if (result.data && typeof result.data === "object") { 
+            bData = result.data.batch || {}; 
+            mList = result.data.mahasiswa || result.data.data || []; 
+          }
+          else if (typeof result === "object") { bData = result.batch || {}; mList = result.mahasiswa || []; }
         }
 
-        const extractedFakultas = bData.fakultas || mList[0]?.fakultas || mList[0]?.prodi?.fakultas || "-";
+        if (!Array.isArray(mList)) mList = [];
+
+        // 🔥 SUPER FILTER: Menyaring mList sesuai tab status
+        if (currentStatus && mList.length > 0) {
+          const filteredList = mList.filter(item => {
+            const rawStatus = 
+              item.status || 
+              item.status_dashboard || 
+              item.status_validasi || 
+              item.status_approval || 
+              item.approval?.status || 
+              item.mahasiswa?.status || 
+              item.mahasiswa?.approval?.status || 
+              item.raw?.status || 
+              ""; // Fallback jika benar-benar kosong
+
+            const itemStatus = String(rawStatus).toLowerCase().trim();
+            
+            // Logika pencocokan berbagai variasi string dari backend
+            if (currentStatus === "terbit") return ["terbit", "valid", "approved"].includes(itemStatus);
+            if (currentStatus === "proses") return ["proses", "pending", ""].includes(itemStatus);
+            if (currentStatus === "reject") return ["reject", "ditolak", "rejected"].includes(itemStatus);
+            if (currentStatus === "revoke") return ["revoke", "dicabut", "revoked"].includes(itemStatus);
+            
+            return itemStatus === currentStatus;
+          });
+
+          // Fallback cerdas: Jika hasil saringan kosong, kembalikan data utuh
+          if (filteredList.length > 0) {
+              mList = filteredList;
+          }
+        }
+
+        const firstItem = mList[0] || {};
+        const rawItem = firstItem.raw || {};
+        
+        const allFaculties = mList.map(item => 
+          item.fakultas || 
+          item.nama_fakultas || 
+          item.raw?.fakultas || 
+          item.raw?.nama_fakultas || 
+          item.mahasiswa?.prodi?.unit?.nama_unit
+        ).filter(f => f && f !== "-" && f.trim() !== "");
+
+        const mappedFaculties = allFaculties.map(f => formatSingkatanFakultas(f));
+        const uniqueFaculties = [...new Set(mappedFaculties)];
+
+        let extractedFakultas = "-";
+        if (uniqueFaculties.length > 0) {
+            extractedFakultas = uniqueFaculties.join(", "); 
+        } else {
+            extractedFakultas = formatSingkatanFakultas(bData.fakultas || batchFromState.fakultas) || "-";
+        }
+
+        const rawBatchName = bData.nama_batch 
+          || bData.nomor_batch_upload 
+          || firstItem.batch
+          || rawItem.nomor_batch_upload 
+          || batchFromState.batch
+          || decodedId;
+
+        const rawPeriode = bData.periode_label 
+          || bData.periode 
+          || firstItem.periode 
+          || batchFromState.periode
+          || "-";
+
+        const rawTahunLulus = bData.tahun_lulus 
+          || firstItem.tahun_lulus 
+          || firstItem.tahun 
+          || batchFromState.tahun
+          || "-";
 
         const mappedBatchData = {
-          nama_batch: bData.nama_batch || bData.nomor_batch_upload || "-",
+          nama_batch: formatNamaBatch(rawBatchName),
           fakultas: extractedFakultas,
-          tahun_lulus: bData.tahun_lulus || mList[0]?.tahun_lulus || "-",
-          periode_label: bData.periode_label || bData.periode || mList[0]?.periode || "-",
-          total_record_label: bData.total_record_label || `${mList.length} Mahasiswa`,
+          tahun_lulus: rawTahunLulus,
+          periode_label: formatPeriode(rawPeriode),
+          total_record_label: `${mList.length} Mahasiswa`,
           status: displayLabel,
         };
 
         setBatchData(mappedBatchData);
-        // Format ulang setiap mahasiswa agar statusnya mengikuti label halaman (jika kosong dari API)
         setMahasiswa(mList.map((m, index) => formatMahasiswa(m, index, mappedBatchData, displayLabel)));
 
       } catch (error) {
@@ -126,7 +231,7 @@ const Statusbatch = () => {
       }
     };
 
-    if (decodedId) fetchDetailBatch();
+    fetchDetailBatch();
   }, [decodedId, currentStatus]);
 
   const sortedMahasiswa = useMemo(() => {
@@ -134,7 +239,8 @@ const Statusbatch = () => {
   }, [mahasiswa]);
 
   const handleDetailMahasiswa = (item) => {
-    const safeNim = encodeURIComponent(item.nim || "-");
+    const safeNim = encodeId(item.nim || "-");
+    
     const formattedMahasiswa = {
       ...item,
       nama_mahasiswa: item.nama_mahasiswa || item.nama,
@@ -186,9 +292,9 @@ const Statusbatch = () => {
             <span className="text-[14px] font-bold text-gray-800">{batchData.nama_batch}</span>
           </div>
 
-          <div className="flex flex-col">
+          <div className="flex flex-col max-w-md">
             <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Fakultas</span>
-            <span className="text-[14px] font-bold text-gray-800">{batchData.fakultas}</span>
+            <span className="text-[14px] font-bold text-gray-800 break-words">{batchData.fakultas}</span>
           </div>
 
           <div className="flex flex-col">
