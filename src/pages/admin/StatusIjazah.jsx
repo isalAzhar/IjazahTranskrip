@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { FiSearch, FiChevronDown } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
-// 🔥 KEMBALI MENGGUNAKAN getLatestValidations
-import { getLatestValidations } from "../../services/dashboard.api";
+import { getBatches } from "../../services/api"; 
 
 const normalizeStatus = (status) => {
   const value = status?.toString().toLowerCase();
@@ -32,17 +31,40 @@ const getBatchNumber = (batchName = "") => {
 
 const getPeriodeValue = (item = {}) => {
   return (
+    item.periode_label ||
     item.periode ||
+    item.raw?.periode_label ||
     item.raw?.periode ||
     item.raw?.batch_upload?.periode ||
-    item.raw?.mahasiswa?.batch_upload?.periode ||
     item.batch_upload?.periode ||
-    item.mahasiswa?.batch_upload?.periode ||
     "-"
   ).toString();
 };
 
+// 🔥 Helper untuk menyeragamkan kata-kata dari backend agar pas dengan UI
+const formatStatusEmail = (statusKirimRaw) => {
+  const raw = String(statusKirimRaw || "").toLowerCase();
+  if (raw.includes("sudah") || (raw.includes("terkirim") && !raw.includes("belum"))) {
+    return "Email Terkirim";
+  }
+  return "Belum Diemail";
+};
+
 const buildBatchData = (rows = [], targetStatus) => {
+  if (rows.length > 0 && (rows[0].nama_batch || rows[0].nomor_batch_upload) && !rows[0].nim) {
+    return rows.map((item) => ({
+      id: item.id_batch_upload || item.uuid || item.id_batch || Math.random().toString(),
+      batch: item.nama_batch || item.nomor_batch_upload || "Tanpa Batch",
+      fakultas: item.fakultas || "-",
+      tahun: (item.tahun_lulus || item.tahun || "-").toString(),
+      periode: item.periode_label || item.periode || "-",
+      total:item.total_mahasiswa ?? item.total_record ??item.total_record_ditampilkan ?? 0,
+      status: getBadgeLabel(targetStatus),
+      status_email: formatStatusEmail(item.status_kirim || item.statusKirim),
+      mahasiswa: item.mahasiswa || []
+    }));
+  }
+
   const filteredRows = rows.filter(
     (item) => normalizeStatus(item.status) === targetStatus
   );
@@ -50,9 +72,9 @@ const buildBatchData = (rows = [], targetStatus) => {
   const grouped = {};
 
   filteredRows.forEach((item, index) => {
-    const batchName = item.batch || "Tanpa Batch";
+    const batchName = item.nama_batch || item.batch || "Tanpa Batch";
     const fakultas = item.fakultas || "-";
-    const tahun = item.tahun_lulus?.toString() || "-";
+    const tahun = (item.tahun_lulus || item.tahun || "-").toString();
     const periode = getPeriodeValue(item);
     const key = `${batchName}-${fakultas}-${tahun}-${periode}`;
 
@@ -65,6 +87,7 @@ const buildBatchData = (rows = [], targetStatus) => {
         periode,
         total: 0,
         status: getBadgeLabel(targetStatus),
+        status_email: formatStatusEmail(item.status_kirim || item.statusKirim),
         mahasiswa: [],
       };
     }
@@ -95,7 +118,7 @@ const buildFakultasOptions = (rows = []) => {
 };
 
 const buildYearOptions = (rows = []) => {
-  return [...new Set(rows.map((item) => item.tahun_lulus?.toString()).filter((item) => item && item !== "-"))]
+  return [...new Set(rows.map((item) => (item.tahun_lulus || item.tahun)?.toString()).filter((item) => item && item !== "-"))]
     .sort((a, b) => Number(b) - Number(a));
 };
 
@@ -108,8 +131,10 @@ const StatusIjazah = () => {
   const [search, setSearch] = useState("");
   const [fakultas, setFakultas] = useState("");
   const [tahun, setTahun] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  // 🔥 State filter status email
+  const [statusEmail, setStatusEmail] = useState("");
 
+  const [currentPage, setCurrentPage] = useState(1);
   const [batchData, setBatchData] = useState([]);
   const [fakultasList, setFakultasList] = useState([]);
   const [years, setYears] = useState([]);
@@ -124,9 +149,9 @@ const StatusIjazah = () => {
       try {
         setIsLoading(true);
         setApiError("");
+        setStatusEmail(""); 
 
-        // 🔥 FIX: Pakai getLatestValidations sesuai router backend
-        const result = await getLatestValidations({
+        const result = await getBatches({
           page: 1,
           limit: 10000,
           status: currentStatus 
@@ -138,7 +163,7 @@ const StatusIjazah = () => {
         setFakultasList(buildFakultasOptions(rows));
         setYears(buildYearOptions(rows));
       } catch (error) {
-        console.error(`Gagal mengambil data ijazah ${currentStatus}:`, error);
+        console.error(`Gagal mengambil data via getBatches untuk status ${currentStatus}:`, error);
         setApiError(error.message || "Gagal mengambil data dari server.");
       } finally {
         setIsLoading(false);
@@ -156,17 +181,23 @@ const StatusIjazah = () => {
       const matchPeriode = item.periode?.toLowerCase().includes(keyword);
       const matchTahun = item.tahun?.toString().toLowerCase().includes(keyword);
 
-      const matchMahasiswa = item.mahasiswa.some((mhs) => {
+      const matchMahasiswa = item.mahasiswa?.some((mhs) => {
         const searchableText = [mhs.nama, mhs.nim, mhs.prodi, mhs.fakultas, mhs.tahun, mhs.status, mhs.batch]
           .join(" ").toLowerCase();
         return searchableText.includes(keyword);
       });
 
       const matchesSearch = !search || matchBatch || matchFakultas || matchTahun || matchPeriode || matchMahasiswa;
+      
+      // Filter berjalan general tanpa membedakan role
       const matchesFakultas = fakultas ? item.fakultas === fakultas : true;
       const matchesTahun = tahun ? item.tahun?.toString() === tahun : true;
+      
+      const matchesStatusEmail = (currentStatus === "terbit" && statusEmail) 
+        ? item.status_email === statusEmail
+        : true;
 
-      return matchesSearch && matchesFakultas && matchesTahun;
+      return matchesSearch && matchesFakultas && matchesTahun && matchesStatusEmail;
     })
     .sort((a, b) => a.fakultas.localeCompare(b.fakultas) || getBatchNumber(a.batch) - getBatchNumber(b.batch) || a.tahun.localeCompare(b.tahun) || a.periode.localeCompare(b.periode));
 
@@ -175,14 +206,14 @@ const StatusIjazah = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, fakultas, tahun]);
+  }, [search, fakultas, tahun, statusEmail]);
 
   const handlePageChange = (pageNumber) => {
     if (pageNumber >= 1 && pageNumber <= totalPages) setCurrentPage(pageNumber);
   };
 
   const handleDetailBatch = (item) => {
-    navigate(`/batch/${currentStatus}/${item.id}`, { state: item });
+    navigate(`../batch/${currentStatus}/${item.id}`, { state: item });
   };
 
   const renderPaginationButtons = () => {
@@ -248,8 +279,8 @@ const StatusIjazah = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 w-full lg:w-auto">
-              <div className="relative w-full lg:w-72">
+            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+              <div className="relative w-full sm:w-56">
                 <select value={fakultas} onChange={(e) => setFakultas(e.target.value)} className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left">
                   <option value="">Semua Fakultas</option>
                   {fakultasList.map((item, i) => <option key={i} value={item}>{item}</option>)}
@@ -257,13 +288,25 @@ const StatusIjazah = () => {
                 <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
               </div>
 
-              <div className="relative w-full lg:w-44">
+              <div className="relative w-full sm:w-40">
                 <select value={tahun} onChange={(e) => setTahun(e.target.value)} className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left">
                   <option value="">Semua Tahun</option>
                   {years.map((item, i) => <option key={i} value={item}>{item}</option>)}
                 </select>
                 <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
               </div>
+
+              {/* 🔥 DROPDOWN FILTER STATUS EMAIL (Hanya Aktif di Halaman Terbit) */}
+              {currentStatus === "terbit" && (
+                <div className="relative w-full sm:w-48">
+                  <select value={statusEmail} onChange={(e) => setStatusEmail(e.target.value)} className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-[#117065] px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left">
+                    <option value="">Semua Status Email</option>
+                    <option value="Belum Diemail">Belum Diemail</option>
+                    <option value="Email Terkirim">Email Terkirim</option>
+                  </select>
+                  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-[#117065] text-lg pointer-events-none" />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -272,12 +315,13 @@ const StatusIjazah = () => {
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <table className="w-full table-fixed text-sm">
             <colgroup>
-              <col className="w-[6%]" />
+              <col className="w-[5%]" />
               <col className="w-[20%]" />
-              <col className="w-[24%]" />
-              <col className="w-[12%]" />
-              <col className="w-[18%]" />
+              <col className="w-[22%]" />
               <col className="w-[10%]" />
+              <col className="w-[15%]" />
+              <col className="w-[8%]" />
+              {currentStatus === "terbit" && <col className="w-[10%]" />}
               <col className="w-[10%]" />
             </colgroup>
             <thead className="bg-[#F7F7F7] text-gray-500 border-b border-gray-200">
@@ -288,6 +332,12 @@ const StatusIjazah = () => {
                 <th className="px-4 py-4 text-center">Tahun Lulus</th>
                 <th className="px-4 py-4 text-center">Periode</th>
                 <th className="px-4 py-4 text-center">Total</th>
+                
+                {/* 🔥 HEADER STATUS EMAIL */}
+                {currentStatus === "terbit" && (
+                  <th className="px-4 py-4 text-center">Status Email</th>
+                )}
+                
                 <th className="px-4 py-4 text-center">Detail</th>
               </tr>
             </thead>
@@ -303,6 +353,20 @@ const StatusIjazah = () => {
                       <td className="px-4 py-4 text-center font-semibold align-middle">{item.tahun}</td>
                       <td className="px-4 py-4 text-center font-semibold align-middle">{item.periode}</td>
                       <td className="px-4 py-4 text-center font-semibold align-middle">{item.total}</td>
+                      
+                      {/* 🔥 ISI STATUS EMAIL */}
+                      {currentStatus === "terbit" && (
+                        <td className="px-4 py-4 text-center align-middle">
+                          <span className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${
+                            item.status_email === "Email Terkirim"
+                              ? "bg-green-100 text-green-700" 
+                              : "bg-orange-100 text-orange-700"
+                          }`}>
+                            {item.status_email}
+                          </span>
+                        </td>
+                      )}
+
                       <td className="px-4 py-3 text-center align-middle">
                         <button type="button" onClick={() => handleDetailBatch(item)} className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-100 transition" title="Lihat detail batch">
                           <div className="w-3 h-3 border-t-2 border-b-2 border-gray-400" />
@@ -313,7 +377,7 @@ const StatusIjazah = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan="7" className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={currentStatus === "terbit" ? "8" : "7"} className="px-4 py-8 text-center text-gray-400">
                     Data {displayLabel} tidak ditemukan.
                   </td>
                 </tr>

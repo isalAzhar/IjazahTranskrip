@@ -18,18 +18,9 @@ const formatPeriode = (periode) => {
   return map[periode?.toLowerCase()] || periode || "-";
 };
 
+// 🔥 FIX: Kembalikan format ke aslinya (BATCH-20260605-I2Q2), gausah mapping tanggal
 const formatNamaBatch = (kode) => {
-  if (!kode) return "-";
-  const parts = kode.split("-");
-  if (parts.length < 2) return kode;
-  const raw = parts[1];
-  if (raw.length !== 8) return kode;
-  const year = raw.substring(0, 4);
-  const month = raw.substring(4, 6);
-  const day = raw.substring(6, 8);
-  const bulan = ["", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-    "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-  return `Batch ${parseInt(day)} ${bulan[parseInt(month)]} ${year}`;
+  return kode || "-";
 };
 
 const ROLE_DESCRIPTION = {

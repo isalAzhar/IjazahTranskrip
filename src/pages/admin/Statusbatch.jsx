@@ -2,25 +2,16 @@ import React, { useMemo, useState, useEffect } from "react";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-// 🔥 KEMBALI MENGGUNAKAN getLatestValidations
-import { getLatestValidations } from "../../services/dashboard.api";
+import { getDetailBatch } from "@/services/daftarbatch.api";
 
+// 1. Standarisasi status dari URL agar selalu seragam
 const normalizeStatus = (status) => {
-  const value = status?.toString().toLowerCase();
+  const value = status?.toString().toLowerCase().trim();
   if (value === "terbit" || value === "approved" || value === "valid") return "terbit";
   if (value === "proses" || value === "pending") return "proses";
   if (value === "reject" || value === "rejected" || value === "ditolak") return "reject";
   if (value === "revoke" || value === "revoked" || value === "dicabut") return "revoke";
   return value || "";
-};
-
-const getBatchIdentity = (item = {}) => {
-  const batchName = item.batch || "Tanpa Batch";
-  const fakultas = item.fakultas || "-";
-  const tahun = item.tahun_lulus?.toString() || item.tahun?.toString() || "-";
-  const periode = item.periode || "-";
-  const key = `${batchName}-${fakultas}-${tahun}-${periode}`;
-  return { batchName, fakultas, tahun, periode, key };
 };
 
 const formatMahasiswa = (item, index, batchData, targetStatus) => {
@@ -34,11 +25,11 @@ const formatMahasiswa = (item, index, batchData, targetStatus) => {
     prodi: item.prodi || item.program_studi || "-",
     program_studi: item.program_studi || item.prodi || "-",
     fakultas: item.fakultas || batchData?.fakultas || "-",
-    tahun: item.tahun || item.tahun_lulus || batchData?.tahun || "-",
-    tahun_lulus: item.tahun_lulus || item.tahun || batchData?.tahun || "-",
-    periode: item.periode || batchData?.periode || "-",
-    status: item.status || batchData?.status || targetStatus,
-    batch: item.batch || batchData?.batch || "-",
+    tahun: item.tahun || item.tahun_lulus || batchData?.tahun_lulus || "-",
+    tahun_lulus: item.tahun_lulus || item.tahun || batchData?.tahun_lulus || "-",
+    periode: item.periode || batchData?.periode_label || "-",
+    status: item.status || targetStatus, // Set default status ke status halaman
+    batch: item.nama_batch || batchData?.nama_batch || "-",
     raw: item.raw || item,
   };
 };
@@ -68,19 +59,21 @@ const getBadgeLabel = (status) => {
 const Statusbatch = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { status, id } = useParams();
+  const { status, id } = useParams(); // Mengambil status (terbit/proses/dll) & id batch dari URL
   const { user } = useAuth();
   const userRole = user?.role?.toLowerCase() || "";
 
+  // Decode parameter URL
   const decodedId = decodeURIComponent(id || "");
   const currentStatus = normalizeStatus(status);
   const displayLabel = getBadgeLabel(currentStatus);
 
   const [batchData, setBatchData] = useState({
-    batch: `Batch ${decodedId || "-"}`,
+    nama_batch: "-",
     fakultas: "-",
-    tahun: "-",
-    periode: "-",
+    tahun_lulus: "-",
+    periode_label: "-",
+    total_record_label: "-",
     status: displayLabel,
   });
 
@@ -89,57 +82,42 @@ const Statusbatch = () => {
   const [apiError, setApiError] = useState("");
 
   useEffect(() => {
-    const fetchBatchDynamic = async () => {
+    const fetchDetailBatch = async () => {
       try {
         setIsLoading(true);
         setApiError("");
 
-        // 🔥 FIX: Pakai getLatestValidations
-        const result = await getLatestValidations({
-          page: 1,
-          limit: 10000,
-          status: currentStatus
-        });
+        // 🔥 FIX UTAMA: Melempar currentStatus (terbit/proses/reject/revoke) ke API Service
+        const result = await getDetailBatch(decodedId, currentStatus);
+        
+        let bData = {};
+        let mList = [];
 
-        const rows = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
-
-        const filteredRows = rows.filter(
-          (item) => normalizeStatus(item.status) === currentStatus
-        );
-
-        const selectedRows = filteredRows.filter((item) => {
-          const identity = getBatchIdentity(item);
-          const possibleIds = [
-            item.id_batch,
-            item.id_batch_upload,
-            item.batch_id,
-            identity.key,
-            identity.batchName,
-          ].filter(Boolean).map((value) => String(value));
-
-          return possibleIds.includes(decodedId);
-        });
-
-        if (selectedRows.length === 0) {
-          setMahasiswa([]);
-          return;
+        // Ekstraksi data
+        if (result && result.batch) {
+          bData = result.batch;
+          mList = result.mahasiswa || [];
+        } else if (Array.isArray(result?.data)) {
+          mList = result.data;
+        } else if (Array.isArray(result)) {
+          mList = result;
         }
 
-        const firstIdentity = getBatchIdentity(selectedRows[0]);
-        const newBatchData = {
-          batch: firstIdentity.batchName,
-          fakultas: firstIdentity.fakultas,
-          tahun: firstIdentity.tahun,
-          periode: firstIdentity.periode,
+        const extractedFakultas = bData.fakultas || mList[0]?.fakultas || mList[0]?.prodi?.fakultas || "-";
+
+        const mappedBatchData = {
+          nama_batch: bData.nama_batch || bData.nomor_batch_upload || "-",
+          fakultas: extractedFakultas,
+          tahun_lulus: bData.tahun_lulus || mList[0]?.tahun_lulus || "-",
+          periode_label: bData.periode_label || bData.periode || mList[0]?.periode || "-",
+          total_record_label: bData.total_record_label || `${mList.length} Mahasiswa`,
           status: displayLabel,
         };
 
-        setBatchData(newBatchData);
-        setMahasiswa(
-          selectedRows.map((item, index) =>
-            formatMahasiswa(item, index, newBatchData, displayLabel)
-          )
-        );
+        setBatchData(mappedBatchData);
+        // Format ulang setiap mahasiswa agar statusnya mengikuti label halaman (jika kosong dari API)
+        setMahasiswa(mList.map((m, index) => formatMahasiswa(m, index, mappedBatchData, displayLabel)));
+
       } catch (error) {
         console.error(`Gagal mengambil detail batch ${currentStatus}:`, error);
         setApiError(error.message || "Gagal mengambil data dari server.");
@@ -148,7 +126,7 @@ const Statusbatch = () => {
       }
     };
 
-    fetchBatchDynamic();
+    if (decodedId) fetchDetailBatch();
   }, [decodedId, currentStatus]);
 
   const sortedMahasiswa = useMemo(() => {
@@ -163,7 +141,7 @@ const Statusbatch = () => {
       program_studi: item.program_studi || item.prodi,
       tahun_lulus: item.tahun_lulus || item.tahun,
       fakultas: item.fakultas || batchData?.fakultas,
-      batch: item.batch || batchData?.batch,
+      batch: item.batch || batchData?.nama_batch,
     };
 
     const navState = { state: { mahasiswa: formattedMahasiswa, batch: batchData } };
@@ -178,11 +156,7 @@ const Statusbatch = () => {
     return (
       <DashboardLayout>
         <div className="flex justify-center items-center h-[70vh]">
-          <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${
-            currentStatus === "terbit" ? "border-[#27AE60]" : 
-            currentStatus === "reject" ? "border-[#EF4444]" :
-            currentStatus === "revoke" ? "border-[#F59E0B]" : "border-[#3B82F6]"
-          }`}></div>
+          <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${currentStatus === "terbit" ? "border-[#27AE60]" : "border-[#3B82F6]"}`}></div>
         </div>
       </DashboardLayout>
     );
@@ -191,55 +165,88 @@ const Statusbatch = () => {
   return (
     <DashboardLayout>
       <div className="w-full pb-10">
-        <div className="bg-white p-5 md:p-6 rounded-xl shadow-sm border border-gray-200 mb-6 flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-[24px] md:text-[28px] font-bold text-gray-900 tracking-tight capitalize">
-              Detail Batch {displayLabel}
-            </h1>
-            <p className="text-[#9CA3AF] text-[13px] md:text-[14px] font-medium capitalize">
-              Daftar Mahasiswa dengan Status {displayLabel}
-            </p>
-            {apiError && <p className="text-sm text-red-500 mt-1 font-semibold">{apiError}</p>}
+        
+        {/* HEADER TITLE */}
+        <div className="mb-6">
+          <h1 className="text-[28px] font-bold text-gray-900 tracking-tight capitalize">
+            Detail Batch {displayLabel}
+          </h1>
+          <p className="text-[#9CA3AF] text-[14px] font-medium capitalize mt-1">
+            Daftar Mahasiswa dengan Status {displayLabel}
+          </p>
+          {apiError && <p className="text-sm text-red-500 font-semibold mt-2">{apiError}</p>}
+        </div>
+
+        {/* HEADER INFO */}
+        <div className="mb-6 px-6 py-4 bg-white border border-gray-200 rounded-xl flex flex-wrap items-center gap-x-12 gap-y-4 shadow-sm relative overflow-hidden">
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#117065]"></div>
+          
+          <div className="flex flex-col">
+            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">No Batch</span>
+            <span className="text-[14px] font-bold text-gray-800">{batchData.nama_batch}</span>
+          </div>
+
+          <div className="flex flex-col">
+            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Fakultas</span>
+            <span className="text-[14px] font-bold text-gray-800">{batchData.fakultas}</span>
+          </div>
+
+          <div className="flex flex-col">
+            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Tahun Lulus</span>
+            <span className="text-[14px] font-bold text-gray-800">{batchData.tahun_lulus}</span>
+          </div>
+
+          <div className="flex flex-col">
+            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Periode</span>
+            <span className="text-[14px] font-bold text-gray-800">{batchData.periode_label}</span>
+          </div>
+
+          <div className="flex flex-col">
+            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Total Record</span>
+            <span className="text-[14px] font-bold text-[#117065] bg-teal-50 px-2 py-0.5 rounded-md inline-block text-center w-fit">
+              {batchData.total_record_label}
+            </span>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-[#F7F7F7] text-gray-500 border-b border-gray-200">
+        {/* TABEL MAHASISWA */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+          <table className="w-full text-sm text-left whitespace-nowrap">
+            <thead className="bg-[#F9FAFB] text-gray-500 font-bold border-b border-gray-200">
               <tr>
-                <th className="px-4 py-3 text-center">No</th>
-                <th className="px-4 py-3 text-left">Nama</th>
-                <th className="px-4 py-3 text-center">NIM</th>
-                <th className="px-4 py-3 text-center">Program Studi</th>
-                <th className="px-4 py-3 text-center">Tahun Lulus</th>
-                <th className="px-4 py-3 text-center">Status</th>
-                <th className="px-4 py-3 text-center">Detail</th>
+                <th className="px-6 py-4 text-center w-16">No</th>
+                <th className="px-6 py-4 text-left">Nama</th>
+                <th className="px-6 py-4 text-center">NIM</th>
+                <th className="px-6 py-4 text-center">Program Studi</th>
+                <th className="px-6 py-4 text-center">Tahun Lulus</th>
+                <th className="px-6 py-4 text-center">Status</th>
+                <th className="px-6 py-4 text-center w-20">Detail</th>
               </tr>
             </thead>
             <tbody>
               {sortedMahasiswa.length > 0 ? (
                 sortedMahasiswa.map((mhs, i) => (
-                  <tr key={mhs.id || mhs.id_mahasiswa || i} className="border-t border-gray-200 hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-center">{i + 1}</td>
-                    <td className="px-4 py-3 font-semibold text-gray-800">{mhs.nama || "-"}</td>
-                    <td className="px-4 py-3 font-medium text-gray-800 text-center">{mhs.nim || "-"}</td>
-                    <td className="px-4 py-3 font-medium text-gray-800 text-center">{mhs.prodi || "-"}</td>
-                    <td className="px-4 py-3 font-medium text-gray-800 text-center">{mhs.tahun || mhs.tahun_lulus || "-"}</td>
-                    <td className="px-4 py-3 text-center">
+                  <tr key={mhs.id || mhs.id_mahasiswa || i} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 text-center font-bold text-gray-800">{i + 1}.</td>
+                    <td className="px-6 py-4 font-bold text-gray-900">{mhs.nama || "-"}</td>
+                    <td className="px-6 py-4 text-center text-gray-800">{mhs.nim || "-"}</td>
+                    <td className="px-6 py-4 text-center text-gray-800">{mhs.prodi || "-"}</td>
+                    <td className="px-6 py-4 text-center font-semibold text-gray-700">{mhs.tahun || mhs.tahun_lulus || "-"}</td>
+                    <td className="px-6 py-4 text-center">
                       <span className={`inline-block min-w-[86px] px-4 py-1.5 rounded-full text-xs font-bold ${getBadgeColor(mhs.status)}`}>
                         {getBadgeLabel(mhs.status)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-center">
-                      <button type="button" onClick={() => handleDetailMahasiswa(mhs)} className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-100 transition">
-                        <div className="w-3 h-3 border-t-2 border-b-2 border-gray-400"></div>
+                    <td className="px-6 py-4 text-center">
+                      <button type="button" onClick={() => handleDetailMahasiswa(mhs)} className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition">
+                        <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>
                       </button>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" className="px-4 py-8 text-center text-gray-400 capitalize">
+                  <td colSpan="7" className="px-6 py-8 text-center text-gray-400 capitalize">
                     Data mahasiswa {currentStatus} tidak ditemukan.
                   </td>
                 </tr>
