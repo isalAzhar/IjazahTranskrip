@@ -2,6 +2,16 @@ import React, { useEffect, useState } from "react";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import ijazahBg from "../../assets/img/Ijazahfiks.png";
 import transkripBg from "../../assets/img/transkripfiks.jpeg";
+import fotoDummy from "../../assets/img/foto.jpg";
+import stempelRektorDummy from "../../assets/img/stempelrektor.png";
+import stempelDekanDummy from "../../assets/img/stempeldekan.png";
+import parafWarekDummy from "../../assets/img/parafwarek.png";
+import parafWadekDummy from "../../assets/img/parafwadek.png";
+import ttdRektorDummy from "../../assets/img/TTDrektor.png";
+import ttddekanDummy from "../../assets/img/TTDdekan.png";
+import parafKaprodiDummy from "../../assets/img/parafkaprodi.png";
+import parafKatuRektorDummy from "../../assets/img/parafKATUrektor.png";
+import parafKatuFakultasDummy from "../../assets/img/parafKATUfakultas.png";
 import { FiUpload, FiX, FiTrash2 } from "react-icons/fi";
 import {
   getTemplateByJenis,
@@ -229,10 +239,11 @@ const FIELD_META = {
     Gelar: {
       field: "mahasiswa.gelar",
       type: "text",
-      fontSize: 20,
+      fontSize: 18,
       fontFamily: "arial",
       fontWeight: "800",
       align: "center",
+      color: "#0B6B63",
     },
     "Tanggal Terbit": {
       field: "dokumen_placeholder.tanggal_terbit_formatted",
@@ -249,7 +260,7 @@ const FIELD_META = {
       fontFamily: "arial",
       fontWeight: "600",
       textDecoration: "underline",
-      align: "center",
+      align: "left",
     },
     "TTD Rektor": {
       field: "assets.ttd_rektor",
@@ -261,7 +272,7 @@ const FIELD_META = {
       fontSize: 12,
       fontFamily: "arial",
       fontWeight: "500",
-      align: "center",
+      align: "left",
     },
     "Nama Dekan": {
       field: "pejabat.nama_dekan",
@@ -269,7 +280,7 @@ const FIELD_META = {
       fontSize: 12,
       fontFamily: "arial",
       fontWeight: "600",
-      align: "center",
+      align: "left",
       textDecoration: "underline",
     },
     "TTD Dekan": {
@@ -282,7 +293,7 @@ const FIELD_META = {
       fontSize: 12,
       fontFamily: "arial",
       fontWeight: "500",
-      align: "center",
+      align: "left",
     },
     "Paraf KATU Rektor": {
       field: "assets.paraf_katu_rektor",
@@ -351,7 +362,7 @@ const FIELD_META = {
       fontWeight: "500",
       align: "left",
     },
-    NINA: {
+    "NINA": {
       field: "mahasiswa.nina",
       type: "text",
       fontSize: 7,
@@ -359,7 +370,7 @@ const FIELD_META = {
       fontWeight: "500",
       align: "left",
     },
-    NIK: {
+    "NIK": {
       field: "mahasiswa.nik",
       type: "text",
       fontSize: 7,
@@ -383,7 +394,7 @@ const FIELD_META = {
       fontWeight: "500",
       align: "left",
     },
-    Fakultas: {
+    "Fakultas": {
       field: "akademik.fakultas",
       type: "text",
       fontSize: 7,
@@ -407,7 +418,7 @@ const FIELD_META = {
       fontWeight: "500",
       align: "left",
     },
-    Status: {
+    "Status": {
       field: "akademik.status_kelulusan",
       type: "text",
       fontSize: 7,
@@ -455,7 +466,7 @@ const FIELD_META = {
       fontFamily: "arial",
       fontWeight: "700",
       textDecoration: "underline",
-      align: "center",
+      align: "left",
     },
     "NIDN Dekan": {
       field: "pejabat.nidn_dekan",
@@ -463,7 +474,7 @@ const FIELD_META = {
       fontSize: 8,
       fontFamily: "arial",
       fontWeight: "500",
-      align: "center",
+      align: "left",
     },
     "Paraf KATU Fakultas": {
       field: "assets.paraf_katu_fakultas",
@@ -502,10 +513,9 @@ const normalizeElementFromMeta = (templateType, element) => {
   return {
     ...element,
 
-    // field dan type aman untuk template lama yang belum menyimpan meta
-    field: element.field || meta.field || null,
-    type: element.type || meta.type || "text",
-
+    // Paksa field dan type mengikuti FIELD_META terbaru
+    field: meta.field || element.field || null,
+    type: meta.type || element.type || "text",
     // style selalu mengikuti FIELD_META agar cukup ubah konfigurasi per field
     fontSize: meta.fontSize,
     fontFamily: meta.fontFamily || "arial",
@@ -535,37 +545,13 @@ const boxOnlyFields = [
   "Stempel Dekan",
 ];
 const previewAsFieldLabel = {
-  ijazah: [
-    "Foto",
-    "QR Code",
-    "TTD Rektor",
-    "TTD Dekan",
-    "Paraf KATU Rektor",
-    "Paraf WAREK",
-    "Paraf KATU Fakultas",
-    "Paraf Wadek",
-    "Stempel Rektor",
-    "Stempel Dekan",
-  ],
-
-  transkrip: ["Paraf KATU Fakultas", "Paraf Kaprodi", "TTD Dekan"],
+  ijazah: [],
+  transkrip: [],
 };
 
 const emptyPreviewFields = {
-  ijazah: [
-    "Foto",
-    "QR Code",
-    "Paraf KATU Rektor",
-    "Paraf WAREK",
-    "Paraf KATU Fakultas",
-    "Paraf Wadek",
-    "Stempel Rektor",
-    "Stempel Dekan",
-    "TTD Rektor",
-    "TTD Dekan",
-  ],
-
-  transkrip: ["Paraf KATU Fakultas", "Paraf Kaprodi", "TTD Dekan"],
+  ijazah: [],
+  transkrip: [],
 };
 
 const signatureFields = ["TTD Rektor", "TTD Dekan"];
@@ -668,12 +654,10 @@ const getIjazahFieldSize = (field) => {
   if (field === "Tempat & Tanggal Lahir") return { width: 145, height: 21 };
   if (field === "Nomor Pokok Mahasiswa") return { width: 145, height: 21 };
   if (field === "NIK") return { width: 145, height: 21 };
-
   if (field === "Tanggal Kelulusan") return { width: 95, height: 14 };
   if (field === "PISN") return { width: 95, height: 14 };
   if (field === "Nomor Seri Ijazah") return { width: 95, height: 14 };
   if (field === "Akreditasi AIPT") return { width: 75, height: 21 };
-
   if (
     field === "Fakultas (English)" ||
     field === "Program Studi (English)" ||
@@ -681,7 +665,6 @@ const getIjazahFieldSize = (field) => {
   ) {
     return { width: 145, height: 13 };
   }
-
   if (
     field === "Fakultas" ||
     field === "Program Studi" ||
@@ -689,26 +672,20 @@ const getIjazahFieldSize = (field) => {
   ) {
     return { width: 145, height: 16 };
   }
-
   if (field === "Foto") return { width: 95, height: 125 };
   if (field === "QR Code") return { width: 72, height: 72 };
   if (field.includes("Stempel")) return { width: 85, height: 85 };
-
   if (field === "TTD Rektor") return { width: 78, height: 55 };
   if (field === "TTD Dekan") return { width: 78, height: 55 };
   if (field.includes("Paraf")) return { width: 28, height: 28 };
-
-  if (field === "Gelar") return { width: 330, height: 18 };
+  if (field === "Gelar") return { width: 460, height: 28 };
   if (field === "Tanggal Terbit") return { width: 145, height: 18 };
-
   if (field === "Nama Rektor" || field === "Nama Dekan") {
     return { width: 18, height: 16 };
   }
-
   if (field === "NIDN Rektor" || field === "NIDN Dekan") {
     return { width: 95, height: 16 };
   }
-
   return { width: 145, height: 17 };
 };
 
@@ -798,6 +775,7 @@ const WaitingDataText = ({
   fontWeight,
   fontStyle = "normal",
   textDecoration = "none",
+  color = "#1f2937",
 }) => {
   const fallbackFontSize = small
     ? documentType === "transkrip"
@@ -823,6 +801,7 @@ const WaitingDataText = ({
         fontFamily: resolvedFontFamily,
         fontWeight: resolvedFontWeight,
         fontStyle: resolvedFontStyle,
+        color: color,
         textDecoration: resolvedTextDecoration,
       }}
     >
@@ -871,46 +850,60 @@ const renderElements = (
       );
     }
     if (el.label === "TTD Dekan" && documentType === "transkrip") {
-      return (
-        <div
-          key={el.id}
-          onMouseDown={(e) => handleMouseDownElement(e, el)}
-          className={`absolute z-30 group ${
-            !isSaved && !isLocked ? "cursor-move" : "cursor-default"
-          }`}
-          style={{
-            left: el.x,
-            top: el.y,
-            width: el.width || 90,
-            height: el.height || 70,
-          }}
-        >
-          {!isPreview && (
-            <div className="pointer-events-none absolute -top-7 left-0 z-50 hidden group-hover:block whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[10px] font-bold text-white shadow-lg">
-              {el.label}
-            </div>
-          )}
+  const fieldValue =
+    previewData?.[el.label] || previewData?.[el.placeholder] || "";
 
-          <div
-            className="w-full h-full flex flex-col items-center justify-start text-black"
-            style={{
-              fontSize: `${el.fontSize || 8}px`,
-              fontFamily: el.fontFamily || "arial",
-              fontWeight: el.fontWeight || "600",
-              textAlign: el.align || "center",
-              fontStyle: el.fontStyle || "normal",
-              textDecoration: el.textDecoration || "none",
-            }}
-          >
-            <div className="mb-1">Dekan,</div>
+  return (
+    <div
+      key={el.id}
+      onMouseDown={(e) => handleMouseDownElement(e, el)}
+      className={`absolute z-30 group ${
+        !isSaved && !isLocked ? "cursor-move" : "cursor-default"
+      }`}
+      style={{
+        left: el.x,
+        top: el.y,
+        width: el.width || 90,
+        height: el.height || 70,
+      }}
+    >
+      {!isPreview && (
+        <div className="pointer-events-none absolute -top-7 left-0 z-50 hidden group-hover:block whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[10px] font-bold text-white shadow-lg">
+          {el.label}
+        </div>
+      )}
 
-            <div className="w-[70px] h-[42px] border border-[#4b5563] rounded-sm flex items-center justify-center text-[7px] text-gray-500">
+      <div
+        className="w-full h-full flex flex-col items-center justify-start text-black"
+        style={{
+          fontSize: `${el.fontSize || 8}px`,
+          fontFamily: el.fontFamily || "arial",
+          fontWeight: el.fontWeight || "600",
+          textAlign: el.align || "center",
+          fontStyle: el.fontStyle || "normal",
+          textDecoration: el.textDecoration || "none",
+        }}
+      >
+        <div className="mb-1">Dekan,</div>
+
+        <div className="w-[70px] h-[42px] rounded-sm overflow-hidden flex items-center justify-center">
+          {isPreview && fieldValue ? (
+            <img
+              src={fieldValue}
+              alt={el.label}
+              className="w-full h-full object-contain"
+            />
+          ) : (
+            <div className="w-full h-full border border-[#4b5563] rounded-sm flex items-center justify-center text-[7px] text-gray-500">
               TTD
             </div>
-          </div>
+          )}
         </div>
-      );
-    }
+      </div>
+    </div>
+  );
+}
+    
     const isBoxOnly = boxOnlyFields.includes(el.label);
     const isSignature = signatureFields.includes(el.label);
     const isNameLine = nameLineFields.includes(el.label);
@@ -920,14 +913,16 @@ const renderElements = (
     const fieldValue =
       previewData?.[el.label] || previewData?.[el.placeholder] || "";
 
+    const imageValue = isPreviewImageField(el) ? fieldValue : "";
+
     const shouldShowFieldLabel =
       isPreview && previewAsFieldLabel[documentType]?.includes(el.label);
 
     const displayValue = isPreview
-      ? shouldShowFieldLabel
-        ? el.label
-        : fieldValue || "Menunggu Data"
-      : "";
+  ? isPreviewImageField(el)
+    ? ""
+    : fieldValue || "Menunggu Data"
+  : "";
     const textAlign =
       el.align ||
       (ijazahLeftAlignFields.includes(el.label) ? "left" : "center");
@@ -940,6 +935,7 @@ const renderElements = (
     const fieldFontWeight = el.fontWeight || "600";
     const fieldFontStyle = el.fontStyle || "normal";
     const fieldTextDecoration = el.textDecoration || "none";
+    const fieldColor = el.label === "Gelar" ? "#0B6B63" : "#1f2937";
 
     const size = getFieldSize(el.label, documentType);
     const renderWidth = el.width || size.width;
@@ -996,6 +992,7 @@ const renderElements = (
                     fontStyle: fieldFontStyle,
                     textDecoration: fieldTextDecoration,
                     textAlign: textAlign,
+                    color: fieldColor,
                   }}
                 >
                   {displayValue}
@@ -1020,34 +1017,39 @@ const renderElements = (
         )}
 
         {isSignature && (
-          <div
-            className={
-              isPreview && emptyPreviewFields[documentType]?.includes(el.label)
-                ? "rounded-sm border border-gray-500 bg-transparent"
-                : fieldBoxClass
-            }
-            style={{
-              width: renderWidth,
-              height: renderHeight,
-            }}
-          >
-            {isPreview &&
-              !emptyPreviewFields[documentType]?.includes(el.label) && (
-                <WaitingDataText
-                  value={displayValue}
-                  align={textAlign}
-                  label={el.label}
-                  documentType={documentType}
-                  fontSize={fieldFontSize}
-                  fontFamily={fieldFontFamily}
-                  fontWeight={fieldFontWeight}
-                  fontStyle={fieldFontStyle}
-                  textDecoration={fieldTextDecoration}
-                />
-              )}
-          </div>
-        )}
-
+  <div
+    className={`${fieldBoxClass} overflow-visible`}
+    style={{
+      width: renderWidth,
+      height: renderHeight,
+    }}
+  >
+    {isPreview && isPreviewImageField(el) ? (
+      imageValue ? (
+        <img
+  src={imageValue}
+  alt={el.label}
+  className={getPreviewImageClass(el.label)}
+/>
+      ) : null
+    ) : (
+      isPreview && (
+        <WaitingDataText
+          value={displayValue}
+          align={textAlign}
+          label={el.label}
+          documentType={documentType}
+          fontSize={fieldFontSize}
+          fontFamily={fieldFontFamily}
+          fontWeight={fieldFontWeight}
+          fontStyle={fieldFontStyle}
+          textDecoration={fieldTextDecoration}
+          color={fieldColor}
+        />
+      )
+    )}
+  </div>
+)}
         {isNidn && (
           <div
             className="flex items-center gap-[3px]"
@@ -1094,34 +1096,40 @@ const renderElements = (
         )}
 
         {isBoxOnly && (
-          <div
-            className={
-              isPreview && emptyPreviewFields[documentType]?.includes(el.label)
-                ? "rounded-sm border border-gray-500 bg-transparent"
-                : fieldBoxClass
-            }
-            style={{
-              width: renderWidth,
-              height: renderHeight,
-            }}
-          >
-            {isPreview &&
-              !emptyPreviewFields[documentType]?.includes(el.label) && (
-                <WaitingDataText
-                  small={isSmallBox}
-                  value={displayValue}
-                  align={textAlign}
-                  label={el.label}
-                  documentType={documentType}
-                  fontSize={fieldFontSize}
-                  fontFamily={fieldFontFamily}
-                  fontWeight={fieldFontWeight}
-                  fontStyle={fieldFontStyle}
-                  textDecoration={fieldTextDecoration}
-                />
-              )}
-          </div>
-        )}
+  <div
+    className={`${fieldBoxClass} overflow-visible`}
+    style={{
+      width: renderWidth,
+      height: renderHeight,
+    }}
+  >
+    {isPreview && isPreviewImageField(el) ? (
+      imageValue ? (
+        <img
+  src={imageValue}
+  alt={el.label}
+  className={getPreviewImageClass(el.label)}
+/>
+      ) : null
+    ) : (
+      isPreview && (
+        <WaitingDataText
+          small={isSmallBox}
+          value={displayValue}
+          align={textAlign}
+          label={el.label}
+          documentType={documentType}
+          fontSize={fieldFontSize}
+          fontFamily={fieldFontFamily}
+          fontWeight={fieldFontWeight}
+          fontStyle={fieldFontStyle}
+          textDecoration={fieldTextDecoration}
+          color={fieldColor}
+        />
+      )
+    )}
+  </div>
+)}
 
         {!isNameLine && !isSignature && !isNidn && !isBoxOnly && (
           <div
@@ -1143,6 +1151,7 @@ const renderElements = (
                 fontWeight={fieldFontWeight}
                 fontStyle={fieldFontStyle}
                 textDecoration={fieldTextDecoration}
+                color={fieldColor}
               />
             )}
           </div>
@@ -1252,7 +1261,7 @@ const TranskripTableOverlay = ({ elements, mataKuliahData = [] }) => {
                 className="border border-[#707070] px-1 font-bold"
               >
                 Indeks Prestasi Kumulatif
-                <span className="float-right">Menunggu Data</span>
+                <span className="float-right">#DIV/0</span>
               </td>
             </tr>
 
@@ -1264,7 +1273,7 @@ const TranskripTableOverlay = ({ elements, mataKuliahData = [] }) => {
                 className="border border-[#707070] px-1 font-bold"
               >
                 Predikat Kelulusan
-                <span className="float-right">Menunggu Data</span>
+                <span className="float-right">#DIV/0</span>
               </td>
             </tr>
 
@@ -1367,6 +1376,97 @@ const getTemplateImageSrc = (src, fallback) => {
 
   return `/${src}`;
 };
+const ijazahPreviewDummyData = {
+  "Nama": "John Dean",
+  "Tempat & Tanggal Lahir": "Bogor, 12 Januari 2002",
+  "Nomor Pokok Mahasiswa": "232310001035",
+  "NIK": "3271015201020001",
+  "Fakultas": "Teknik dan Sains",
+  "Fakultas (English)": "Faculty of Engineering and Science",
+  "Program Studi": "Teknik Informatika",
+  "Program Studi (English)": "Informatics Engineering",
+  "Program": "Sarjana",
+  "Program (English)": "Bachelor Degree",
+  "Tanggal Kelulusan": "27 Mei 2026",
+  "PISN": "202605270001",
+  "Nomor Seri Ijazah": "UIKA-2026-0001",
+  "Akreditasi AIPT": "UNGGUL",
+  "Gelar": "Sarjana Teknik (S.T.) / Bachelor of Engineering",
+  "Tanggal Terbit": "Bogor, 27 Mei 2026",
+  "Nama Rektor": "Dr. Gusti, M.Si.",
+  "NIDN Rektor": "0401017001",
+  "Nama Dekan": "Dr. Eagle, M.Kom.",
+  "NIDN Dekan": "0412028001",
+  "Foto": fotoDummy,
+  "Stempel Rektor": stempelRektorDummy,
+  "Stempel Dekan": stempelDekanDummy,
+  "Paraf WAREK": parafWarekDummy,
+  "Paraf Wadek": parafWadekDummy,
+  "TTD Rektor": ttdRektorDummy,
+  "TTD Dekan": ttddekanDummy,
+  "Paraf KATU Rektor": parafKatuRektorDummy,
+  "Paraf KATU Fakultas": parafKatuFakultasDummy,
+  "QR Code":
+    "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://verifikasi-ijazah.uika.ac.id/john-doe",
+
+};
+
+const transkripPreviewDummyData = {
+  "Nomor": "001/TRK-UIKA/2026",
+  "Nama": "John Dean",
+  "Tempat & Tanggal Lahir": "Bogor, 12 Januari 2002",
+  "Jenis Kelamin": "Laki-laki",
+  "Nomor Pokok Mahasiswa": "232310001035",
+  "NINA": "1234567890",
+  "NIK": "3271015201020001",
+  "Tahun Masuk": "2022",
+  "Program Pendidikan": "Sarjana",
+  "Fakultas": "Teknik dan Sains",
+  "Program Studi": "Teknik Informatika",
+  "Nomor SK Akreditasi": "1234/SK/BAN-PT/2026",
+  "Status": "Lulus",
+  "Tanggal Lulus": "27 Mei 2026",
+  "Tanggal Terbit": "Bogor, 27 Mei 2026",
+  "Nama Dekan": "Dr. Eagle, M.Kom.",
+  "NIDN Dekan": "0412028001",
+  "TTD Dekan": ttddekanDummy,
+  "Paraf Kaprodi": parafKaprodiDummy,
+  "Paraf KATU Fakultas": parafKatuFakultasDummy,
+
+};
+const isPreviewImageField = (el) => {
+  return el.type === "image" || el.type === "qr" || el.type === "signature";
+
+};
+const getPreviewImageClass = (label) => {
+  // Foto jangan terlalu besar
+  if (label === "Foto") {
+    return "w-full h-full object-cover";
+  }
+
+  // QR tetap normal agar tidak pecah
+  if (label === "QR Code") {
+    return "w-full h-full object-contain";
+  }
+
+  // Stempel lebih besar
+  if (label === "Stempel Rektor" || label === "Stempel Dekan") {
+    return "w-full h-full object-contain scale-[1.95]";
+  }
+
+  // Tanda tangan lebih besar
+  if (label === "TTD Rektor" || label === "TTD Dekan") {
+    return "w-full h-full object-contain scale-[1.45]";
+  }
+
+  // Semua paraf lebih besar
+  if (label.includes("Paraf")) {
+    return "w-full h-full object-contain scale-[1.6]";
+  }
+
+  return "w-full h-full object-contain";
+};
+
 const Template = () => {
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [templateError, setTemplateError] = useState("");
@@ -1961,7 +2061,15 @@ const Template = () => {
             className="w-[780px]"
           />
 
-          {renderElements(ijazahElements, true, true, () => {}, "ijazah", true)}
+          {renderElements(
+  ijazahElements,
+  true,
+  true,
+  () => {},
+  "ijazah",
+  true,
+  ijazahPreviewDummyData
+)}
         </div>
       </div>
     );
@@ -1987,13 +2095,14 @@ const Template = () => {
           />
 
           {renderElements(
-            transkripElements,
-            true,
-            true,
-            () => {},
-            "transkrip",
-            true,
-          )}
+  transkripElements,
+  true,
+  true,
+  () => {},
+  "transkrip",
+  true,
+  transkripPreviewDummyData
+)}
 
           <TranskripTableOverlay
             elements={transkripElements}
