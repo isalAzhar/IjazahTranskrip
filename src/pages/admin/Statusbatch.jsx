@@ -44,8 +44,23 @@ const formatMahasiswa = (item, index, batchData, targetStatus) => {
   const coreMhs = item?.mahasiswa || item || {};
   return {
     ...item,
-    id: item.id || item.id_mahasiswa || index + 1,
+    id:
+      item.mahasiswa_code ||
+      item.mahasiswaCode ||
+      item.uuid ||
+      item.mahasiswa_uuid ||
+      item.id ||
+      item.id_mahasiswa ||
+      index + 1,
     id_mahasiswa: item.id_mahasiswa,
+    mahasiswa_code:
+      item.mahasiswa_code ||
+      item.mahasiswaCode ||
+      item.uuid ||
+      item.mahasiswa_uuid ||
+      item.raw?.mahasiswa_code ||
+      item.raw?.uuid ||
+      null,
     nim: item.nim || item.npm || coreMhs.nim || "-",
     nama: item.nama || item.nama_mahasiswa || coreMhs.nama || "-",
     nama_mahasiswa: item.nama_mahasiswa || item.nama || coreMhs.nama || "-",
@@ -262,7 +277,10 @@ const Statusbatch = () => {
     const mahasiswaCode =
   item.mahasiswa_code ||
   item.mahasiswaCode ||
-  item.raw?.mahasiswa_code;
+  item.uuid ||
+  item.mahasiswa_uuid ||
+  item.raw?.mahasiswa_code ||
+  item.raw?.uuid;
 
 if (!mahasiswaCode) {
   console.error("Mahasiswa code tidak ditemukan:", item);

@@ -36,7 +36,7 @@ const DetailBatchVerifikator = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { batchCode, batchId, id } = useParams();
-  const currentBatchCode = batchCode || batchId || id || "";
+  const currentBatchCode = decodeURIComponent(batchCode || batchId || id || "");
   const { user } = useAuth();
 
   const userRole = user?.role?.toLowerCase() || "";
@@ -152,7 +152,10 @@ const handleDetailMahasiswa = (item) => {
   const mahasiswaCode =
     item.mahasiswa_code ||
     item.mahasiswaCode ||
-    item.raw?.mahasiswa_code;
+    item.uuid ||
+    item.mahasiswa_uuid ||
+    item.raw?.mahasiswa_code ||
+    item.raw?.uuid;
 
   if (!mahasiswaCode) {
     console.error("Mahasiswa code tidak ditemukan:", item);
@@ -190,7 +193,13 @@ const handleDetailMahasiswa = (item) => {
     if (!selectedStudent) return;
     setIsRevoking(true);
     try {
-      const mahasiswaCode = selectedStudent.mahasiswa_code || selectedStudent.mahasiswaCode || selectedStudent.raw?.mahasiswa_code;
+      const mahasiswaCode =
+      selectedStudent.mahasiswa_code ||
+      selectedStudent.mahasiswaCode ||
+      selectedStudent.uuid ||
+      selectedStudent.mahasiswa_uuid ||
+      selectedStudent.raw?.mahasiswa_code ||
+      selectedStudent.raw?.uuid;
     if (!mahasiswaCode) {
    throw new Error("Kode mahasiswa tidak ditemukan dari response API.");
 }
@@ -239,7 +248,7 @@ await revokeMahasiswa(mahasiswaCode, revokeReason);
 
   const handleFinishValidasi = () => {
     setShowValSuccess(false);
-    navigate("/verifikator/daftar-batch", {
+    navigate(isRektor ? "/rektor/daftar-batch" : "/verifikator/daftar-batch", {
       replace: true,
       state: { refresh: true, message: isRektor ? "Dokumen berhasil diterbitkan." : "Data berhasil divalidasi." },
     });

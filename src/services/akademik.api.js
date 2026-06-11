@@ -13,7 +13,7 @@ export const getAkademikProfile = async (mahasiswaCode) => {
   }
 
   if (!mahasiswaCode) {
-    throw new Error("NIM tidak ditemukan.");
+    throw new Error("Kode mahasiswa tidak ditemukan.");
   }
   const response = await fetch(`${API_BASE_URL}/akademik/profile/${encodeURIComponent(mahasiswaCode)}`, {
     method: "GET",
@@ -23,7 +23,7 @@ export const getAkademikProfile = async (mahasiswaCode) => {
     },
   });
 
-  const result = await response.json();
+  const result = await response.json().catch(() => ({}));
 
   if (!response.ok) {
     throw result;

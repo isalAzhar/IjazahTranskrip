@@ -82,7 +82,7 @@ const router = createHashRouter([
   { path: "/admin/data-mahasiswa", element: <ProtectedRoute allowedGroup="ADMIN"><DataMahasiswa /></ProtectedRoute> },
   { path: "/admin/daftar-unit", element: <ProtectedRoute allowedGroup="ADMIN"><DaftarUnit /></ProtectedRoute> },
   { path: "/admin/daftar-pengguna", element: <ProtectedRoute allowedGroup="ADMIN"><DaftarPengguna /></ProtectedRoute> },
-  { path: "/admin/detail-batch/:id", element: <ProtectedRoute allowedGroup="ADMIN"><DetailBatch /></ProtectedRoute> },
+  { path: "/admin/detail-batch/:batchCode", element: <ProtectedRoute allowedGroup="ADMIN"><DetailBatch /></ProtectedRoute> },
   { path: "/admin/detail-mahasiswa/:mahasiswaCode", element: <ProtectedRoute allowedGroup="ADMIN"><DetailMahasiswa /></ProtectedRoute> },
 
   // OPERATOR ROUTES
@@ -92,7 +92,7 @@ const router = createHashRouter([
   { path: "/operator/pelaporan", element: <ProtectedRoute allowedGroup="OPERATOR"><Pelaporan /></ProtectedRoute> },
   { path: "/operator/detail-pelaporan/:mahasiswaCode", element: <ProtectedRoute allowedGroup="OPERATOR"><DetailPelaporan /></ProtectedRoute> },
   { path: "/operator/dokumen-valid", element: <ProtectedRoute allowedGroup="OPERATOR"><DokumenValid /></ProtectedRoute> },
-  { path: "/operator/dokumen-valid/batch/:batchId", element: <ProtectedRoute allowedGroup="OPERATOR"><DetailBatchDokumenValid /></ProtectedRoute> },
+  { path: "/operator/dokumen-valid/batch/:batchCode", element: <ProtectedRoute allowedGroup="OPERATOR"><DetailBatchDokumenValid /></ProtectedRoute> },
   { path: "/operator/detail-dokumen-valid/:batchCode", element: <ProtectedRoute allowedGroup="OPERATOR"><DetailDokumenValid /></ProtectedRoute> },
   { path: "/operator/ijazah-digital/:nim", element: <ProtectedRoute allowedGroup="OPERATOR"><IjazahDigital /></ProtectedRoute> },
   { path: "/operator/batch/:status/:batchCode", element: <ProtectedRoute allowedGroup="OPERATOR"><Statusbatch /></ProtectedRoute> },
@@ -106,14 +106,14 @@ const router = createHashRouter([
   { path: "/verifikator/profile", element: <ProtectedRoute allowedGroup="VERIFIKATOR"><VerifikatorProfile /></ProtectedRoute> },
   { path: "/verifikator/daftar-batch", element: <ProtectedRoute allowedGroup="VERIFIKATOR"><VerifikatorDaftarBatch /></ProtectedRoute> },
   { path: "/verifikator/pelaporan", element: <ProtectedRoute allowedGroup="VERIFIKATOR"><VerifikatorPelaporan /></ProtectedRoute> },
-  { path: "/verifikator/detail-batch/:batchId", element: <ProtectedRoute allowedGroup="VERIFIKATOR"><VerifikatorDetailBatch /></ProtectedRoute> },
+  { path: "/verifikator/detail-batch/:batchCode", element: <ProtectedRoute allowedGroup="VERIFIKATOR"><VerifikatorDetailBatch /></ProtectedRoute> },
   { path: "/verifikator/detail-mahasiswa/:mahasiswaCode", element: <ProtectedRoute allowedGroup="VERIFIKATOR"><DetailMahasiswa /></ProtectedRoute> },
 
   // REKTOR ROUTES
   { path: "/rektor/dashboard", element: <ProtectedRoute allowedGroup="REKTOR"><RektorDashboard /></ProtectedRoute> },
   { path: "/rektor/profile", element: <ProtectedRoute allowedGroup="REKTOR"><RektorProfile /></ProtectedRoute> },
   { path: "/rektor/daftar-batch", element: <ProtectedRoute allowedGroup="REKTOR"><RektorDaftarBatch /></ProtectedRoute> },
-  { path: "/rektor/detail-batch/:batchId", element: <ProtectedRoute allowedGroup="REKTOR"><VerifikatorDetailBatch /></ProtectedRoute> },
+  { path: "/rektor/detail-batch/:batchCode", element: <ProtectedRoute allowedGroup="REKTOR"><VerifikatorDetailBatch /></ProtectedRoute> },
   { path: "/rektor/pelaporan", element: <ProtectedRoute allowedGroup="REKTOR"><RektorPelaporan /></ProtectedRoute> },
   { path: "/rektor/dokumen-valid", element: <ProtectedRoute allowedGroup="REKTOR"><RektorDokumenValid /></ProtectedRoute> },
   { path: "/rektor/detail-dokumen-valid/:batchCode", element: <ProtectedRoute allowedGroup="REKTOR"><RektorDetailDokumenValid /></ProtectedRoute> },

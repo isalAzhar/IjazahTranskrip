@@ -318,7 +318,10 @@ const Pelaporan = () => {
                               const mahasiswaCode =
                                 item.mahasiswa_code ||
                                 item.mahasiswaCode ||
-                                item.raw?.mahasiswa_code;
+                                item.uuid ||
+                                item.mahasiswa_uuid ||
+                                item.raw?.mahasiswa_code ||
+                                item.raw?.uuid;
 
                               if (!mahasiswaCode) {
                                 console.error(

@@ -106,7 +106,7 @@ export const getBatchDetail = async (batchCode) => {
   if (!token) throw new Error("Token tidak ditemukan.");
   if (!batchCode) throw new Error("Kode batch tidak ditemukan.");
 
-  const response = await fetch(`/api/approval/batches/${batchCode}`, {
+  const response = await fetch(`/api/approval/batches/${encodeURIComponent(batchCode)}`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -126,7 +126,7 @@ export const approveBatch = async (batchCode) => {
   if (!token) throw new Error("Token tidak ditemukan.");
   if (!batchCode) throw new Error("Kode batch tidak ditemukan.");
 
-  const response = await fetch(`/api/approval/batches/${batchCode}/approve`, {
+  const response = await fetch(`/api/approval/batches/${encodeURIComponent(batchCode)}/approve`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -147,7 +147,7 @@ export const rejectBatch = async (batchCode, catatan) => {
   if (!token) throw new Error("Token tidak ditemukan.");
   if (!batchCode) throw new Error("Kode batch tidak ditemukan.");
 
-  const response = await fetch(`/api/approval/batches/${batchCode}/reject`, {
+  const response = await fetch(`/api/approval/batches/${encodeURIComponent(batchCode)}/reject`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,

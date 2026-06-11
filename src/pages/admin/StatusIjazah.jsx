@@ -114,7 +114,11 @@ const finalData = rows.map((item) => {
 
     batch_code:
       item.batch_code ||
-      raw.batch_code,
+      item.batchCode ||
+      item.uuid ||
+      item.batch_uuid ||
+      raw.batch_code ||
+      raw.uuid,
 
     batch:
       item.batch ||
@@ -215,14 +219,14 @@ const finalData = rows.map((item) => {
   };
 
   const handleDetailBatch = (item) => {
-  const batchCode = item.batch_code || item.raw?.batch_code || item.id;
+  const batchCode = item.batch_code || item.batchCode || item.uuid || item.batch_uuid || item.raw?.batch_code || item.raw?.uuid || item.id;
 
   if (!batchCode) {
     console.error("Batch code tidak ditemukan:", item);
     return;
   }
 
-  navigate(`/batch/${currentStatus}/${batchCode}`, {
+  navigate(`/batch/${currentStatus}/${encodeURIComponent(batchCode)}`, {
     state: {
       batch: item,
     },

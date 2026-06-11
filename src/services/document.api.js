@@ -1,5 +1,9 @@
 const getAuthToken = () => {
-  return localStorage.getItem("authToken");
+  return (
+    localStorage.getItem("authToken") ||
+    localStorage.getItem("access_token") ||
+    localStorage.getItem("token")
+  );
 };
 
 const buildQueryString = (params = {}) => {
@@ -62,7 +66,7 @@ export const getValidDocumentBatches = async ({
 };
 
 export const getValidDocumentBatchDetail = async (
-  batchId,
+  batchCode,
   { search = "" } = {},
 ) => {
   const token = getAuthToken();
@@ -75,8 +79,12 @@ export const getValidDocumentBatchDetail = async (
     search,
   });
 
+  if (!batchCode) {
+    throw new Error("Kode batch tidak ditemukan.");
+  }
+
   const response = await fetch(
-    `/api/document/valid-batches/${batchId}/mahasiswa${query}`,
+    `/api/document/valid-batches/${encodeURIComponent(batchCode)}/mahasiswa${query}`,
     {
       method: "GET",
       headers: {

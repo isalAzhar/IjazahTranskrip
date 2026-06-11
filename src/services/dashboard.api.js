@@ -264,8 +264,24 @@ export const getIjazahList = async (params = {}) => {
 
     return {
       data: list.map((item) => ({
-        id: item.id ?? item.id_mahasiswa,
+        id: item.mahasiswa_code || item.mahasiswaCode || item.uuid || item.id || item.id_mahasiswa,
         id_mahasiswa: item.id_mahasiswa,
+        mahasiswa_code:
+          item.mahasiswa_code ||
+          item.mahasiswaCode ||
+          item.uuid ||
+          item.mahasiswa_uuid ||
+          item.mahasiswa?.mahasiswa_code ||
+          item.mahasiswa?.uuid ||
+          null,
+        batch_code:
+          item.batch_code ||
+          item.batchCode ||
+          item.batch_uuid ||
+          item.batch_upload?.batch_code ||
+          item.batch_upload?.uuid ||
+          item.mahasiswa?.batch_upload?.uuid ||
+          null,
         nama: item.nama ?? item.nama_mahasiswa ?? item.mahasiswa?.nama ?? "-",
         nim: item.nim ?? item.mahasiswa?.nim ?? "-",
         npm: item.nim ?? item.mahasiswa?.nim ?? "-",
@@ -386,9 +402,13 @@ export const getBatchList = async (params = {}) => {
 };
 
 // 🔥 FUNGSI DETAIL BATCH YANG SUDAH BERSIH DARI "batches/batch"
-export const getDetailBatch = async (idBatch) => {
+export const getDetailBatch = async (batchCode) => {
   try {
-    const response = await fetchJSON(`${DASHBOARD_API}/batch/${idBatch}`);
+    if (!batchCode) throw new Error("Kode batch tidak ditemukan.");
+
+    const response = await fetchJSON(
+      `${DASHBOARD_API}/batch/${encodeURIComponent(batchCode)}`,
+    );
     return response;
   } catch (error) {
     throw error;
@@ -430,30 +450,45 @@ export const getDashboardBatches = async (params = {}) => {
     const rows = Array.isArray(response?.data) ? response.data : [];
 
     return {
-      data: rows.map((item) => ({
-        id: item.id_batch_upload || item.id_batch || item.id,
-        batch_code:
-          item.batch_code || item.batchCode || item.raw?.batch_code || null,
+      data: rows.map((item) => {
+        const batchCode =
+          item.batch_code ||
+          item.batchCode ||
+          item.uuid ||
+          item.batch_uuid ||
+          item.raw?.batch_code ||
+          item.raw?.uuid ||
+          null;
 
-        id:
-          item.batch_code || item.batchCode || item.raw?.batch_code || item.id, // Tambahan keamanan ID
-        batch: item.nomor_batch_upload || item.batch || item.nama_batch || "-",
-        fakultas:
-          item.fakultas ||
-          item.nama_fakultas ||
-          item.nama_unit ||
-          item.unit ||
-          "-",
-        tahun: (item.tahun_lulus || item.tahun || "-").toString(),
-        periode: item.periode || item.periode_label || "-",
-        total: Number(
-          item.total_mahasiswa ||
-            item.total_record ||
-            item.total_record_ditampilkan ||
-            0,
-        ),
-        raw: item,
-      })),
+        const internalId = item.id_batch_upload || item.id_batch || item.id;
+
+        return {
+          ...item,
+          id: batchCode || internalId,
+          id_batch_upload: internalId,
+          batch_code: batchCode,
+          batchCode,
+          batch: item.nomor_batch_upload || item.batch || item.nama_batch || "-",
+          nomor_batch_upload:
+            item.nomor_batch_upload || item.batch || item.nama_batch || "-",
+          fakultas:
+            item.fakultas ||
+            item.nama_fakultas ||
+            item.nama_unit ||
+            item.unit ||
+            "-",
+          tahun: (item.tahun_lulus || item.tahun || "-").toString(),
+          tahun_lulus: item.tahun_lulus || item.tahun || "-",
+          periode: item.periode || item.periode_label || "-",
+          total: Number(
+            item.total_mahasiswa ||
+              item.total_record ||
+              item.total_record_ditampilkan ||
+              0,
+          ),
+          raw: item,
+        };
+      }),
       pagination: response?.pagination || {},
     };
   } catch (error) {

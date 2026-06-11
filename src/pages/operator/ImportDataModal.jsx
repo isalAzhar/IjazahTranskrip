@@ -45,92 +45,81 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
 
   // Fungsi untuk download data gagal sebagai Excel
   const downloadFailedData = () => {
-    if (importResult.failed.length === 0) return;
-    
-    // Siapkan data untuk Excel
-    const failedDataForExcel = importResult.failed.map(item => {
-      return {
-        "No": item.nomor,
-        "NIM": item.nim || "-",
-        "NIK": item.nik || "-",
-        "Nomor Seri Ijazah": item.nomor_seri_ijazah || "-",
-        "PISN": item.pisn || "-",
-        "Nama Mahasiswa": item.nama || "-",
-        "Program Studi": item.nama_prodi || "-",
-        "Tempat Lahir": item.tempat_lahir || "-",
-        "Tanggal Lahir": item.tanggal_lahir || "-",
-        "Jenis Kelamin": item.jenis_kelamin || "-",
-        "Email": item.email || "-",
-        "IPK": item.ipk || "-",
-        "Judul Skripsi": item.judul_skripsi || "-",
-        "Tahun Masuk": item.tahun_masuk || "-",
-        "Tahun Lulus": item.tahun_lulus || "-",
-        "Status Kelulusan": item.status_kelulusan || "-",
-        "Tanggal Kelulusan": item.tanggal_kelulusan || "-",
-        "Field Error": item.field || "-",
-        "Keterangan Error": item.errors ? item.errors.join("; ") : (item.message || "-")
-      };
-    });
-    
-    // Buat worksheet
+    if (
+      !Array.isArray(importResult.failed) ||
+      importResult.failed.length === 0
+    ) {
+      alert("Tidak ada data gagal untuk didownload.");
+      return;
+    }
+
+    const failedDataForExcel = importResult.failed.map((item, index) => ({
+      No: index + 1,
+      "Baris Excel": item.nomor ?? "-",
+      NIM: item.nim ?? "-",
+      "Nama Mahasiswa": item.nama ?? "-",
+      "Field Error": formatFieldName(item.field),
+      "Keterangan Error": Array.isArray(item.errors)
+        ? item.errors.join("; ")
+        : item.message || "-",
+    }));
+
     const worksheet = XLSX.utils.json_to_sheet(failedDataForExcel);
-    
-    // Atur lebar kolom
-    const colWidths = [
-      { wch: 6 },   // No
-      { wch: 14 },  // NIM
-      { wch: 18 },  // NIK
-      { wch: 22 },  // Nomor Seri Ijazah
-      { wch: 14 },  // PISN
-      { wch: 28 },  // Nama Mahasiswa
-      { wch: 25 },  // Program Studi
-      { wch: 18 },  // Tempat Lahir
-      { wch: 15 },  // Tanggal Lahir
-      { wch: 14 },  // Jenis Kelamin
-      { wch: 28 },  // Email
-      { wch: 10 },  // IPK
-      { wch: 45 },  // Judul Skripsi
-      { wch: 12 },  // Tahun Masuk
-      { wch: 12 },  // Tahun Lulus
-      { wch: 18 },  // Status Kelulusan
-      { wch: 18 },  // Tanggal Kelulusan
-      { wch: 20 },  // Field Error
-      { wch: 55 }   // Keterangan Error
+
+    worksheet["!cols"] = [
+      { wch: 6 },
+      { wch: 12 },
+      { wch: 18 },
+      { wch: 32 },
+      { wch: 22 },
+      { wch: 90 },
     ];
-    worksheet['!cols'] = colWidths;
-    
-    // Buat workbook
+
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Data Gagal Import");
-    
-    // Tambahkan sheet petunjuk
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Data Gagal");
+
     const petunjukData = [
       ["PETUNJUK PERBAIKAN DATA"],
       [""],
-      ["1. Perbaiki data berdasarkan keterangan error pada kolom 'Keterangan Error'"],
-      ["2. Perhatikan kolom 'Field Error' untuk mengetahui field mana yang bermasalah"],
-      ["3. Pastikan semua field wajib terisi dengan benar"],
-      ["4. Format NIM: 10 digit angka"],
-      ["5. Format NIK: 16 digit angka (jika diisi)"],
-      ["6. Format Email: contoh@domain.com"],
-      ["7. Pastikan Tahun Lulus sesuai dengan pilihan saat import"],
-      ["8. NIM, NIK, Nomor Seri Ijazah, dan PISN tidak boleh duplikat dalam file Excel yang sama"],
+      ["1. Lihat kolom 'Baris Excel' untuk mengetahui baris yang bermasalah."],
+      [
+        "2. Lihat kolom 'Field Error' untuk mengetahui kolom yang perlu diperbaiki.",
+      ],
+      [
+        "3. Lihat kolom 'Keterangan Error' untuk mengetahui alasan data gagal diimport.",
+      ],
+      ["4. Setelah diperbaiki, upload ulang file Excel."],
       [""],
-      [`Total data gagal: ${importResult.failed.length} dari ${importResult.totalData} data`],
-      [`Waktu export: ${new Date().toLocaleString()}`]
+      [`Total data gagal: ${importResult.failed.length}`],
+      [`Total data Excel: ${importResult.totalData}`],
+      [`Waktu export: ${new Date().toLocaleString("id-ID")}`],
     ];
-    
+
     const petunjukSheet = XLSX.utils.aoa_to_sheet(petunjukData);
-    petunjukSheet['!cols'] = [{ wch: 80 }];
-    XLSX.utils.book_append_sheet(workbook, petunjukSheet, "Petunjuk Perbaikan");
-    
-    // Download file
-    const fileName = `data_gagal_import_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`;
+    petunjukSheet["!cols"] = [{ wch: 100 }];
+    XLSX.utils.book_append_sheet(workbook, petunjukSheet, "Petunjuk");
+
+    const now = new Date();
+    const timestamp = now
+      .toISOString()
+      .slice(0, 19)
+      .replace("T", "_")
+      .replaceAll(":", "-");
+
+    const fileName = `response_gagal_upload_${timestamp}.xlsx`;
+
     XLSX.writeFile(workbook, fileName);
   };
 
   const getPayloadData = (response) => {
-    return response?.data?.data || response?.data || response || {};
+    return (
+      response?.response?.data?.data ||
+      response?.response?.data ||
+      response?.data?.data ||
+      response?.data ||
+      response ||
+      {}
+    );
   };
 
   const formatFieldName = (field) => {
@@ -164,31 +153,26 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
         nama: "-",
         field: "-",
         errors: [err],
+        message: err,
       };
     }
 
+    const errorMessage =
+      err?.message ||
+      err?.alasan ||
+      err?.error ||
+      err?.detail ||
+      "Terjadi kesalahan pada data.";
+
+    const errorList = Array.isArray(err?.errors) ? err.errors : [errorMessage];
+
     return {
-      nomor: err?.row || index + 1,
+      nomor: err?.row || err?.nomor || index + 1,
       nim: err?.nim || "-",
       nama: err?.nama_mahasiswa || err?.nama || "-",
-      field: err?.field || "-",
-      errors: [err?.message || err?.alasan || JSON.stringify(err)],
-      // Simpan data lengkap untuk keperluan download
-      nik: err?.nik || "-",
-      nomor_seri_ijazah: err?.nomor_seri_ijazah || "-",
-      pisn: err?.pisn || "-",
-      nama_prodi: err?.nama_prodi || "-",
-      tempat_lahir: err?.tempat_lahir || "-",
-      tanggal_lahir: err?.tanggal_lahir || "-",
-      jenis_kelamin: err?.jenis_kelamin || "-",
-      email: err?.email || "-",
-      ipk: err?.ipk || "-",
-      judul_skripsi: err?.judul_skripsi || "-",
-      tahun_masuk: err?.tahun_masuk || "-",
-      tahun_lulus: err?.tahun_lulus || "-",
-      status_kelulusan: err?.status_kelulusan || "-",
-      tanggal_kelulusan: err?.tanggal_kelulusan || "-",
-      message: err?.message || err?.alasan,
+      field: err?.field || err?.kolom || "-",
+      errors: errorList,
+      message: errorMessage,
     };
   };
 
@@ -214,8 +198,8 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
       new Set(
         mahasiswaData
           .map((item) => item.fakultas)
-          .filter((item) => item && item !== "-")
-      )
+          .filter((item) => item && item !== "-"),
+      ),
     );
 
     const failed = errors
@@ -225,7 +209,7 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
     const totalSuccess = Number(data.total_valid || mahasiswaData.length || 0);
     const totalFailed = Number(data.total_gagal || failed.length || 0);
     const totalData = Number(
-      data.total_data_excel || totalSuccess + totalFailed || 0
+      data.total_data_excel || totalSuccess + totalFailed || 0,
     );
     const totalBatch = Number(data.total_batch || batches.length || 0);
 
@@ -297,6 +281,7 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
         data.unknown_columns ||
         data.kolom_tidak_ada ||
         data.kolom_tidak_dikenal ||
+        data.alasan ||
         data.message ||
         [];
 
@@ -478,9 +463,7 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
                   <p className="text-[10px] text-gray-500 font-semibold">
                     Total Excel
                   </p>
-                  <p className="text-lg font-bold text-gray-800">
-                    {totalData}
-                  </p>
+                  <p className="text-lg font-bold text-gray-800">{totalData}</p>
                 </div>
 
                 <div className="bg-white border border-green-100 rounded-lg p-3">
@@ -527,9 +510,7 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
                 </div>
 
                 <div className="col-span-2 mt-1">
-                  <span className="text-gray-500">
-                    Fakultas:
-                  </span>
+                  <span className="text-gray-500">Fakultas:</span>
 
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     {importInfo.fakultas.length > 0 ? (
@@ -601,20 +582,20 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
                           >
                             <td className="px-3 py-2 align-top font-semibold text-gray-700">
                               {item.nomor}
-                             </td>
+                            </td>
                             <td className="px-3 py-2 align-top font-mono text-gray-700">
                               {item.nim || "-"}
-                             </td>
+                            </td>
                             <td className="px-3 py-2 align-top">
                               <div className="text-gray-800 font-medium">
                                 {item.nama || "-"}
                               </div>
-                             </td>
+                            </td>
                             <td className="px-3 py-2 align-top">
                               <span className="inline-block px-2 py-1 bg-red-100 text-red-700 rounded-full text-[10px] font-semibold">
                                 {formatFieldName(item.field)}
                               </span>
-                             </td>
+                            </td>
                             <td className="px-3 py-2 align-top">
                               {item.errors?.map((err, i) => (
                                 <div
@@ -624,8 +605,8 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
                                   • {err}
                                 </div>
                               ))}
-                             </td>
-                           </tr>
+                            </td>
+                          </tr>
                         ))}
                       </tbody>
                     </table>
@@ -691,13 +672,27 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
               onChange={(e) => setTahun(e.target.value)}
               className="w-full h-[42px] rounded-lg border border-gray-300 px-4 pr-10 text-[12px] outline-none appearance-none font-medium text-gray-900 bg-white focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] transition-all"
             >
-              <option value="" className="text-gray-400">Pilih Tahun Lulus</option>
-              <option value="2021" className="text-gray-900">2021</option>
-              <option value="2022" className="text-gray-900">2022</option>
-              <option value="2023" className="text-gray-900">2023</option>
-              <option value="2024" className="text-gray-900">2024</option>
-              <option value="2025" className="text-gray-900">2025</option>
-              <option value="2026" className="text-gray-900">2026</option>
+              <option value="" className="text-gray-400">
+                Pilih Tahun Lulus
+              </option>
+              <option value="2021" className="text-gray-900">
+                2021
+              </option>
+              <option value="2022" className="text-gray-900">
+                2022
+              </option>
+              <option value="2023" className="text-gray-900">
+                2023
+              </option>
+              <option value="2024" className="text-gray-900">
+                2024
+              </option>
+              <option value="2025" className="text-gray-900">
+                2025
+              </option>
+              <option value="2026" className="text-gray-900">
+                2026
+              </option>
             </select>
 
             <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
@@ -715,9 +710,15 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
               onChange={(e) => setPeriode(e.target.value)}
               className="w-full h-[42px] rounded-lg border border-gray-300 px-4 pr-10 text-[12px] outline-none appearance-none font-medium text-gray-900 bg-white focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] transition-all"
             >
-              <option value="" className="text-gray-400">Pilih Periode</option>
-              <option value="semester ganjil" className="text-gray-900">Semester Ganjil</option>
-              <option value="semester genap" className="text-gray-900">Semester Genap</option>
+              <option value="" className="text-gray-400">
+                Pilih Periode
+              </option>
+              <option value="semester ganjil" className="text-gray-900">
+                Semester Ganjil
+              </option>
+              <option value="semester genap" className="text-gray-900">
+                Semester Genap
+              </option>
             </select>
 
             <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />

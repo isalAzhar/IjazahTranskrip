@@ -75,6 +75,8 @@ const currentBatchCode = decodeURIComponent(
   id ||
   batchFromState.batch_code ||
   batchFromState.batchCode ||
+  batchFromState.uuid ||
+  batchFromState.batch_uuid ||
   batchFromState.id ||
   ""
 );
@@ -89,11 +91,11 @@ const currentBatchCode = decodeURIComponent(
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const activeBatchId = currentBatchCode;
+  const activeBatchCode = currentBatchCode;
 
   const fetchDetailDokumen = async () => {
-    if (!activeBatchId) {
-      setErrorMessage("ID batch tidak ditemukan.");
+    if (!activeBatchCode) {
+      setErrorMessage("Kode batch tidak ditemukan.");
       return;
     }
 
@@ -101,7 +103,7 @@ const currentBatchCode = decodeURIComponent(
     setErrorMessage("");
 
     try {
-      const result = await getValidDocumentBatchDetail(activeBatchId, { search });
+      const result = await getValidDocumentBatchDetail(activeBatchCode, { search });
       setBatch(result.data?.batch || batchFromState || {});
       setMahasiswa(result.data?.mahasiswa || []);
     } catch (error) {
@@ -117,7 +119,7 @@ const currentBatchCode = decodeURIComponent(
 
   useEffect(() => {
     fetchDetailDokumen();
-  }, [activeBatchId, search]);
+  }, [activeBatchCode, search]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -154,7 +156,10 @@ const currentBatchCode = decodeURIComponent(
 const mahasiswaCode =
   student.mahasiswa_code ||
   student.mahasiswaCode ||
-  student.raw?.mahasiswa_code;
+  student.uuid ||
+  student.mahasiswa_uuid ||
+  student.raw?.mahasiswa_code ||
+  student.raw?.uuid;
 
 if (!mahasiswaCode) {
   console.error("Mahasiswa code tidak ditemukan:", student);

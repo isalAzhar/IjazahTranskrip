@@ -72,7 +72,26 @@ const RektorDokumenValid = () => {
         tahun: selectedYear,
       });
 
-      setBatches(result.data || []);
+      const rows = Array.isArray(result.data) ? result.data : [];
+      const mappedRows = rows.map((item) => {
+        const batchCode =
+          item.batch_code ||
+          item.batchCode ||
+          item.uuid ||
+          item.batch_uuid ||
+          item.raw?.batch_code ||
+          item.raw?.uuid ||
+          null;
+
+        return {
+          ...item,
+          id: batchCode || item.id || item.id_batch_upload,
+          batch_code: batchCode,
+          batchCode,
+        };
+      });
+
+      setBatches(mappedRows);
       setPagination(
         result.pagination || {
           page: currentPage,
@@ -140,7 +159,13 @@ const RektorDokumenValid = () => {
 
   const handleGoDetail = (item) => {
     const batchCode =
-      item.batch_code || item.batchCode || item.raw?.batch_code || item.id;
+      item.batch_code ||
+      item.batchCode ||
+      item.uuid ||
+      item.batch_uuid ||
+      item.raw?.batch_code ||
+      item.raw?.uuid ||
+      item.id;
 
     if (!batchCode) {
       console.error("Batch code tidak ditemukan:", item);
@@ -306,7 +331,10 @@ const RektorDokumenValid = () => {
                       const mahasiswaCode =
                         student.mahasiswa_code ||
                         student.mahasiswaCode ||
-                        student.raw?.mahasiswa_code;
+                        student.uuid ||
+                        student.mahasiswa_uuid ||
+                        student.raw?.mahasiswa_code ||
+                        student.raw?.uuid;
 
                       if (!mahasiswaCode) {
                         console.error(
@@ -400,7 +428,10 @@ const RektorDokumenValid = () => {
                       key={
                         item.batch_code ||
                         item.batchCode ||
+                        item.uuid ||
+                        item.batch_uuid ||
                         item.raw?.batch_code ||
+                        item.raw?.uuid ||
                         item.id ||
                         i
                       }

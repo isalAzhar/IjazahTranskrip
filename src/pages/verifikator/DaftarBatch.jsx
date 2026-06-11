@@ -73,7 +73,13 @@ const DaftarBatch = () => {
             const raw = item.raw || item;
 
             const batchCode =
-              item.batch_code || raw.batch_code || item.id || raw.id;
+              item.batch_code ||
+              item.batchCode ||
+              item.uuid ||
+              raw.batch_code ||
+              raw.uuid ||
+              item.id ||
+              raw.id;
 
             return {
               ...item,
@@ -213,7 +219,13 @@ const DaftarBatch = () => {
   const currentSuggestions = getSuggestions();
 
   const handleNavigateDetail = (item) => {
-    const batchCode = item.batch_code || item.raw?.batch_code || item.id;
+    const batchCode =
+      item.batch_code ||
+      item.batchCode ||
+      item.uuid ||
+      item.raw?.batch_code ||
+      item.raw?.uuid ||
+      item.id;
 
     if (!batchCode) {
       console.error("Batch code tidak ditemukan:", item);
@@ -222,8 +234,8 @@ const DaftarBatch = () => {
 
     const route =
       userRole === "rektor"
-        ? `/rektor/detail-batch/${batchCode}`
-        : `/verifikator/detail-batch/${batchCode}`;
+        ? `/rektor/detail-batch/${encodeURIComponent(batchCode)}`
+        : `/verifikator/detail-batch/${encodeURIComponent(batchCode)}`;
 
     navigate(route, {
       state: {
@@ -250,7 +262,10 @@ const DaftarBatch = () => {
     try {
       const batchCode =
         selectedBatch.batch_code ||
+        selectedBatch.batchCode ||
+        selectedBatch.uuid ||
         selectedBatch.raw?.batch_code ||
+        selectedBatch.raw?.uuid ||
         selectedBatch.id;
 
       if (!batchCode) {
@@ -385,7 +400,10 @@ const DaftarBatch = () => {
                       const mahasiswaCode =
                         item.mahasiswaData?.mahasiswa_code ||
                         item.mahasiswaData?.mahasiswaCode ||
-                        item.mahasiswaData?.raw?.mahasiswa_code;
+                        item.mahasiswaData?.uuid ||
+                        item.mahasiswaData?.mahasiswa_uuid ||
+                        item.mahasiswaData?.raw?.mahasiswa_code ||
+                        item.mahasiswaData?.raw?.uuid;
 
                       if (!mahasiswaCode) {
                         console.error("Mahasiswa code tidak ditemukan:", item);
@@ -482,7 +500,10 @@ const DaftarBatch = () => {
                   <tr
                     key={
                       item.batch_code ||
+                      item.batchCode ||
+                      item.uuid ||
                       item.raw?.batch_code ||
+                      item.raw?.uuid ||
                       item.id ||
                       item.nomor_batch_upload ||
                       i

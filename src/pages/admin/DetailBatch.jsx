@@ -75,7 +75,8 @@ const getBadgeLabel = (status) => {
 };
 
 const DetailBatch = () => {
-  const { id } = useParams();
+  const { batchCode, id } = useParams();
+  const currentBatchCode = decodeURIComponent(batchCode || id || "");
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -97,7 +98,7 @@ const DetailBatch = () => {
         setIsInitialLoading(true);
         setApiError("");
 
-        const result = await getDetailBatch(id);
+        const result = await getDetailBatch(currentBatchCode);
 
 // Support 2 bentuk response:
 // 1. result.data.batch + result.data.mahasiswa
@@ -115,7 +116,7 @@ const newBatchData = {
     batchInfo?.uuid ||
     batchFromState?.batch_code ||
     batchFromState?.uuid ||
-    id,
+    currentBatchCode,
 
   id: batchInfo?.id || batchInfo?.id_batch_upload || batchFromState?.id || null,
 
@@ -180,7 +181,9 @@ const newBatchData = {
     item.mahasiswa_code ||
     item.mahasiswaCode ||
     item.uuid ||
+    item.mahasiswa_uuid ||
     item.raw?.mahasiswa_code ||
+    item.raw?.uuid ||
     null,
 
   id: item.id || item.id_mahasiswa || index + 1,
@@ -218,7 +221,7 @@ const newBatchData = {
     };
 
     fetchDetailBatch();
-  }, [id, batchFromState]);
+  }, [currentBatchCode, batchFromState]);
 
   const sortedMahasiswa = useMemo(() => {
     return [...mahasiswa].sort((a, b) => {
@@ -230,7 +233,10 @@ const newBatchData = {
     const mahasiswaCode =
   item.mahasiswa_code ||
   item.mahasiswaCode ||
-  item.raw?.mahasiswa_code;
+  item.uuid ||
+  item.mahasiswa_uuid ||
+  item.raw?.mahasiswa_code ||
+  item.raw?.uuid;
 
 if (!mahasiswaCode) {
   console.error("Mahasiswa code tidak ditemukan:", item);

@@ -101,16 +101,30 @@ const OperatorDokumenValid = () => {
 
       const rows = Array.isArray(result.data) ? result.data : [];
 
-      const mappedRows = rows.map((item) => ({
-        ...item,
-        status_email: formatStatusEmail(
+      const mappedRows = rows.map((item) => {
+        const batchCode =
+          item.batch_code ||
+          item.batchCode ||
+          item.uuid ||
+          item.batch_uuid ||
+          item.raw?.batch_code ||
+          item.raw?.uuid ||
+          null;
+
+        return {
+          ...item,
+          id: batchCode || item.id || item.id_batch_upload,
+          batch_code: batchCode,
+          batchCode,
+          status_email: formatStatusEmail(
           item.status_kirim ||
             item.statusKirim ||
             item.status_email ||
             item.raw?.status_kirim ||
             item.raw?.statusKirim,
-        ),
-      }));
+          ),
+        };
+      });
 
       setBatches(mappedRows);
       setPagination(
@@ -187,7 +201,13 @@ const OperatorDokumenValid = () => {
 
   const handleGoDetail = (item) => {
     const batchCode =
-      item.batch_code || item.batchCode || item.raw?.batch_code || item.id;
+      item.batch_code ||
+      item.batchCode ||
+      item.uuid ||
+      item.batch_uuid ||
+      item.raw?.batch_code ||
+      item.raw?.uuid ||
+      item.id;
 
     if (!batchCode) {
       console.error("Batch code tidak ditemukan:", item);
@@ -219,8 +239,8 @@ const OperatorDokumenValid = () => {
     setBatches((prev) =>
       prev.map((batch) => {
         const sameBatch =
-          (batch.batch_code || batch.batchCode || batch.id) ===
-          (item.batch_code || item.batchCode || item.id);
+          (batch.batch_code || batch.batchCode || batch.uuid || batch.raw?.batch_code || batch.raw?.uuid || batch.id) ===
+          (item.batch_code || item.batchCode || item.uuid || item.raw?.batch_code || item.raw?.uuid || item.id);
 
         return sameBatch
           ? {
@@ -397,7 +417,10 @@ const OperatorDokumenValid = () => {
                       const mahasiswaCode =
                         student.mahasiswa_code ||
                         student.mahasiswaCode ||
-                        student.raw?.mahasiswa_code;
+                        student.uuid ||
+                        student.mahasiswa_uuid ||
+                        student.raw?.mahasiswa_code ||
+                        student.raw?.uuid;
 
                       if (!mahasiswaCode) {
                         console.error(
@@ -489,7 +512,10 @@ const OperatorDokumenValid = () => {
                       key={
                         item.batch_code ||
                         item.batchCode ||
+                        item.uuid ||
+                        item.batch_uuid ||
                         item.raw?.batch_code ||
+                        item.raw?.uuid ||
                         item.id ||
                         i
                       }

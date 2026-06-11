@@ -6,7 +6,8 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 const DetailBatchDokumenValid = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { batchId } = useParams();
+  const { batchCode, batchId } = useParams();
+  const currentBatchCode = decodeURIComponent(batchCode || batchId || "");
 
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -15,7 +16,7 @@ const DetailBatchDokumenValid = () => {
 
   // Ambil data batch dari halaman sebelumnya
   const batchData = location.state || {
-    listBatch: `Batch ${batchId || "1"}`,
+    listBatch: `Batch ${currentBatchCode || "1"}`,
     fakultas: "Fakultas Teknik dan Sains",
     tahunLulus: "2026",
     periode: "Semester Ganjil",
@@ -31,7 +32,10 @@ const DetailBatchDokumenValid = () => {
     mahasiswa_code:
       item.mahasiswa_code ||
       item.mahasiswaCode ||
+      item.uuid ||
+      item.mahasiswa_uuid ||
       raw.mahasiswa_code ||
+      raw.uuid ||
       null,
     nim: item.nim || raw.nim || "-",
     nama:
@@ -118,7 +122,12 @@ const mahasiswaList = useMemo(() => {
 
  const handleDetailMahasiswa = (mhs) => {
   const mahasiswaCode =
-    mhs.mahasiswa_code || mhs.mahasiswaCode || mhs.raw?.mahasiswa_code;
+    mhs.mahasiswa_code ||
+    mhs.mahasiswaCode ||
+    mhs.uuid ||
+    mhs.mahasiswa_uuid ||
+    mhs.raw?.mahasiswa_code ||
+    mhs.raw?.uuid;
 
   if (!mahasiswaCode) {
     console.error("Mahasiswa code tidak ditemukan:", mhs);

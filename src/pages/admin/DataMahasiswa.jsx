@@ -5,18 +5,30 @@ import DashboardLayout from "../../components/ui/DashboardLayout";
 import { getDashboardBatches } from "../../services/dashboard.api";
 
 const normalizeBatch = (item = {}, index = 0) => {
-  const id =
-    item.id ||
-    item.id_batch ||
+  const batchCode =
+    item.batch_code ||
+    item.batchCode ||
+    item.uuid ||
+    item.batch_uuid ||
+    item.raw?.batch_code ||
+    item.raw?.uuid ||
+    null;
+
+  const internalId =
     item.id_batch_upload ||
+    item.id_batch ||
     item.batch_id ||
-    item.nomor_batch_upload ||
+    item.id ||
     index + 1;
+
+  const id = batchCode || internalId;
 
   return {
     ...item,
     id,
-    id_batch_upload: item.id_batch_upload || id,
+    batch_code: batchCode,
+    batchCode,
+    id_batch_upload: item.id_batch_upload || internalId,
 
     batch:
       item.batch ||
@@ -205,7 +217,20 @@ const DataMahasiswa = () => {
   };
 
   const handleDetailBatch = (item) => {
-    navigate(`/admin/detail-batch/${encodeURIComponent(item.id)}`, {
+    const batchCode =
+      item.batch_code ||
+      item.batchCode ||
+      item.uuid ||
+      item.raw?.batch_code ||
+      item.raw?.uuid ||
+      item.id;
+
+    if (!batchCode) {
+      alert("Kode batch tidak ditemukan.");
+      return;
+    }
+
+    navigate(`/admin/detail-batch/${encodeURIComponent(batchCode)}`, {
       state: item,
     });
   };
