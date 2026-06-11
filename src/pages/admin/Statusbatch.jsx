@@ -4,7 +4,7 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 // 🔥 HANYA IMPORT getDetailBatch
 import { getDetailBatch } from "../../services/dashboard.api";
-import { decodeId, encodeId } from "@/components/shared/hashId";
+import { encodeId } from "@/components/shared/hashId";
 
 const normalizeStatus = (status) => {
   const value = status?.toString().toLowerCase().trim();
@@ -85,25 +85,43 @@ const getBadgeLabel = (status) => {
 
 const Statusbatch = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { status, id } = useParams();
-  const { user } = useAuth();
+  const location = useLocation(); 
+  const { status, batchCode, id } = useParams();  const { user } = useAuth();
   const userRole = user?.role?.toLowerCase() || "";
 
-  const decodedId = decodeId(id);
+  const currentBatchCode = decodeURIComponent(batchCode || id || "" );
   const currentStatus = normalizeStatus(status);
   const displayLabel = getBadgeLabel(currentStatus);
 
-  const batchFromState = location.state || {};
+  const batchFromState = location.state?.batch || location.state || {};
 
-  const [batchData, setBatchData] = useState({
-    nama_batch: batchFromState.batch || "-",
-    fakultas: formatSingkatanFakultas(batchFromState.fakultas) || "-",
-    tahun_lulus: batchFromState.tahun || "-",
-    periode_label: batchFromState.periode || "-",
-    total_record_label: batchFromState.total ? `${batchFromState.total} Mahasiswa` : "-",
-    status: displayLabel,
-  });
+
+ const [batchData, setBatchData] = useState({
+  nama_batch:
+    batchFromState.batch ||
+    batchFromState.nomor_batch_upload ||
+    "-",
+
+  fakultas:
+    formatSingkatanFakultas(batchFromState.fakultas) ||
+    "-",
+
+  tahun_lulus:
+    batchFromState.tahun ||
+    batchFromState.tahun_lulus ||
+    "-",
+
+  periode_label:
+    batchFromState.periode ||
+    "-",
+
+  total_record_label:
+    batchFromState.total
+      ? `${batchFromState.total} Mahasiswa`
+      : "-",
+
+  status: displayLabel,
+});
 
   const [mahasiswa, setMahasiswa] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -111,11 +129,11 @@ const Statusbatch = () => {
 
   useEffect(() => {
     const fetchDetailBatch = async () => {
-      if (!decodedId) {
-        setApiError("ID Batch tidak valid.");
-        setIsLoading(false);
-        return;
-      }
+      if (!currentBatchCode) {
+  setApiError("Kode Batch tidak valid.");
+  setIsLoading(false);
+  return;
+}
 
       try {
         setIsLoading(true);
@@ -125,7 +143,7 @@ const Statusbatch = () => {
         let mList = [];
 
         // Di file Statusbatch.jsx
-        const result = await getDetailBatch(decodedId, currentStatus); // currentStatus = "terbit"
+        const result = await getDetailBatch(currentBatchCode, currentStatus );
         
         if (result) {
           if (Array.isArray(result)) mList = result;
@@ -192,12 +210,14 @@ const Statusbatch = () => {
             extractedFakultas = formatSingkatanFakultas(bData.fakultas || batchFromState.fakultas) || "-";
         }
 
-        const rawBatchName = bData.nama_batch 
-          || bData.nomor_batch_upload 
-          || firstItem.batch
-          || rawItem.nomor_batch_upload 
-          || batchFromState.batch
-          || decodedId;
+        const rawBatchName =
+        bData.nama_batch ||
+        bData.nomor_batch_upload ||
+        firstItem.batch ||
+        rawItem.nomor_batch_upload ||
+        batchFromState.batch ||
+        batchFromState.nomor_batch_upload ||
+        currentBatchCode;
 
         const rawPeriode = bData.periode_label 
           || bData.periode 
@@ -232,14 +252,25 @@ const Statusbatch = () => {
     };
 
     fetchDetailBatch();
-  }, [decodedId, currentStatus]);
+  },  [currentBatchCode, currentStatus]);
 
   const sortedMahasiswa = useMemo(() => {
     return [...mahasiswa].sort((a, b) => (a.nama || "").localeCompare(b.nama || ""));
   }, [mahasiswa]);
 
   const handleDetailMahasiswa = (item) => {
-    const safeNim = encodeId(item.nim || "-");
+    const mahasiswaCode =
+  item.mahasiswa_code ||
+  item.mahasiswaCode ||
+  item.raw?.mahasiswa_code;
+
+if (!mahasiswaCode) {
+  console.error("Mahasiswa code tidak ditemukan:", item);
+  alert("Kode mahasiswa tidak ditemukan.");
+  return;
+}
+
+const safeMahasiswaCode = encodeURIComponent(mahasiswaCode);
     
     const formattedMahasiswa = {
       ...item,
@@ -252,10 +283,15 @@ const Statusbatch = () => {
 
     const navState = { state: { mahasiswa: formattedMahasiswa, batch: batchData } };
 
-    if (userRole === "rektor") navigate(`/rektor/detail-mahasiswa/${safeNim}`, navState);
-    else if (userRole.includes("operator")) navigate(`/operator/detail-mahasiswa/${safeNim}`, navState);
-    else if (userRole.includes("admin")) navigate(`/admin/detail-mahasiswa/${safeNim}`, navState);
-    else navigate(`/verifikator/detail-mahasiswa/${safeNim}`, navState);
+    if (userRole === "rektor") navigate(`/rektor/detail-mahasiswa/${safeMahasiswaCode}`, navState);
+    else if (userRole.includes("operator")) navigate(`/operator/detail-mahasiswa/${safeMahasiswaCode}`, navState);
+    else if (userRole.includes("admin")) navigate(`/admin/detail-mahasiswa/${safeMahasiswaCode}`, navState);
+    else navigate(`/verifikator/detail-mahasiswa/${safeMahasiswaCode}`, {
+  state: {
+    mahasiswa: item,
+    batch: batchData,
+  },
+});
   };
 
   if (isLoading) {

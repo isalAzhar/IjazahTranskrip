@@ -21,45 +21,59 @@ const DetailBatchDokumenValid = () => {
     periode: "Semester Ganjil",
   };
 
+
+  const normalizeMahasiswa = (item, index, batchData) => {
+  const raw = item.raw || item;
+
+  return {
+    ...item,
+    id: item.id || item.id_mahasiswa || index + 1,
+    mahasiswa_code:
+      item.mahasiswa_code ||
+      item.mahasiswaCode ||
+      raw.mahasiswa_code ||
+      null,
+    nim: item.nim || raw.nim || "-",
+    nama:
+      item.nama ||
+      item.nama_mahasiswa ||
+      raw.nama ||
+      raw.nama_mahasiswa ||
+      "-",
+    prodi:
+      item.prodi ||
+      item.program_studi ||
+      raw.prodi ||
+      raw.program_studi ||
+      "-",
+    tahunLulus:
+      item.tahunLulus ||
+      item.tahun_lulus ||
+      raw.tahun_lulus ||
+      batchData.tahunLulus ||
+      "-",
+    status: item.status || raw.status || "Terbit",
+    raw,
+  };
+};
+
   // Data mahasiswa dalam batch
-  const mahasiswaList = useMemo(() => {
-    const names = [
-      "Adi Saputra", "Rani Maharani", "Budi Pratama", "Siti Aisyah",
-      "Dimas Nugraha", "Fajar Ramadhan", "Putri Lestari", "Andi Wijaya",
-      "Rizky Maulana", "Nabila Putri", "Yoga Pratama", "Citra Dewi",
-      "Kayla Keyla", "Rizky Gusti A", "Risma Puspita", "Budi Doremi",
-      "Eagle Al-Haikal", "Zahra Nabil", "Dila Fadilla", "Nayla Nim",
-    ];
+const mahasiswaList = useMemo(() => {
+  const sourceMahasiswa =
+    batchData.mahasiswa ||
+    batchData.data ||
+    batchData.listMahasiswa ||
+    batchData.students ||
+    [];
 
-    const prodiList = {
-      "Fakultas Teknik dan Sains": ["Teknik Informatika", "Teknik Mesin", "Teknik Sipil", "Sistem Informasi", "Teknik Elektro"],
-      "Fakultas Ekonomi dan Bisnis": ["Manajemen", "Akuntansi", "Bisnis Digital"],
-      "Fakultas Hukum": ["Ilmu Hukum"],
-      "Fakultas Agama Islam": ["Pendidikan Agama Islam", "Ekonomi Syariah"],
-      "Fakultas Ilmu Kesehatan": ["Kesehatan Masyarakat", "Ilmu Gizi"],
-      "Fakultas Keguruan dan Ilmu Pendidikan": ["Pendidikan Bahasa Inggris", "Teknologi Pendidikan"],
-    };
+  if (Array.isArray(sourceMahasiswa) && sourceMahasiswa.length > 0) {
+    return sourceMahasiswa.map((item, index) =>
+      normalizeMahasiswa(item, index, batchData),
+    );
+  }
 
-    const availableProdi = prodiList[batchData.fakultas] || ["Teknik Informatika"];
-
-    const getStatusByIndex = (index) => {
-      if (batchData.status === "Terbit") return "Terbit";
-      if (batchData.status === "Proses") return "Proses";
-      if (batchData.status === "Reject") return "Reject";
-      if (batchData.status === "Revoke") return "Revoke";
-      const statuses = ["Terbit", "Proses", "Reject", "Revoke"];
-      return statuses[index % statuses.length];
-    };
-
-    return Array.from({ length: batchData.totalData || 25 }, (_, i) => ({
-      id: i + 1,
-      nim: `23110604${String(900 + i).padStart(4, "0")}`,
-      nama: names[i % names.length],
-      prodi: availableProdi[i % availableProdi.length],
-      tahunLulus: batchData.tahunLulus || "2026",
-      status: getStatusByIndex(i),
-    }));
-  }, [batchData]);
+  return [];
+}, [batchData]);
 
   const getBadgeColor = (status) => {
     switch (status) {
@@ -89,7 +103,7 @@ const DetailBatchDokumenValid = () => {
   const totalPages = Math.ceil(filteredMahasiswa.length / itemsPerPage);
   const paginatedData = filteredMahasiswa.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   useEffect(() => {
@@ -102,31 +116,45 @@ const DetailBatchDokumenValid = () => {
     }
   };
 
-  const handleDetailMahasiswa = (mhs) => {
-    if (mhs.status === "Terbit") {
-      navigate(`/operator/detail-dokumen-valid/${mhs.nim}`, { 
-        state: { 
-          ...mhs,
-          fakultas: batchData.fakultas,
-          batch: batchData.listBatch,
-          status: mhs.status
-        } 
-      });
-    } else {
-      navigate(`/operator/detail-pelaporan/${mhs.nim}`, { 
-        state: { 
-          ...mhs,
-          fakultas: batchData.fakultas,
-          batch: batchData.listBatch,
-          status: mhs.status
-        } 
-      });
-    }
+ const handleDetailMahasiswa = (mhs) => {
+  const mahasiswaCode =
+    mhs.mahasiswa_code || mhs.mahasiswaCode || mhs.raw?.mahasiswa_code;
+
+  if (!mahasiswaCode) {
+    console.error("Mahasiswa code tidak ditemukan:", mhs);
+    alert("Kode mahasiswa tidak ditemukan.");
+    return;
+  }
+
+  const navState = {
+    state: {
+      mahasiswa: {
+        ...mhs,
+        fakultas: mhs.fakultas || batchData.fakultas,
+        batch: mhs.batch || batchData.listBatch,
+        status: mhs.status,
+      },
+      batch: batchData,
+    },
   };
+
+  if (mhs.status === "Terbit") {
+    navigate(
+      `/operator/detail-dokumen-valid/${encodeURIComponent(mahasiswaCode)}`,
+      navState,
+    );
+    return;
+  }
+
+  navigate(
+    `/operator/detail-pelaporan/${encodeURIComponent(mahasiswaCode)}`,
+    navState,
+  );
+};
 
   const renderPaginationButtons = () => {
     if (totalPages <= 1) return null;
-    
+
     let pages = [];
 
     if (totalPages <= 4) {
@@ -170,7 +198,8 @@ const DetailBatchDokumenValid = () => {
             Detail Validasi Dokumen
           </h1>
           <p className="text-[#9CA3AF] text-sm mt-1">
-            {batchData.listBatch} • {batchData.fakultas} • {batchData.periode} • {batchData.tahunLulus}
+            {batchData.listBatch} • {batchData.fakultas} • {batchData.periode} •{" "}
+            {batchData.tahunLulus}
           </p>
         </div>
 
@@ -197,7 +226,9 @@ const DetailBatchDokumenValid = () => {
                   <th className="px-4 py-4 text-center w-16">No.</th>
                   <th className="px-4 py-4 text-left min-w-[200px]">Nama</th>
                   <th className="px-4 py-4 text-center min-w-[140px]">NIM</th>
-                  <th className="px-4 py-4 text-center min-w-[200px]">Program Studi</th>
+                  <th className="px-4 py-4 text-center min-w-[200px]">
+                    Program Studi
+                  </th>
                   <th className="px-4 py-4 text-center w-28">Tahun Lulus</th>
                   <th className="px-4 py-4 text-center w-28">Status</th>
                   <th className="px-4 py-4 text-center w-24">Detail</th>
@@ -209,7 +240,7 @@ const DetailBatchDokumenValid = () => {
                   const actualIndex = (currentPage - 1) * itemsPerPage + i + 1;
                   return (
                     <tr
-                      key={item.id}
+                      key={item.mahasiswa_code || item.id || item.nim || i}
                       className="border-t border-gray-200 hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-4 py-4 text-center font-medium text-gray-800">
@@ -248,7 +279,10 @@ const DetailBatchDokumenValid = () => {
 
                 {paginatedData.length === 0 && (
                   <tr>
-                    <td colSpan="7" className="px-4 py-8 text-center text-gray-400">
+                    <td
+                      colSpan="7"
+                      className="px-4 py-8 text-center text-gray-400"
+                    >
                       Data mahasiswa tidak ditemukan.
                     </td>
                   </tr>
@@ -261,7 +295,8 @@ const DetailBatchDokumenValid = () => {
           {totalPages > 0 && filteredMahasiswa.length > 0 && (
             <div className="p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-gray-100">
               <p className="text-xs text-gray-400">
-                Menampilkan {paginatedData.length} dari {filteredMahasiswa.length} Data
+                Menampilkan {paginatedData.length} dari{" "}
+                {filteredMahasiswa.length} Data
               </p>
               {totalPages > 1 && (
                 <div className="flex items-center gap-1.5">

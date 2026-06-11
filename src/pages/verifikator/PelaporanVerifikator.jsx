@@ -4,17 +4,21 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { getApprovalLaporan } from "@/services/api";
 // 1. IMPORT USEAUTH DI SINI
-import { useAuth } from "../../pages/context/AuthContext"; 
+import { useAuth } from "../../pages/context/AuthContext";
 
 const ITEMS_PER_PAGE = 10;
 
 const badgeClass = (status) => {
   const normalizedStatus = status?.toLowerCase().trim() || "";
-  
-  if (normalizedStatus === "proses" || normalizedStatus === "pending") return "bg-[#3B82F6] text-white";
-  if (normalizedStatus === "terbit" || normalizedStatus === "approved") return "bg-[#16A36B] text-white";
-  if (normalizedStatus === "revoke" || normalizedStatus === "revoked") return "bg-[#F59E0B] text-white";
-  if (normalizedStatus === "reject" || normalizedStatus === "rejected") return "bg-[#EF4444] text-white";
+
+  if (normalizedStatus === "proses" || normalizedStatus === "pending")
+    return "bg-[#3B82F6] text-white";
+  if (normalizedStatus === "terbit" || normalizedStatus === "approved")
+    return "bg-[#16A36B] text-white";
+  if (normalizedStatus === "revoke" || normalizedStatus === "revoked")
+    return "bg-[#F59E0B] text-white";
+  if (normalizedStatus === "reject" || normalizedStatus === "rejected")
+    return "bg-[#EF4444] text-white";
 
   return "bg-gray-400 text-white";
 };
@@ -69,7 +73,7 @@ const formatWaktu = (value) => {
 
 const PelaporanVerivikator = () => {
   const navigate = useNavigate();
-  
+
   // 2. DEKLARASI ROLE USER DI SINI (Di dalam fungsi komponen, di bawah navigate)
   const { user } = useAuth();
   const userRole = user?.role?.toLowerCase() || "";
@@ -89,7 +93,13 @@ const PelaporanVerivikator = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-const statusOptions = ["Semua Status", "Proses", "Terbit", "Revoke", "Reject"];
+  const statusOptions = [
+    "Semua Status",
+    "Proses",
+    "Terbit",
+    "Revoke",
+    "Reject",
+  ];
 
   const fetchLaporan = async () => {
     try {
@@ -110,14 +120,14 @@ const statusOptions = ["Semua Status", "Proses", "Terbit", "Revoke", "Reject"];
           limit: ITEMS_PER_PAGE,
           total_data: 0,
           total_page: 1,
-        }
+        },
       );
     } catch (err) {
       console.error("Gagal mengambil data laporan:", err);
       setError(
         err?.message ||
-        err?.response?.data?.message ||
-        "Gagal mengambil data laporan approval."
+          err?.response?.data?.message ||
+          "Gagal mengambil data laporan approval.",
       );
       setLaporanList([]);
       setPagination({
@@ -155,8 +165,10 @@ const statusOptions = ["Semua Status", "Proses", "Terbit", "Revoke", "Reject"];
     } else {
       if (currentPage === 1) pages = [1, 2, "...", totalPages];
       else if (currentPage === 2) pages = [1, 2, 3, "...", totalPages];
-      else if (currentPage === totalPages) pages = [1, "...", totalPages - 1, totalPages];
-      else if (currentPage === totalPages - 1) pages = [1, "...", totalPages - 2, totalPages - 1, totalPages];
+      else if (currentPage === totalPages)
+        pages = [1, "...", totalPages - 1, totalPages];
+      else if (currentPage === totalPages - 1)
+        pages = [1, "...", totalPages - 2, totalPages - 1, totalPages];
       else pages = [1, "...", currentPage, "...", totalPages];
     }
 
@@ -195,7 +207,6 @@ const statusOptions = ["Semua Status", "Proses", "Terbit", "Revoke", "Reject"];
 
         {/* Filter Bar */}
         <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-4 border border-gray-100">
-          
           <div className="w-full lg:max-w-md">
             <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
               <FiSearch className="text-gray-400 text-lg mr-3" />
@@ -217,7 +228,10 @@ const statusOptions = ["Semua Status", "Proses", "Terbit", "Revoke", "Reject"];
                 className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-5 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
               >
                 {statusOptions.map((item) => (
-                  <option key={item} value={item === "Semua Status" ? "" : item}>
+                  <option
+                    key={item}
+                    value={item === "Semua Status" ? "" : item}
+                  >
                     {item}
                   </option>
                 ))}
@@ -257,7 +271,7 @@ const statusOptions = ["Semua Status", "Proses", "Terbit", "Revoke", "Reject"];
 
                     return (
                       <tr
-                        key={item.id_mahasiswa || item.nim}
+                      key={item.mahasiswa_code || item.mahasiswaCode || item.nim || idx}
                         className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                       >
                         <td className="py-4 px-6 text-center font-medium text-gray-800 truncate">
@@ -288,7 +302,7 @@ const statusOptions = ["Semua Status", "Proses", "Terbit", "Revoke", "Reject"];
                         <td className="py-4 px-6 text-center">
                           <span
                             className={`inline-block px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${badgeClass(
-                              item.status
+                              item.status,
                             )}`}
                           >
                             {item.status || "-"}
@@ -303,12 +317,44 @@ const statusOptions = ["Semua Status", "Proses", "Terbit", "Revoke", "Reject"];
                         <td className="py-4 px-6 text-center">
                           <button
                             onClick={() => {
+                              const mahasiswaCode =
+                                item.mahasiswa_code ||
+                                item.mahasiswaCode ||
+                                item.raw?.mahasiswa_code;
+
+                              if (!mahasiswaCode) {
+                                console.error(
+                                  "Mahasiswa code tidak ditemukan:",
+                                  item,
+                                );
+                                alert("Kode mahasiswa tidak ditemukan.");
+                                return;
+                              }
+
+                              const safeMahasiswaCode =
+                                encodeURIComponent(mahasiswaCode);
+
                               if (userRole === "operator") {
-                                navigate(`/operator/detail-mahasiswa/${item.nim}`, { state: { mahasiswa: item } });
+                                navigate(
+                                  `/operator/detail-mahasiswa/${safeMahasiswaCode}`,
+                                  {
+                                    state: { mahasiswa: item },
+                                  },
+                                );
                               } else if (userRole.includes("rektor")) {
-                                navigate(`/rektor/detail-mahasiswa/${item.nim}`, { state: { mahasiswa: item } });
+                                navigate(
+                                  `/rektor/detail-mahasiswa/${safeMahasiswaCode}`,
+                                  {
+                                    state: { mahasiswa: item },
+                                  },
+                                );
                               } else {
-                                navigate(`/verifikator/detail-mahasiswa/${item.nim}`, { state: { mahasiswa: item } });
+                                navigate(
+                                  `/verifikator/detail-mahasiswa/${safeMahasiswaCode}`,
+                                  {
+                                    state: { mahasiswa: item },
+                                  },
+                                );
                               }
                             }}
                             className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
@@ -338,7 +384,8 @@ const statusOptions = ["Semua Status", "Proses", "Terbit", "Revoke", "Reject"];
 
           <div className="p-6 bg-white border-t border-gray-100 flex justify-between items-center">
             <p className="text-sm text-gray-500 font-medium">
-              Menampilkan {laporanList.length} dari {pagination.total_data || 0} Data
+              Menampilkan {laporanList.length} dari {pagination.total_data || 0}{" "}
+              Data
             </p>
 
             <div className="flex items-center gap-2">
@@ -363,7 +410,6 @@ const statusOptions = ["Semua Status", "Proses", "Terbit", "Revoke", "Reject"];
               </button>
             </div>
           </div>
-
         </div>
       </div>
     </DashboardLayout>

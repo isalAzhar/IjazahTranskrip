@@ -265,7 +265,12 @@ const Pelaporan = () => {
 
                     return (
                       <tr
-                        key={item.id_mahasiswa || item.nim}
+                        key={
+                          item.mahasiswa_code ||
+                          item.mahasiswaCode ||
+                          item.nim ||
+                          idx
+                        }
                         className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                       >
                         <td className="py-4 px-6 text-center font-medium text-gray-800 truncate">
@@ -309,14 +314,30 @@ const Pelaporan = () => {
 
                         <td className="py-4 px-6 text-center">
                           <button
-                            onClick={() =>
+                            onClick={() => {
+                              const mahasiswaCode =
+                                item.mahasiswa_code ||
+                                item.mahasiswaCode ||
+                                item.raw?.mahasiswa_code;
+
+                              if (!mahasiswaCode) {
+                                console.error(
+                                  "Mahasiswa code tidak ditemukan:",
+                                  item,
+                                );
+                                alert("Kode mahasiswa tidak ditemukan.");
+                                return;
+                              }
+
                               navigate(
-                                `/operator/detail-pelaporan/${item.nim}`,
+                                `/operator/detail-pelaporan/${encodeURIComponent(mahasiswaCode)}`,
                                 {
-                                  state: item,
+                                  state: {
+                                    mahasiswa: item,
+                                  },
                                 },
-                              )
-                            }
+                              );
+                            }}
                             className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
                           >
                             <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>

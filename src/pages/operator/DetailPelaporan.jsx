@@ -24,7 +24,8 @@ const getImageUrl = (imagePath) => {
     return imagePath;
   }
 
-  const baseUrl = import.meta.env.VITE_API_PUBLIC_URL || "http://localhost:3000";
+  const baseUrl =
+    import.meta.env.VITE_API_PUBLIC_URL || "http://localhost:3000";
 
   if (imagePath.startsWith("/")) {
     return `${baseUrl}${imagePath}`;
@@ -49,7 +50,9 @@ const formatTanggal = (value) => {
 
 const DetailPelaporan = () => {
   const navigate = useNavigate();
-  const { nim } = useParams();
+  const { mahasiswaCode, id } = useParams();
+
+  const currentMahasiswaCode = decodeURIComponent(mahasiswaCode || id || "");
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -62,7 +65,7 @@ const DetailPelaporan = () => {
       setError("");
       setImageError(false);
 
-      const result = await getAkademikProfile(nim);
+      const result = await getAkademikProfile(currentMahasiswaCode);
 
       setProfile(result.data);
     } catch (err) {
@@ -71,7 +74,7 @@ const DetailPelaporan = () => {
       setError(
         err?.message ||
           err?.response?.data?.message ||
-          "Gagal mengambil detail mahasiswa."
+          "Gagal mengambil detail mahasiswa.",
       );
     } finally {
       setLoading(false);
@@ -79,10 +82,8 @@ const DetailPelaporan = () => {
   };
 
   useEffect(() => {
-    if (nim) {
-      fetchProfile();
-    }
-  }, [nim]);
+    if (currentMahasiswaCode) fetchProfile();
+  }, [currentMahasiswaCode]);
 
   const mahasiswa = profile?.mahasiswa;
   const akademik = profile?.akademik;
@@ -93,7 +94,10 @@ const DetailPelaporan = () => {
   const fotoMahasiswa = getImageUrl(mahasiswa?.foto);
 
   const batchLabel =
-    batch?.id_batch_upload || mahasiswa?.id_batch_upload || "-";
+    batch?.nomor_batch_upload ||
+    batch?.batch_code ||
+    mahasiswa?.batch_code ||
+    "-";
 
   const detailStatus = approval?.status || "Proses";
 
@@ -183,7 +187,7 @@ const DetailPelaporan = () => {
           <div className="text-right flex flex-col items-end gap-1 max-w-[320px]">
             <span
               className={`${badgeClass(
-                detailStatus
+                detailStatus,
               )} text-white text-[13px] px-6 py-1.5 rounded-full font-bold shadow-sm inline-block`}
             >
               {detailStatus}
@@ -217,7 +221,7 @@ const DetailPelaporan = () => {
               <InfoItem
                 label="Tempat, Tanggal Lahir"
                 value={`${mahasiswa?.tempat_lahir || "-"}, ${formatTanggal(
-                  mahasiswa?.tanggal_lahir
+                  mahasiswa?.tanggal_lahir,
                 )}`}
               />
 
@@ -250,13 +254,34 @@ const DetailPelaporan = () => {
               <InfoItem label="Fakultas" value={akademik?.fakultas} />
               <InfoItem label="Program Studi" value={akademik?.program_studi} />
               <InfoItem label="Tahun Masuk" value={akademik?.tahun_masuk} />
-              <InfoItem label="Tanggal Kelulusan" value={formatTanggal(akademik?.tanggal_kelulusan)} />
+              <InfoItem
+                label="Tanggal Kelulusan"
+                value={formatTanggal(akademik?.tanggal_kelulusan)}
+              />
               <InfoItem label="Tahun Lulus" value={akademik?.tahun_lulus} />
-              <InfoItem label="IPK" value={akademik?.ipk !== undefined && akademik?.ipk !== null ? `${akademik.ipk} / 4.00` : "-"} />
-              <InfoItem label="Total SKS" value={akademik?.total_sks !== undefined && akademik?.total_sks !== null ? `${akademik.total_sks} SKS` : "-"} />
+              <InfoItem
+                label="IPK"
+                value={
+                  akademik?.ipk !== undefined && akademik?.ipk !== null
+                    ? `${akademik.ipk} / 4.00`
+                    : "-"
+                }
+              />
+              <InfoItem
+                label="Total SKS"
+                value={
+                  akademik?.total_sks !== undefined &&
+                  akademik?.total_sks !== null
+                    ? `${akademik.total_sks} SKS`
+                    : "-"
+                }
+              />
               <InfoItem label="Total Bobot" value={akademik?.total_bobot} />
               <InfoItem label="Predikat" value={akademik?.predikat} />
-              <InfoItem label="Status Kelulusan" value={akademik?.status_kelulusan} />
+              <InfoItem
+                label="Status Kelulusan"
+                value={akademik?.status_kelulusan}
+              />
             </div>
           </div>
         </div>
@@ -275,9 +300,13 @@ const DetailPelaporan = () => {
               <thead className="sticky top-0 bg-[#F9FAFB] border-b border-gray-200 text-gray-500">
                 <tr>
                   <th className="px-6 py-4 font-bold text-center">Kode</th>
-                  <th className="px-6 py-4 font-bold text-left">Nama Mata Kuliah</th>
+                  <th className="px-6 py-4 font-bold text-left">
+                    Nama Mata Kuliah
+                  </th>
                   <th className="px-6 py-4 font-bold text-center">SKS</th>
-                  <th className="px-6 py-4 font-bold text-center">Nilai Mutu</th>
+                  <th className="px-6 py-4 font-bold text-center">
+                    Nilai Mutu
+                  </th>
                   <th className="px-6 py-4 font-bold text-center">Bobot</th>
                   <th className="px-6 py-4 font-bold text-center">Nilai</th>
                 </tr>
@@ -314,7 +343,10 @@ const DetailPelaporan = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                    <td
+                      colSpan="6"
+                      className="px-6 py-8 text-center text-gray-500"
+                    >
                       Data transkrip tidak ditemukan.
                     </td>
                   </tr>

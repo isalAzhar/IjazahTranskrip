@@ -5,18 +5,17 @@ import { getAuthToken } from "./auth.api";
 
 const API_BASE_URL = "/api";
 
-export const getAkademikProfile = async (nim) => {
+export const getAkademikProfile = async (mahasiswaCode) => {
   const token = getAuthToken();
 
   if (!token) {
     throw new Error("Token tidak ditemukan. Silakan login ulang.");
   }
 
-  if (!nim) {
+  if (!mahasiswaCode) {
     throw new Error("NIM tidak ditemukan.");
   }
-
-  const response = await fetch(`${API_BASE_URL}/akademik/profile/${nim}`, {
+  const response = await fetch(`${API_BASE_URL}/akademik/profile/${encodeURIComponent(mahasiswaCode)}`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,

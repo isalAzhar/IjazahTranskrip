@@ -85,7 +85,20 @@ const getDefaultStatistics = () => ({
 });
 
 const getDefaultMonthlyIssuance = () => ({
-  labels: ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"],
+  labels: [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "Mei",
+    "Jun",
+    "Jul",
+    "Agu",
+    "Sep",
+    "Okt",
+    "Nov",
+    "Des",
+  ],
   datasets: [],
   data: [],
   years: [],
@@ -145,16 +158,16 @@ export const getMonthlyIssuance = async () => {
     const rows = Array.isArray(result.raw)
       ? result.raw
       : Array.isArray(result.data)
-      ? result.data
-      : [];
+        ? result.data
+        : [];
 
     const labels = rows.map((item) => item.bulan);
 
     const years = [
       ...new Set(
         rows.flatMap((item) =>
-          Object.keys(item).filter((key) => key !== "bulan")
-        )
+          Object.keys(item).filter((key) => key !== "bulan"),
+        ),
       ),
     ];
 
@@ -177,17 +190,37 @@ export const getMonthlyIssuance = async () => {
 };
 
 // ==================== 3. DONUT CHART STATUS VALIDASI ====================
-export const getVerificationStatus = async (year = new Date().getFullYear()) => {
+export const getVerificationStatus = async (
+  year = new Date().getFullYear(),
+) => {
   try {
     const queryParams = buildQueryParams({ year });
-    const result = await fetchJSON(`${DASHBOARD_API}/statistik/validasi?${queryParams}`);
+    const result = await fetchJSON(
+      `${DASHBOARD_API}/statistik/validasi?${queryParams}`,
+    );
     const data = result.data || {};
 
     const chartData = [
-      { name: "Terbit", value: toNumber(data.terbit ?? data.total_terbit ?? 0), color: "#27AE60" },
-      { name: "Proses", value: toNumber(data.proses ?? data.total_proses ?? 0), color: "#16719E" },
-      { name: "Reject", value: toNumber(data.rejected ?? data.total_rejected ?? 0), color: "#DC2626" },
-      { name: "Revoke", value: toNumber(data.revoked ?? data.total_revoked ?? 0), color: "#F59E0B" },
+      {
+        name: "Terbit",
+        value: toNumber(data.terbit ?? data.total_terbit ?? 0),
+        color: "#27AE60",
+      },
+      {
+        name: "Proses",
+        value: toNumber(data.proses ?? data.total_proses ?? 0),
+        color: "#16719E",
+      },
+      {
+        name: "Reject",
+        value: toNumber(data.rejected ?? data.total_rejected ?? 0),
+        color: "#DC2626",
+      },
+      {
+        name: "Revoke",
+        value: toNumber(data.revoked ?? data.total_revoked ?? 0),
+        color: "#F59E0B",
+      },
     ];
 
     return {
@@ -215,13 +248,17 @@ export const getIjazahList = async (params = {}) => {
     const search = params.search || params.q || "";
 
     const queryParams = buildQueryParams({
-      page, limit, search,
+      page,
+      limit,
+      search,
       fakultas: params.fakultas || "",
       status: params.status || "",
       tahun_lulus: params.tahun_lulus || params.tahun || "",
     });
 
-    const result = await fetchJSON(`${DASHBOARD_API}/validations/latest?${queryParams}`);
+    const result = await fetchJSON(
+      `${DASHBOARD_API}/validations/latest?${queryParams}`,
+    );
     const list = Array.isArray(result.data) ? result.data : [];
     const pagination = result.pagination || {};
 
@@ -232,13 +269,48 @@ export const getIjazahList = async (params = {}) => {
         nama: item.nama ?? item.nama_mahasiswa ?? item.mahasiswa?.nama ?? "-",
         nim: item.nim ?? item.mahasiswa?.nim ?? "-",
         npm: item.nim ?? item.mahasiswa?.nim ?? "-",
-        fakultas: item.fakultas ?? item.nama_fakultas ?? item.unit_fakultas ?? item.unit?.nama_unit ?? item.mahasiswa?.prodi?.unit?.nama_unit ?? "-",
-        prodi: item.prodi ?? item.nama_prodi ?? item.program_studi ?? item.mahasiswa?.prodi?.nama_prodi ?? "-",
-        tahunLulus: item.tahun_lulus ?? item.tahunLulus ?? item.tahun ?? item.mahasiswa?.tahun_lulus ?? "-",
-        tahun_lulus: item.tahun_lulus ?? item.tahunLulus ?? item.tahun ?? item.mahasiswa?.tahun_lulus ?? "-",
-        periode: item.periode ?? item.periode_lulus ?? item.batch_upload?.periode ?? item.mahasiswa?.batch_upload?.periode ?? "-",
-        status: item.status ?? item.status_dashboard ?? item.status_validasi ?? "proses",
-        batch: item.batch ?? item.nomor_batch_upload ?? item.batch_upload?.nomor_batch_upload ?? item.mahasiswa?.batch_upload?.nomor_batch_upload ?? "-",
+        fakultas:
+          item.fakultas ??
+          item.nama_fakultas ??
+          item.unit_fakultas ??
+          item.unit?.nama_unit ??
+          item.mahasiswa?.prodi?.unit?.nama_unit ??
+          "-",
+        prodi:
+          item.prodi ??
+          item.nama_prodi ??
+          item.program_studi ??
+          item.mahasiswa?.prodi?.nama_prodi ??
+          "-",
+        tahunLulus:
+          item.tahun_lulus ??
+          item.tahunLulus ??
+          item.tahun ??
+          item.mahasiswa?.tahun_lulus ??
+          "-",
+        tahun_lulus:
+          item.tahun_lulus ??
+          item.tahunLulus ??
+          item.tahun ??
+          item.mahasiswa?.tahun_lulus ??
+          "-",
+        periode:
+          item.periode ??
+          item.periode_lulus ??
+          item.batch_upload?.periode ??
+          item.mahasiswa?.batch_upload?.periode ??
+          "-",
+        status:
+          item.status ??
+          item.status_dashboard ??
+          item.status_validasi ??
+          "proses",
+        batch:
+          item.batch ??
+          item.nomor_batch_upload ??
+          item.batch_upload?.nomor_batch_upload ??
+          item.mahasiswa?.batch_upload?.nomor_batch_upload ??
+          "-",
         raw: item,
       })),
       total: toNumber(pagination.total_data ?? pagination.total ?? 0),
@@ -249,7 +321,14 @@ export const getIjazahList = async (params = {}) => {
     };
   } catch (error) {
     if (isAuthError(error)) throw error;
-    return { data: [], total: 0, page: 1, totalPages: 1, pagination: {}, raw: {} };
+    return {
+      data: [],
+      total: 0,
+      page: 1,
+      totalPages: 1,
+      pagination: {},
+      raw: {},
+    };
   }
 };
 
@@ -276,7 +355,9 @@ export const getYearsData = async () => {
 
 export const getDetailIjazah = async (idMahasiswa) => {
   try {
-    const result = await fetchJSON(`${DASHBOARD_API}/batches/mahasiswa/${idMahasiswa}`);
+    const result = await fetchJSON(
+      `${DASHBOARD_API}/batches/mahasiswa/${idMahasiswa}`,
+    );
     return result.data;
   } catch (error) {
     throw error;
@@ -296,7 +377,11 @@ export const getBatchList = async (params = {}) => {
     return await fetchJSON(`${DASHBOARD_API}/batches?${queryParams}`);
   } catch (error) {
     if (isAuthError(error)) throw error;
-    return { success: false, data: [], pagination: { page: 1, limit: 10, total_data: 0, total_page: 1 } };
+    return {
+      success: false,
+      data: [],
+      pagination: { page: 1, limit: 10, total_data: 0, total_page: 1 },
+    };
   }
 };
 
@@ -304,7 +389,7 @@ export const getBatchList = async (params = {}) => {
 export const getDetailBatch = async (idBatch) => {
   try {
     const response = await fetchJSON(`${DASHBOARD_API}/batch/${idBatch}`);
-    return response; 
+    return response;
   } catch (error) {
     throw error;
   }
@@ -313,7 +398,9 @@ export const getDetailBatch = async (idBatch) => {
 // 🔥 FUNGSI VERIFY IJAZAH YANG SEKARANG SUDAH BALIK LAGI!
 export const verifyIjazah = async (npm) => {
   try {
-    return await fetchJSON(`${API_BASE_URL}/approval/verify/${npm}`, { method: "POST" });
+    return await fetchJSON(`${API_BASE_URL}/approval/verify/${npm}`, {
+      method: "POST",
+    });
   } catch (error) {
     throw error;
   }
@@ -344,12 +431,27 @@ export const getDashboardBatches = async (params = {}) => {
 
     return {
       data: rows.map((item) => ({
-        id: item.id_batch_upload || item.id_batch || item.id, // Tambahan keamanan ID
+        id: item.id_batch_upload || item.id_batch || item.id,
+        batch_code:
+          item.batch_code || item.batchCode || item.raw?.batch_code || null,
+
+        id:
+          item.batch_code || item.batchCode || item.raw?.batch_code || item.id, // Tambahan keamanan ID
         batch: item.nomor_batch_upload || item.batch || item.nama_batch || "-",
-        fakultas: item.fakultas || item.nama_fakultas || item.nama_unit || item.unit || "-",
+        fakultas:
+          item.fakultas ||
+          item.nama_fakultas ||
+          item.nama_unit ||
+          item.unit ||
+          "-",
         tahun: (item.tahun_lulus || item.tahun || "-").toString(),
         periode: item.periode || item.periode_label || "-",
-        total: Number(item.total_mahasiswa || item.total_record || item.total_record_ditampilkan || 0),
+        total: Number(
+          item.total_mahasiswa ||
+            item.total_record ||
+            item.total_record_ditampilkan ||
+            0,
+        ),
         raw: item,
       })),
       pagination: response?.pagination || {},

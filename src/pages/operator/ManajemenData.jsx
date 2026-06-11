@@ -142,8 +142,22 @@ const ManajemenData = () => {
   }, [debouncedSearch]);
 
   const handleDetailClick = (item) => {
-    navigate(`/operator/detail-pelaporan/${item.nim}`, { state: item });
-  };
+const mahasiswaCode =
+  item.mahasiswa_code ||
+  item.mahasiswaCode ||
+  item.raw?.mahasiswa_code;
+
+if (!mahasiswaCode) {
+  console.error("Mahasiswa code tidak ditemukan:", item);
+  alert("Kode mahasiswa tidak ditemukan.");
+  return;
+}
+
+navigate(`/operator/detail-pelaporan/${encodeURIComponent(mahasiswaCode)}`, {
+  state: {
+    mahasiswa: item,
+  },
+});  };
 
   const handlePageChange = (pageNumber) => {
     if (pageNumber >= 1 && pageNumber <= totalPages) {

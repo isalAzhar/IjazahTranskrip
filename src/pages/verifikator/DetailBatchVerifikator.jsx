@@ -35,23 +35,24 @@ const ROLE_DESCRIPTION = {
 const DetailBatchVerifikator = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { batchId } = useParams();
+  const { batchCode, batchId, id } = useParams();
+  const currentBatchCode = batchCode || batchId || id || "";
   const { user } = useAuth();
 
   const userRole = user?.role?.toLowerCase() || "";
   const isRektor = userRole === "rektor";
   const pageDescription = ROLE_DESCRIPTION[userRole] ?? "Kelola validasi dan kirim data mahasiswa";
 
-  const batchFromState = location.state || {};
-
+  const batchFromState = location.state?.batch || location.state || {};
   const [students, setStudents] = useState([]);
   const [batchInfo, setBatchInfo] = useState({
-    nomor_batch_upload: batchFromState.nomor_batch_upload || "-",
-    nama_file: batchFromState.nama_file || "-",
-    tahun_lulus: batchFromState.tahun_lulus || "-",
-    periode: batchFromState.periode || "-",
-    total_record: batchFromState.pending_count || 0,
-  });
+  nomor_batch_upload: batchFromState.nomor_batch_upload || batchFromState.batch || "-",
+  nama_file:  batchFromState.nama_file || "-",
+  tahun_lulus: batchFromState.tahun_lulus || batchFromState.tahun || "-",
+  periode: batchFromState.periode || "-",
+  total_record: batchFromState.pending_count || batchFromState.total || 0,
+});
+ 
   const [isLoading, setIsLoading] = useState(true);
 
   const [showRevokeReason, setShowRevokeReason] = useState(false);
@@ -67,46 +68,112 @@ const DetailBatchVerifikator = () => {
   const [approvalResult, setApprovalResult] = useState(null);
   const [finalProcess, setFinalProcess] = useState(null);
 
-  const fetchBatchDetail = async () => {
-    setIsLoading(true);
-    try {
-      const response = await getBatchDetail(batchId);
-      const dataApi = response.data?.batch || response.data || {};
-      const rawStudents = response.data?.mahasiswa || response.data?.data || [];
+ const fetchBatchDetail = async () => {
+  if (!currentBatchCode) {
+    console.error("Kode batch tidak ditemukan.");
+    setIsLoading(false);
+    return;
+  }
 
-      setBatchInfo((prev) => ({
-        nomor_batch_upload: dataApi.nomor_batch_upload || prev.nomor_batch_upload,
-        nama_file: dataApi.nama_file || prev.nama_file,
-        tahun_lulus: dataApi.tahun_lulus || prev.tahun_lulus,
-        periode: dataApi.periode || prev.periode,
-        total_record: dataApi.total_record || prev.total_record,
-      }));
+  setIsLoading(true);
 
-      const activeStudents = rawStudents.filter((mhs) => {
-        const isLocallyRevoked = sessionStorage.getItem(`revoked_${mhs.nim}`) === "true";
-        const statusAPI = String(mhs.status || mhs.status_validasi || mhs.status_approval || "").toLowerCase();
-        const isApiRevoked = statusAPI.includes("revoke") || statusAPI.includes("reject");
-        return !isLocallyRevoked && !isApiRevoked;
-      });
+  try {
+    const response = await getBatchDetail(currentBatchCode);
 
-      setStudents(activeStudents);
-      setBatchInfo((prev) => ({ ...prev, total_record: activeStudents.length }));
-    } catch (error) {
-      console.error("Gagal mengambil detail batch:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const dataApi =
+      response.data?.batch ||
+      response.data ||
+      {};
+
+    const rawStudents =
+      response.data?.mahasiswa ||
+      response.data?.data ||
+      [];
+
+    setBatchInfo((prev) => ({
+      nomor_batch_upload:
+        dataApi.nomor_batch_upload ||
+        prev.nomor_batch_upload,
+
+      nama_file:
+        dataApi.nama_file ||
+        prev.nama_file,
+
+      tahun_lulus:
+        dataApi.tahun_lulus ||
+        prev.tahun_lulus,
+
+      periode:
+        dataApi.periode ||
+        prev.periode,
+
+      total_record:
+        dataApi.total_record ||
+        dataApi.pending_count ||
+        prev.total_record,
+    }));
+
+    const activeStudents = rawStudents.filter((mhs) => {
+      const isLocallyRevoked =
+        sessionStorage.getItem(`revoked_${mhs.nim}`) === "true";
+
+      const statusAPI = String(
+        mhs.status ||
+        mhs.status_validasi ||
+        mhs.status_approval ||
+        ""
+      ).toLowerCase();
+
+      const isApiRevoked =
+        statusAPI.includes("revoke") ||
+        statusAPI.includes("reject");
+
+      return !isLocallyRevoked && !isApiRevoked;
+    });
+
+    setStudents(activeStudents);
+
+    setBatchInfo((prev) => ({
+      ...prev,
+      total_record: activeStudents.length,
+    }));
+  } catch (error) {
+    console.error("Gagal mengambil detail batch:", error);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchBatchDetail();
-  }, [location.state?.refresh]);
+  }, [currentBatchCode, location.state?.refresh]);
 
-  const handleDetailMahasiswa = (item) => {
-    const safeNim = encodeURIComponent(item.nim);
-    const path = userRole === "rektor" ? "/rektor" : userRole.includes("operator") ? "/operator" : "/verifikator";
-    navigate(`${path}/detail-mahasiswa/${safeNim}`, { state: { mahasiswa: item, batch: batchInfo } });
-  };
+const handleDetailMahasiswa = (item) => {
+  const mahasiswaCode =
+    item.mahasiswa_code ||
+    item.mahasiswaCode ||
+    item.raw?.mahasiswa_code;
+
+  if (!mahasiswaCode) {
+    console.error("Mahasiswa code tidak ditemukan:", item);
+    alert("Kode mahasiswa tidak ditemukan.");
+    return;
+  }
+
+  const path =
+    userRole === "rektor"
+      ? "/rektor"
+      : userRole.includes("operator")
+      ? "/operator"
+      : "/verifikator";
+
+  navigate(`${path}/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`, {
+    state: {
+      mahasiswa: item,
+      batch: batchInfo,
+    },
+  });
+};
 
   const handleOpenRevoke = (student) => {
     setSelectedStudent(student);
@@ -123,7 +190,12 @@ const DetailBatchVerifikator = () => {
     if (!selectedStudent) return;
     setIsRevoking(true);
     try {
-      await revokeMahasiswa(selectedStudent.nim, revokeReason);
+      const mahasiswaCode = selectedStudent.mahasiswa_code || selectedStudent.mahasiswaCode || selectedStudent.raw?.mahasiswa_code;
+    if (!mahasiswaCode) {
+   throw new Error("Kode mahasiswa tidak ditemukan dari response API.");
+}
+
+await revokeMahasiswa(mahasiswaCode, revokeReason);
       sessionStorage.setItem(`revoked_${selectedStudent.nim}`, "true");
       setStudents(prev => {
         const newStudents = prev.filter(s => s.nim !== selectedStudent.nim);
@@ -152,7 +224,7 @@ const DetailBatchVerifikator = () => {
   const handleConfirmValidasi = async () => {
     setIsApproving(true);
     try {
-      const response = await approveBatch(batchId);
+      const response = await approveBatch(currentBatchCode);
       setApprovalResult(response);
       setFinalProcess(getFinalProcessFromResponse(response));
       setShowValConfirm(false);

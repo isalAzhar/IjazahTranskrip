@@ -188,7 +188,18 @@ const DetailBatch = () => {
   }, [mahasiswa]);
 
   const handleDetailMahasiswa = (item) => {
-    const safeNim = encodeURIComponent(item.nim || "-");
+    const mahasiswaCode =
+  item.mahasiswa_code ||
+  item.mahasiswaCode ||
+  item.raw?.mahasiswa_code;
+
+if (!mahasiswaCode) {
+  console.error("Mahasiswa code tidak ditemukan:", item);
+  alert("Kode mahasiswa tidak ditemukan.");
+  return;
+}
+
+const safeMahasiswaCode = encodeURIComponent(mahasiswaCode);
 
     const formattedMahasiswa = {
       ...item,
@@ -207,13 +218,13 @@ const DetailBatch = () => {
     };
 
     if (userRole === "admin") {
-      navigate(`/admin/detail-mahasiswa/${safeNim}`, navState);
+      navigate(`/admin/detail-mahasiswa/${safeMahasiswaCode}`, navState);
     } else if (userRole.includes("operator")) {
-      navigate(`/operator/detail-mahasiswa/${safeNim}`, navState);
+      navigate(`/operator/detail-mahasiswa/${safeMahasiswaCode}`, navState);
     } else if (userRole.includes("rektor")) {
-      navigate(`/rektor/detail-mahasiswa/${safeNim}`, navState);
+      navigate(`/rektor/detail-mahasiswa/${safeMahasiswaCode}`, navState);
     } else {
-      navigate(`/verifikator/detail-mahasiswa/${safeNim}`, navState);
+      navigate(`/verifikator/detail-mahasiswa/${safeMahasiswaCode}`, navState);
     }
   };
 

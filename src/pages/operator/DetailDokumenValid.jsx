@@ -1,224 +1,354 @@
-// src/pages/operator/DetailDokumenValid.jsx
-
-import React, { useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import { FiSearch, FiExternalLink } from "react-icons/fi";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { FiUser, FiBook, FiFileText, FiExternalLink } from "react-icons/fi";
-import DashboardLayout from "@/components/ui/DashboardLayout";
+import DashboardLayout from "../../components/ui/DashboardLayout";
+import { getValidDocumentBatchDetail } from "../../services/document.api";
 
-const getMatkulByProdi = (prodi) => {
-  const matkulUmum = ["Pendidikan Agama", "Pancasila", "Kewarganegaraan", "Bahasa Indonesia", "Bahasa Inggris"];
-  
-  const matkulByProdi = {
-    "Teknik Informatika": [...matkulUmum, "Kalkulus I", "Algoritma Pemrograman", "Struktur Data", "Basis Data", "Jaringan Komputer", "Pemrograman Web", "Rekayasa Perangkat Lunak", "Sistem Operasi", "Skripsi"],
-    "Teknik Mesin": [...matkulUmum, "Kalkulus I", "Fisika Dasar", "Gambar Teknik", "Termodinamika", "Mekanika Fluida", "Kekuatan Material", "Proses Manufaktur", "Skripsi"],
-    "Teknik Sipil": [...matkulUmum, "Kalkulus I", "Fisika Dasar", "Mekanika Bahan", "Mekanika Tanah", "Struktur Beton", "Hidrolika", "Transportasi", "Skripsi"],
-    "Sistem Informasi": [...matkulUmum, "Kalkulus I", "Algoritma Pemrograman", "Basis Data", "Sistem Informasi Manajemen", "Analisis Sistem", "Pemrograman Web", "Skripsi"],
-    "Manajemen": [...matkulUmum, "Pengantar Ekonomi", "Manajemen Keuangan", "Manajemen Pemasaran", "Manajemen SDM", "Akuntansi Dasar", "Bisnis Digital", "Skripsi"],
-    "Akuntansi": [...matkulUmum, "Pengantar Akuntansi I", "Akuntansi Keuangan", "Akuntansi Biaya", "Perpajakan", "Auditing", "Skripsi"],
-    "Bisnis Digital": [...matkulUmum, "Pengantar Bisnis", "E-Commerce", "Digital Marketing", "Analisis Bisnis", "Manajemen E-Bisnis", "Skripsi"],
-    "Ilmu Hukum": [...matkulUmum, "Pengantar Ilmu Hukum", "Hukum Perdata", "Hukum Pidana", "Hukum Tata Negara", "Hukum Internasional", "Skripsi"],
-    "Pendidikan Agama Islam": [...matkulUmum, "Ulumul Qur'an", "Ulumul Hadits", "Fiqh Ibadah", "Tauhid", "Sejarah Peradaban Islam", "Skripsi"],
-    "Ekonomi Syariah": [...matkulUmum, "Pengantar Ekonomi Islam", "Fiqh Muamalah", "Lembaga Keuangan Syariah", "Akuntansi Syariah", "Skripsi"],
-    "Kesehatan Masyarakat": [...matkulUmum, "Anatomi", "Epidemiologi", "Biostatistik", "Promosi Kesehatan", "Kesehatan Lingkungan", "Skripsi"],
-    "Ilmu Gizi": [...matkulUmum, "Anatomi", "Ilmu Gizi Dasar", "Gizi Klinik", "Teknologi Pangan", "Evaluasi Gizi", "Skripsi"],
-    "Pendidikan Bahasa Inggris": [...matkulUmum, "Structure", "Speaking", "Listening", "Writing", "Psikologi Pendidikan", "Microteaching", "Skripsi"],
-    "Teknologi Pendidikan": [...matkulUmum, "Media Pembelajaran", "Desain Pembelajaran", "Evaluasi Pembelajaran", "Manajemen Pendidikan", "Skripsi"]
+// ✅ Mapping periode
+const formatPeriode = (periode) => {
+  const map = {
+    semester_ganjil: "Semester Ganjil",
+    semester_genap: "Semester Genap",
+    semester_pendek: "Semester Pendek",
   };
-  
-  return matkulByProdi[prodi] || [...matkulUmum, "Skripsi"];
+  return map[periode?.toLowerCase()] || periode || "-";
+};
+
+// ✅ Format nama batch
+const formatNamaBatch = (kode) => {
+  if (!kode) return "-";
+
+  const safeKode =
+    typeof kode === "string"
+      ? kode
+      : kode.nomor_batch_upload ||
+        kode.batch ||
+        kode.batch_code ||
+        "";
+
+  if (!safeKode) return "-";
+
+  const parts = safeKode.split("-");
+
+  if (parts.length < 2) return safeKode;
+
+  const raw = parts[1];
+
+  if (!raw || raw.length !== 8) return safeKode;
+
+  const year = raw.substring(0, 4);
+  const month = raw.substring(4, 6);
+  const day = raw.substring(6, 8);
+
+  const bulan = [
+    "",
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
+  ];
+
+  return `Batch ${parseInt(day)} ${bulan[parseInt(month)] || ""} ${year}`;
 };
 
 const DetailDokumenValid = () => {
   const navigate = useNavigate();
-  const { nim } = useParams();
-  const { state } = useLocation();
-  const mahasiswa = state;
+  const { batchCode, batchId, id } = useParams();
+const location = useLocation();
 
-  if (!mahasiswa) {
-    return (
-      <DashboardLayout title="Detail Dokumen Valid">
-        <div className="w-full text-center py-10">
-          <p className="text-gray-500 mb-3">Data tidak ditemukan.</p>
-          <button 
-            onClick={() => navigate("/operator/dokumen-valid")} 
-            className="text-[#115E59] font-bold hover:underline"
-          >
-            ← Kembali
-          </button>
-        </div>
-      </DashboardLayout>
-    );
-  }
+const batchFromState =
+  location.state?.batch ||
+  location.state ||
+  {};
 
-  const nilaiData = useMemo(() => {
-    const getRandomGrade = () => {
-      const grades = ["A", "A-", "B+", "B"];
-      return grades[Math.floor(Math.random() * grades.length)];
-    };
-    
-    const getMutu = (grade) => {
-      const mutuMap = { "A": 4.0, "A-": 3.7, "B+": 3.3, "B": 3.0 };
-      return mutuMap[grade] || 3.0;
-    };
-    
-    const matkulList = getMatkulByProdi(mahasiswa.prodi);
-    
-    return matkulList.map((nama, idx) => {
-      const grade = getRandomGrade();
-      const mutu = getMutu(grade);
-      return {
-        kode: `MK${String(idx + 101).slice(-3)}`,
-        nama: nama,
-        sks: 3,
-        grade: grade,
-        mutu: mutu.toFixed(2),
-        bobot: (mutu * 3).toFixed(0)
-      };
-    });
-  }, [mahasiswa.prodi]);
+const currentBatchCode = decodeURIComponent(
+  batchCode ||
+  batchId ||
+  id ||
+  batchFromState.batch_code ||
+  batchFromState.batchCode ||
+  batchFromState.id ||
+  ""
+);
 
-  const tempatLahir = mahasiswa.tempatLahir || "Bogor";
-  const tanggalLahir = mahasiswa.tanggalLahir || "15 Januari 2004";
-  const jenisKelamin = mahasiswa.jenisKelamin || "Laki-laki";
-  const email = mahasiswa.email || `${mahasiswa.nama.toLowerCase().replace(/\s+/g, ".")}@student.uika.ac.id`;
-  const noTelp = mahasiswa.noTelp || "081234567890";
-  const tahunMasuk = mahasiswa.tahunMasuk || "2022";
-  const ipk = mahasiswa.ipk || "3.75";
-  const totalSks = mahasiswa.totalSks || "144";
-  const batch = mahasiswa.batch || "Batch";
+  const [batch, setBatch] = useState(batchFromState);
+  const [mahasiswa, setMahasiswa] = useState([]);
 
-  const handleLinkIjazah = () => {
-    navigate(`/operator/ijazah-digital/${mahasiswa.nim}`, { 
-      state: { 
-        nama: mahasiswa.nama,
-        nim: mahasiswa.nim,
-        fakultas: mahasiswa.fakultas,
-        prodi: mahasiswa.prodi,
-        tahunLulus: mahasiswa.tahunLulus,
-        tempatLahir: mahasiswa.tempatLahir,
-        tanggalLahir: mahasiswa.tanggalLahir,
-        batch: mahasiswa.batch,
-        jenisKelamin: mahasiswa.jenisKelamin,
-        email: mahasiswa.email,
-        noTelp: mahasiswa.noTelp,
-        tahunMasuk: mahasiswa.tahunMasuk,
-        ipk: mahasiswa.ipk,
-        totalSks: mahasiswa.totalSks
-      } 
-    });
+  const [search, setSearch] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef(null);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const activeBatchId = currentBatchCode;
+
+  const fetchDetailDokumen = async () => {
+    if (!activeBatchId) {
+      setErrorMessage("ID batch tidak ditemukan.");
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      const result = await getValidDocumentBatchDetail(activeBatchId, { search });
+      setBatch(result.data?.batch || batchFromState || {});
+      setMahasiswa(result.data?.mahasiswa || []);
+    } catch (error) {
+      console.error("Gagal mengambil detail dokumen valid:", error);
+      setErrorMessage(
+        error instanceof Error ? error.message : "Gagal mengambil detail dokumen valid."
+      );
+      setMahasiswa([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
+  useEffect(() => {
+    fetchDetailDokumen();
+  }, [activeBatchId, search]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const searchSuggestions = useMemo(() => {
+    if (!search.trim()) return mahasiswa;
+    const keyword = search.toLowerCase();
+    return mahasiswa.filter((item) => {
+      return (
+        item.nama?.toLowerCase().includes(keyword) ||
+        item.nama_mahasiswa?.toLowerCase().includes(keyword) ||
+        item.nim?.includes(search) ||
+        item.prodi?.toLowerCase().includes(keyword) ||
+        item.program_studi?.toLowerCase().includes(keyword)
+      );
+    });
+  }, [search, mahasiswa]);
+
+  const filteredTable = searchSuggestions;
+
+  const openPdf = (url) => {
+    if (!url) return;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleGoDetailMahasiswa = (student) => {
+const mahasiswaCode =
+  student.mahasiswa_code ||
+  student.mahasiswaCode ||
+  student.raw?.mahasiswa_code;
+
+if (!mahasiswaCode) {
+  console.error("Mahasiswa code tidak ditemukan:", student);
+  alert("Kode mahasiswa tidak ditemukan.");
+  return;
+}
+
+navigate(`/operator/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`, {
+  state: {
+    mahasiswa: student,
+  },
+});};
+
+  const DetailIcon = () => (
+    <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500" />
+  );
+
   return (
-    <DashboardLayout title={`Detail Dokumen Valid - ${mahasiswa.nama}`}>
-      <div className="w-full">
-        {/* TOMBOL KEMBALI SUDAH DIHAPUS */}
-
-        <div className="bg-white rounded-xl px-8 py-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 shadow-sm border border-gray-200">
-          <div className="flex items-center gap-6">
-            <div className="w-[88px] h-[88px] rounded-full bg-[#E5F3EB] overflow-hidden flex items-center justify-center border-4 border-[#E5F3EB]">
-              <svg viewBox="0 0 36 36" fill="none" width="88" height="88">
-                <rect width="36" height="36" fill="#84cc16"></rect>
-                <rect x="0" y="0" width="36" height="36" transform="translate(6 6) rotate(194 18 18)" fill="#fde047" rx="36"></rect>
-                <g transform="translate(0 2) rotate(-4 18 18)">
-                  <path d="M13,21 a1,1 0 0,0 10,0" fill="#000000"></path>
-                  <rect x="11" y="14" width="1.5" height="2" rx="1" fill="#000000"></rect>
-                  <rect x="23" y="14" width="1.5" height="2" rx="1" fill="#000000"></rect>
-                </g>
-              </svg>
-            </div>
-            
-            <div className="flex flex-col gap-1.5">
-              <h2 className="font-bold text-[20px] text-gray-900">{mahasiswa.nama}</h2>
-              <p className="text-[14px] text-gray-600">NIM: {mahasiswa.nim}</p>
-              <div>
-                <span className="inline-block bg-[#115E59] text-white text-[12px] px-4 py-1.5 rounded-full font-bold shadow-sm">
-                  {typeof batch === 'string' ? batch.split(" - ")[0] : "Batch"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="text-right flex flex-col items-end gap-1 max-w-[320px]">
-            <span className="bg-[#16A36B] text-white text-[13px] px-6 py-1.5 rounded-full font-bold shadow-sm inline-block">
-              Terbit
-            </span>
-            <p className="text-[11px] text-gray-500 font-medium">Telah di Validasi Oleh Rektor</p>
-            <p className="text-[10px] text-gray-400 italic leading-relaxed text-right">
-              Ijazah telah berhasil diterbitkan dan terverifikasi. Dokumen dapat diunduh melalui link di bawah.
-            </p>
-            <button 
-              onClick={handleLinkIjazah}
-              className="flex items-center gap-1.5 text-xs font-semibold text-[#0B4B48] hover:underline mt-1"
-            >
-              <FiExternalLink size={12} />
-              Link Dokumen Valid
-            </button>
-          </div>
+    <DashboardLayout title="Dokumen Valid">
+      <div className="w-full pb-10">
+        {/* HEADER */}
+        <div className="mb-6">
+          <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">
+            Daftar Dokumen Valid
+          </h1>
+          <p className="text-[#9CA3AF] text-[14px] font-medium mt-1">
+            Arsip digital ijazah dan transkrip mahasiswa yang telah melewati proses verifikasi institusi.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-            <div className="bg-[#F3F4F6] px-6 py-4 flex items-center gap-2 border-b border-gray-200">
-              <FiUser size={16} className="text-gray-800" />
-              <h3 className="text-[14px] font-bold text-gray-800">Informasi Pribadi</h3>
+        {/* ✅ INFO BATCH — samakan dengan DetailBatchVerifikator */}
+        {(batch?.batch || batch?.nomor_batch_upload) && (
+          <div className="mb-6 px-6 py-4 bg-white border border-gray-200 rounded-xl flex flex-wrap items-center gap-x-12 gap-y-4 shadow-sm relative overflow-hidden">
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#117065]"></div>
+
+            <div className="flex flex-col">
+              <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">No Batch</span>
+              <span className="text-[14px] font-bold text-gray-800">
+                {formatNamaBatch(batch.batch || batch.nomor_batch_upload)}
+              </span>
             </div>
-            <div className="p-6 grid grid-cols-2 gap-y-6 gap-x-8 text-[14px]">
-              <div><p className="text-gray-500 mb-1.5">Nama</p><p className="font-bold text-gray-800">{mahasiswa.nama}</p></div>
-              <div><p className="text-gray-500 mb-1.5">NIM</p><p className="font-bold text-gray-800">{mahasiswa.nim}</p></div>
-              <div><p className="text-gray-500 mb-1.5">Tempat, Tanggal Lahir</p><p className="font-bold text-gray-800">{tempatLahir}, {tanggalLahir}</p></div>
-              <div><p className="text-gray-500 mb-1.5">Jenis Kelamin</p><p className="font-bold text-gray-800">{jenisKelamin}</p></div>
-              <div><p className="text-gray-500 mb-1.5">Email</p><p className="font-bold text-gray-800">{email}</p></div>
-              <div><p className="text-gray-500 mb-1.5">No Telepon</p><p className="font-bold text-gray-800">{noTelp}</p></div>
+
+            <div className="flex flex-col">
+              <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Fakultas</span>
+              <span className="text-[14px] font-bold text-gray-800">{batch.fakultas || "-"}</span>
+            </div>
+
+            <div className="flex flex-col">
+              <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Tahun Lulus</span>
+              <span className="text-[14px] font-bold text-gray-800">{batch.tahun || "-"}</span>
+            </div>
+
+            <div className="flex flex-col">
+              <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Periode</span>
+              <span className="text-[14px] font-bold text-gray-800">{formatPeriode(batch.periode)}</span>
+            </div>
+
+            <div className="flex flex-col">
+              <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Total Data</span>
+              {/* ✅ Samakan styling dengan DetailBatchVerifikator */}
+              <span className="text-[14px] font-bold text-[#117065] bg-teal-50 px-2 py-0.5 rounded-md inline-block text-center w-fit">
+                {batch.total || mahasiswa.length || 0} Mahasiswa
+              </span>
             </div>
           </div>
+        )}
 
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-            <div className="bg-[#F3F4F6] px-6 py-4 flex items-center gap-2 border-b border-gray-200">
-              <FiBook size={16} className="text-gray-800" />
-              <h3 className="text-[14px] font-bold text-gray-800">Informasi Akademik</h3>
-            </div>
-            <div className="p-6 grid grid-cols-2 gap-y-6 gap-x-8 text-[14px]">
-              <div><p className="text-gray-500 mb-1.5">Fakultas</p><p className="font-bold text-gray-800">{mahasiswa.fakultas}</p></div>
-              <div><p className="text-gray-500 mb-1.5">Program Studi</p><p className="font-bold text-gray-800">{mahasiswa.prodi}</p></div>
-              <div><p className="text-gray-500 mb-1.5">Tahun Masuk</p><p className="font-bold text-gray-800">{tahunMasuk}</p></div>
-              <div><p className="text-gray-500 mb-1.5">IPK</p><p className="font-bold text-[#115E59]">{ipk} <span className="text-gray-800">/ 4.00</span></p></div>
-              <div><p className="text-gray-500 mb-1.5">Tahun Lulus</p><p className="font-bold text-gray-800">{mahasiswa.tahunLulus}</p></div>
-              <div><p className="text-gray-500 mb-1.5">Total SKS</p><p className="font-bold text-gray-800">{totalSks} SKS</p></div>
+        {/* SEARCH BAR */}
+        <div ref={searchRef} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-0">
+          <div className="w-full lg:max-w-md">
+            <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
+              <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
+              <input
+                type="text"
+                placeholder="Cari: Nama, NIM..."
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setShowSuggestions(true); }}
+                onFocus={() => setShowSuggestions(true)}
+                className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
+              />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-          <div className="bg-[#F3F4F6] px-6 py-4 flex items-center gap-2 border-b border-gray-200">
-            <FiFileText size={16} className="text-gray-800" />
-            <h3 className="text-[15px] font-bold text-gray-800">Transkrip Nilai</h3>
+        {/* SUGGESTIONS */}
+        {showSuggestions && search.trim() && (
+          <div className="bg-white border-x border-b border-gray-100 shadow-md rounded-b-xl mb-6 overflow-y-auto" style={{ maxHeight: "260px" }}>
+            {searchSuggestions.length > 0 ? (
+              searchSuggestions.map((student) => (
+                <div
+                key={student.mahasiswa_code || student.mahasiswaCode || student.nim}
+                  onClick={() => { setShowSuggestions(false); handleGoDetailMahasiswa(student); }}
+                  className="px-6 py-4 border-b border-gray-50 hover:bg-teal-50 cursor-pointer flex justify-between items-center transition-colors last:border-b-0"
+                >
+                  <div className="flex flex-col gap-0.5">
+                    <div className="font-bold text-[#1F2937] text-[14px] mb-0.5">
+                      {student.nama || student.nama_mahasiswa || "-"}
+                    </div>
+                    <div className="text-[12px] font-normal text-gray-500">
+                      {student.nim || "-"} • {student.prodi || student.program_studi || "-"}
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-[#DCFCE7] text-[#16A34A] ml-4 whitespace-nowrap">
+                    {student.status || "Terbit"}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="p-6 text-center text-sm text-gray-400">Mahasiswa tidak ditemukan</div>
+            )}
           </div>
-          
-          <div className="max-h-[500px] overflow-y-auto">
-            <table className="w-full text-[14px] text-gray-800">
-              <thead className="sticky top-0 bg-[#F9FAFB] border-b border-gray-200 text-gray-500">
+        )}
+
+        {!(showSuggestions && search.trim()) && <div className="mb-6" />}
+
+        {errorMessage && (
+          <div className="mb-5 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm font-semibold text-red-600">
+            {errorMessage}
+          </div>
+        )}
+
+        {/* TABLE */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left whitespace-nowrap">
+              <thead className="bg-[#F9FAFB] text-gray-500 font-bold border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-4 font-bold text-center">Kode</th>
-                  <th className="px-6 py-4 font-bold text-left">Nama Mata Kuliah</th>
-                  <th className="px-6 py-4 font-bold text-center">SKS</th>
-                  <th className="px-6 py-4 font-bold text-center">Nilai Mutu</th>
-                  <th className="px-6 py-4 font-bold text-center">Bobot</th>
-                  <th className="px-6 py-4 font-bold text-center">Nilai</th>
+                  <th className="py-4 px-6 text-center w-16">No.</th>
+                  <th className="py-4 px-6 w-[180px]">Nama</th>
+                  <th className="py-4 px-6 text-center w-[160px]">NIM</th>
+                  <th className="py-4 px-6 text-center">Program Studi</th>
+                  <th className="py-4 px-6 text-center w-[120px]">Tahun Lulus</th>
+                  <th className="py-4 px-6 text-center w-[120px]">Status</th>
+                  <th className="py-4 px-6 text-center w-[180px]">Dokumen</th>
+                  <th className="py-4 px-6 text-center w-20">Detail</th>
                 </tr>
               </thead>
               <tbody>
-                {nilaiData.map((n, index) => (
-                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-semibold text-center">{n.kode}</td>
-                    <td className="px-6 py-4 font-semibold">{n.nama}</td>
-                    <td className="px-6 py-4 font-semibold text-center">{n.sks}</td>
-                    <td className="px-6 py-4 font-semibold text-center">{n.mutu}</td>
-                    <td className="px-6 py-4 font-semibold text-center">{n.bobot}</td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="inline-block bg-[#115E59] text-white px-4 py-1 rounded-full font-bold text-[12px]">{n.grade}</span>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
+                      Memuat data dokumen valid...
                     </td>
                   </tr>
-                ))}
+                ) : filteredTable.length > 0 ? (
+                  filteredTable.map((item, i) => (
+                <tr key={item.mahasiswa_code || item.mahasiswaCode || item.nim}  className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                      <td className="py-4 px-6 text-center font-semibold text-gray-800">{i + 1}.</td>
+                      <td className="py-4 px-6 font-semibold text-gray-900">{item.nama || item.nama_mahasiswa || "-"}</td>
+                      <td className="py-4 px-6 text-center font-normal text-gray-700">{item.nim || "-"}</td>
+                      <td className="py-4 px-6 text-center font-normal text-gray-700">{item.prodi || item.program_studi || "-"}</td>
+                      <td className="py-4 px-6 text-center font-normal text-gray-700">{item.tahun || item.tahun_lulus || "-"}</td>
+                      <td className="py-4 px-6 text-center">
+                        <span className="inline-block px-5 py-1.5 rounded-full text-xs font-bold text-white bg-[#16A36B]">
+                          {item.status || "Terbit"}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          {item.ijazah?.file_pdf_url && (
+                            <button type="button" onClick={() => openPdf(item.ijazah.file_pdf_url)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-[#117065] text-white text-xs font-bold hover:bg-teal-800 transition">
+                              <FiExternalLink /> Ijazah
+                            </button>
+                          )}
+                          {item.transkrip?.file_pdf_url && (
+                            <button type="button" onClick={() => openPdf(item.transkrip.file_pdf_url)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition">
+                              <FiExternalLink /> Transkrip
+                            </button>
+                          )}
+                          {!item.ijazah?.file_pdf_url && !item.transkrip?.file_pdf_url && (
+                            <span className="text-xs text-gray-400 font-semibold">-</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-4 px-6 text-center">
+                        <button onClick={() => handleGoDetailMahasiswa(item)}
+                          className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0">
+                          <DetailIcon />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
+                      <div className="flex flex-col items-center justify-center">
+                        <FiSearch className="text-4xl mb-3 text-gray-300" />
+                        <p>Mahasiswa tidak ditemukan.</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

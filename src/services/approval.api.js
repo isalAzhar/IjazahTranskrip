@@ -34,22 +34,47 @@ export const getApprovalLaporan = async ({
 };
 
 // 2. Revoke Mahasiswa — FIX: tambahkan catatan di body (backend wajibkan catatan)
-export const revokeMahasiswa = async (nim, catatan) => {
+export const revokeMahasiswa = async (mahasiswaCode, catatan) => {
   const token = getAuthToken();
-  if (!token) throw new Error("Token tidak ditemukan. Silakan login ulang.");
 
-  const response = await fetch(`/api/approval/mahasiswa/${nim}/revoke`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ catatan }),
-  });
+  if (!token) {
+    throw new Error("Token tidak ditemukan. Silakan login ulang.");
+  }
+
+  if (!mahasiswaCode) {
+    throw new Error("Kode mahasiswa tidak ditemukan.");
+  }
+
+  if (!catatan?.trim()) {
+    throw new Error("Catatan revoke wajib diisi.");
+  }
+
+  const response = await fetch(
+    `/api/approval/mahasiswa/${encodeURIComponent(mahasiswaCode)}/revoke`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        catatan: catatan.trim(),
+      }),
+    }
+  );
 
   const result = await response.json();
-  if (!response.ok) throw result;
+
+  if (!response.ok) {
+    console.error("Response revoke error:", result);
+
+    throw new Error(
+      result?.message ||
+      result?.error ||
+      "Gagal melakukan revoke mahasiswa."
+    );
+  }
 
   return result;
 };
@@ -76,26 +101,32 @@ export const getPendingBatches = async ({ page = 1, limit = 10, search = "", fak
 };
 
 // 4. Ambil detail mahasiswa per batch (Untuk halaman Detail Batch)
-export const getBatchDetail = async (batchId) => {
+export const getBatchDetail = async (batchCode) => {
   const token = getAuthToken();
   if (!token) throw new Error("Token tidak ditemukan.");
+  if (!batchCode) throw new Error("Kode batch tidak ditemukan.");
 
-  const response = await fetch(`/api/approval/batches/${batchId}`, {
+  const response = await fetch(`/api/approval/batches/${batchCode}`, {
     method: "GET",
-    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
   });
 
   const result = await response.json();
   if (!response.ok) throw result;
+
   return result;
 };
 
 // 5. Approve seluruh batch (Tombol Validasi di Detail Batch)
-export const approveBatch = async (batchId) => {
+export const approveBatch = async (batchCode) => {
   const token = getAuthToken();
   if (!token) throw new Error("Token tidak ditemukan.");
+  if (!batchCode) throw new Error("Kode batch tidak ditemukan.");
 
-  const response = await fetch(`/api/approval/batches/${batchId}/approve`, {
+  const response = await fetch(`/api/approval/batches/${batchCode}/approve`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -106,15 +137,17 @@ export const approveBatch = async (batchId) => {
 
   const result = await response.json();
   if (!response.ok) throw result;
+
   return result;
 };
 
 // 6. Reject seluruh batch (Tombol Reject di Daftar Batch)
-export const rejectBatch = async (batchId, catatan) => {
+export const rejectBatch = async (batchCode, catatan) => {
   const token = getAuthToken();
   if (!token) throw new Error("Token tidak ditemukan.");
+  if (!batchCode) throw new Error("Kode batch tidak ditemukan.");
 
-  const response = await fetch(`/api/approval/batches/${batchId}/reject`, {
+  const response = await fetch(`/api/approval/batches/${batchCode}/reject`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -126,5 +159,6 @@ export const rejectBatch = async (batchId, catatan) => {
 
   const result = await response.json();
   if (!response.ok) throw result;
+
   return result;
 };

@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FiSearch, FiChevronDown, FiXCircle, FiAlertTriangle, FiCheckCircle } from "react-icons/fi";
+import {
+  FiSearch,
+  FiChevronDown,
+  FiXCircle,
+  FiAlertTriangle,
+  FiCheckCircle,
+} from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { useAuth } from "../../pages/context/AuthContext";
@@ -40,7 +46,10 @@ const DaftarBatch = () => {
   const [isRejecting, setIsRejecting] = useState(false);
 
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: currentYear - 2021 + 1 }, (_, i) => currentYear - i);
+  const years = Array.from(
+    { length: currentYear - 2021 + 1 },
+    (_, i) => currentYear - i,
+  );
 
   const renderFakultas = (fakultas) => {
     if (Array.isArray(fakultas)) return fakultas.join(", ") || "-";
@@ -59,24 +68,69 @@ const DaftarBatch = () => {
         tahun: selectedYear,
       });
 
-      let data = response.data || [];
+      let data = Array.isArray(response.data)
+        ? response.data.map((item) => {
+            const raw = item.raw || item;
+
+            const batchCode =
+              item.batch_code || raw.batch_code || item.id || raw.id;
+
+            return {
+              ...item,
+
+              raw,
+
+              id: batchCode,
+              batch_code: batchCode,
+
+              nomor_batch_upload:
+                item.nomor_batch_upload || raw.nomor_batch_upload || "-",
+
+              fakultas: item.fakultas || raw.fakultas || [],
+
+              tahun_lulus: item.tahun_lulus || raw.tahun_lulus || "-",
+
+              periode: item.periode || raw.periode || "-",
+
+              pending_count:
+                item.pending_count ??
+                raw.pending_count ??
+                item.total_mahasiswa ??
+                raw.total_mahasiswa ??
+                0,
+
+              mahasiswa: item.mahasiswa || raw.mahasiswa || [],
+            };
+          })
+        : [];
 
       // Filter search di frontend
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         data = data.filter((item) => {
-          const matchBatch = String(item.nomor_batch_upload || "").toLowerCase().includes(q);
-          const matchMahasiswa = Array.isArray(item.mahasiswa) && item.mahasiswa.some((mhs) =>
-            String(mhs.nama_mahasiswa || "").toLowerCase().includes(q) ||
-            String(mhs.nim || "").toLowerCase().includes(q)
-          );
+          const matchBatch = String(item.nomor_batch_upload || "")
+            .toLowerCase()
+            .includes(q);
+          const matchMahasiswa =
+            Array.isArray(item.mahasiswa) &&
+            item.mahasiswa.some(
+              (mhs) =>
+                String(mhs.nama_mahasiswa || "")
+                  .toLowerCase()
+                  .includes(q) ||
+                String(mhs.nim || "")
+                  .toLowerCase()
+                  .includes(q),
+            );
           return matchBatch || matchMahasiswa;
         });
       }
 
       // Filter tahun di frontend
       if (selectedYear) {
-        data = data.filter((item) => String(item.tahun_lulus) === String(selectedYear));
+        data = data.filter(
+          (item) => String(item.tahun_lulus) === String(selectedYear),
+        );
       }
 
       // Filter fakultas di frontend
@@ -84,8 +138,14 @@ const DaftarBatch = () => {
         const selFak = selectedFakultas.toLowerCase();
         data = data.filter((item) =>
           Array.isArray(item.fakultas)
-            ? item.fakultas.some((f) => String(f || "").toLowerCase().includes(selFak))
-            : String(item.fakultas || "").toLowerCase().includes(selFak)
+            ? item.fakultas.some((f) =>
+                String(f || "")
+                  .toLowerCase()
+                  .includes(selFak),
+              )
+            : String(item.fakultas || "")
+                .toLowerCase()
+                .includes(selFak),
         );
       }
 
@@ -106,7 +166,10 @@ const DaftarBatch = () => {
   // Handle Click Outside untuk menutup suggestion dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target)
+      ) {
         setShowSuggestions(false);
       }
     };
@@ -119,7 +182,7 @@ const DaftarBatch = () => {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase();
     let suggestions = [];
-    
+
     realBatchData.forEach((batch) => {
       if (Array.isArray(batch.mahasiswa)) {
         batch.mahasiswa.forEach((mhs) => {
@@ -134,46 +197,67 @@ const DaftarBatch = () => {
               prodi: mhs.prodi || mhs.nama_prodi || "Program Studi",
               fakultas: renderFakultas(batch.fakultas),
               batchName: batch.nomor_batch_upload || "-",
-              batchData: batch, 
-              mahasiswaData: mhs
+              batchData: batch,
+              mahasiswaData: mhs,
             });
           }
         });
       }
     });
-    
-    return suggestions.filter((v, i, a) => a.findIndex(t => t.nim === v.nim) === i);
+
+    return suggestions.filter(
+      (v, i, a) => a.findIndex((t) => t.nim === v.nim) === i,
+    );
   };
 
   const currentSuggestions = getSuggestions();
 
- const handleNavigateDetail = (item) => {
-    // Hanya rektor yang masuk ke rute /rektor
-    if (userRole === "rektor") {
-      navigate(`/rektor/detail-batch/${item.id_batch_upload}`, { state: item });
-    } else {
-      // tu_rektorat, wakil_rektor_1, dan fakultas masuk ke sini
-      navigate(`/verifikator/detail-batch/${item.id_batch_upload}`, { state: item });
+  const handleNavigateDetail = (item) => {
+    const batchCode = item.batch_code || item.raw?.batch_code || item.id;
+
+    if (!batchCode) {
+      console.error("Batch code tidak ditemukan:", item);
+      return;
     }
+
+    const route =
+      userRole === "rektor"
+        ? `/rektor/detail-batch/${batchCode}`
+        : `/verifikator/detail-batch/${batchCode}`;
+
+    navigate(route, {
+      state: {
+        batch: item,
+      },
+    });
   };
-  
+
   // Handler Modal Reject
   const handleOpenReject = (batch) => {
     setSelectedBatch(batch);
     setRejectReason("");
     setShowRejectReason(true);
   };
-  
+
   const handleSubmitReason = () => {
     setShowRejectReason(false);
     setShowRejectConfirm(true);
   };
-  
+
   const handleConfirmReject = async () => {
     if (!selectedBatch) return;
     setIsRejecting(true); // 🔥 Loading dimulai
     try {
-      await rejectBatch(selectedBatch.id_batch_upload, rejectReason);
+      const batchCode =
+        selectedBatch.batch_code ||
+        selectedBatch.raw?.batch_code ||
+        selectedBatch.id;
+
+      if (!batchCode) {
+        throw new Error("Kode batch tidak ditemukan.");
+      }
+
+      await rejectBatch(batchCode, rejectReason);
       setShowRejectConfirm(false);
       setShowRejectSuccess(true);
     } catch (error) {
@@ -184,7 +268,7 @@ const DaftarBatch = () => {
       setIsRejecting(false); // 🔥 Loading selesai
     }
   };
-  
+
   const handleFinishReject = () => {
     setShowRejectSuccess(false);
     setSelectedBatch(null);
@@ -198,10 +282,11 @@ const DaftarBatch = () => {
   return (
     <DashboardLayout title="Manajemen Data">
       <div className="w-full pb-10">
-
         {/* HEADER */}
         <div className="mb-6">
-          <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">Manajemen Data</h1>
+          <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">
+            Manajemen Data
+          </h1>
           <p className="text-[#9CA3AF] text-[14px] font-medium mt-1">
             Kelola validasi dan kirim data mahasiswa ke tahap berikutnya
           </p>
@@ -211,7 +296,6 @@ const DaftarBatch = () => {
         <div className="mb-6" ref={searchContainerRef}>
           <div className="bg-white p-4 shadow-sm border border-gray-100 rounded-xl">
             <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-              
               {/* Search */}
               <div className="w-full lg:max-w-md">
                 <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
@@ -221,9 +305,9 @@ const DaftarBatch = () => {
                     placeholder="Cari: Nama Mahasiswa atau NIM..."
                     value={searchQuery}
                     onFocus={() => setShowSuggestions(true)}
-                    onChange={(e) => { 
-                      setSearchQuery(e.target.value); 
-                      setCurrentPage(1); 
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
                       setShowSuggestions(true);
                     }}
                     className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
@@ -236,16 +320,29 @@ const DaftarBatch = () => {
                   <div className="relative w-full lg:w-72">
                     <select
                       value={selectedFakultas}
-                      onChange={(e) => { setSelectedFakultas(e.target.value); setCurrentPage(1); }}
+                      onChange={(e) => {
+                        setSelectedFakultas(e.target.value);
+                        setCurrentPage(1);
+                      }}
                       className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
                     >
                       <option value="">Semua Fakultas</option>
-                      <option value="Fakultas Agama Islam">Fakultas Agama Islam</option>
-                      <option value="Fakultas Keguruan dan Ilmu Pendidikan">Fakultas Keguruan dan Ilmu Pendidikan</option>
-                      <option value="Fakultas Ekonomi dan Bisnis">Fakultas Ekonomi dan Bisnis</option>
-                      <option value="Fakultas Teknik dan Sains">Fakultas Teknik dan Sains</option>
+                      <option value="Fakultas Agama Islam">
+                        Fakultas Agama Islam
+                      </option>
+                      <option value="Fakultas Keguruan dan Ilmu Pendidikan">
+                        Fakultas Keguruan dan Ilmu Pendidikan
+                      </option>
+                      <option value="Fakultas Ekonomi dan Bisnis">
+                        Fakultas Ekonomi dan Bisnis
+                      </option>
+                      <option value="Fakultas Teknik dan Sains">
+                        Fakultas Teknik dan Sains
+                      </option>
                       <option value="Fakultas Hukum">Fakultas Hukum</option>
-                      <option value="Fakultas Ilmu Kesehatan">Fakultas Ilmu Kesehatan</option>
+                      <option value="Fakultas Ilmu Kesehatan">
+                        Fakultas Ilmu Kesehatan
+                      </option>
                     </select>
                     <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
                   </div>
@@ -255,11 +352,18 @@ const DaftarBatch = () => {
                 <div className="relative w-full lg:w-44">
                   <select
                     value={selectedYear}
-                    onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(1); }}
+                    onChange={(e) => {
+                      setSelectedYear(e.target.value);
+                      setCurrentPage(1);
+                    }}
                     className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
                   >
                     <option value="">Semua Tahun</option>
-                    {years.map((y) => <option key={y} value={y}>{y}</option>)}
+                    {years.map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
                   </select>
                   <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
                 </div>
@@ -268,45 +372,91 @@ const DaftarBatch = () => {
           </div>
 
           {/* AUTOCOMPLETE SUGGESTION LIST */}
-          {showSuggestions && searchQuery.trim() && currentSuggestions.length > 0 && (
-            <div className="mt-4 w-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden max-h-[400px] overflow-y-auto">
-              {currentSuggestions.map((item, index) => (
-               <div
-                  key={item.id}
-                  onClick={() => {
-                    setShowSuggestions(false); 
-                    const safeNim = encodeURIComponent(item.nim);
-                    
-                    // PERBAIKAN LOGIKA ROUTING SEARCH
-                    if (userRole === "rektor") {
-                      navigate(`/rektor/detail-mahasiswa/${safeNim}`, { state: { mahasiswa: item.mahasiswaData, batch: item.batchData } });
-                    } else if (userRole === "operator" || userRole === "operator_data") {
-                      navigate(`/operator/detail-mahasiswa/${safeNim}`, { state: { mahasiswa: item.mahasiswaData, batch: item.batchData } });
-                    } else {
-                      // tu_rektorat, wakil_rektor_1, dan fakultas masuk ke rute verifikator
-                      navigate(`/verifikator/detail-mahasiswa/${safeNim}`, { state: { mahasiswa: item.mahasiswaData, batch: item.batchData } });
-                    }
-                  }}
-                  className={`px-6 py-4 cursor-pointer hover:bg-gray-50 transition-colors flex justify-between items-center ${
-                    index !== currentSuggestions.length - 1 ? 'border-b border-gray-100' : ''
-                  }`}
-                >
-                  <div className="flex flex-col">
-                    <span className="text-[14px] font-bold text-gray-800">{item.nama}</span>
-                    <span className="text-[13px] text-gray-400 mt-0.5">
-                      {item.nim} • {item.prodi}
-                    </span>
-                    <span className="text-[13px] text-gray-400 mt-0.5">{item.fakultas}</span>
+          {showSuggestions &&
+            searchQuery.trim() &&
+            currentSuggestions.length > 0 && (
+              <div className="mt-4 w-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden max-h-[400px] overflow-y-auto">
+                {currentSuggestions.map((item, index) => (
+                  <div
+                    key={item.id}
+                    onClick={() => {
+                      setShowSuggestions(false);
+
+                      const mahasiswaCode =
+                        item.mahasiswaData?.mahasiswa_code ||
+                        item.mahasiswaData?.mahasiswaCode ||
+                        item.mahasiswaData?.raw?.mahasiswa_code;
+
+                      if (!mahasiswaCode) {
+                        console.error("Mahasiswa code tidak ditemukan:", item);
+                        alert("Kode mahasiswa tidak ditemukan.");
+                        return;
+                      }
+
+                      const safeMahasiswaCode =
+                        encodeURIComponent(mahasiswaCode);
+
+                      if (userRole === "rektor") {
+                        navigate(
+                          `/rektor/detail-mahasiswa/${safeMahasiswaCode}`,
+                          {
+                            state: {
+                              mahasiswa: item.mahasiswaData,
+                              batch: item.batchData,
+                            },
+                          },
+                        );
+                      } else if (
+                        userRole === "operator" ||
+                        userRole === "operator_data"
+                      ) {
+                        navigate(
+                          `/operator/detail-mahasiswa/${safeMahasiswaCode}`,
+                          {
+                            state: {
+                              mahasiswa: item.mahasiswaData,
+                              batch: item.batchData,
+                            },
+                          },
+                        );
+                      } else {
+                        navigate(
+                          `/verifikator/detail-mahasiswa/${safeMahasiswaCode}`,
+                          {
+                            state: {
+                              mahasiswa: item.mahasiswaData,
+                              batch: item.batchData,
+                            },
+                          },
+                        );
+                      }
+                    }}
+                    className={`px-6 py-4 cursor-pointer hover:bg-gray-50 transition-colors flex justify-between items-center ${
+                      index !== currentSuggestions.length - 1
+                        ? "border-b border-gray-100"
+                        : ""
+                    }`}
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-[14px] font-bold text-gray-800">
+                        {item.nama}
+                      </span>
+                      <span className="text-[13px] text-gray-400 mt-0.5">
+                        {item.nim} • {item.prodi}
+                      </span>
+                      <span className="text-[13px] text-gray-400 mt-0.5">
+                        {item.fakultas}
+                      </span>
+                    </div>
+                    <div className="flex-shrink-0 ml-4">
+                      <span className="bg-[#F3F4F6] text-gray-500 text-[12px] font-bold px-3 py-1.5 rounded-lg border border-gray-100">
+                        {item.batchName}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex-shrink-0 ml-4">
-                    <span className="bg-[#F3F4F6] text-gray-500 text-[12px] font-bold px-3 py-1.5 rounded-lg border border-gray-100">
-                      {item.batchName}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
         </div>
 
         {/* TABEL BATCH */}
@@ -325,79 +475,125 @@ const DaftarBatch = () => {
                   <th className="py-4 px-6 text-center w-20">Reject</th>
                 </tr>
               </thead>
-            <tbody className={`${isLoading ? "opacity-50" : ""} transition-opacity duration-200`}>
-              {realBatchData.map((item, i) => (
-                <tr key={item.id_batch_upload} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                  <td className="py-4 px-6 text-center font-bold text-gray-800">
-                    {(currentPage - 1) * itemsPerPage + i + 1}.
-                  </td>
-                  <td className="py-4 px-6 font-bold text-gray-900">{item.nomor_batch_upload}</td>
-                  <td className="py-4 px-6 font-normal text-gray-800">{renderFakultas(item.fakultas)}</td>
-                  <td className="py-4 px-6 text-center font-semibold text-gray-700">{item.tahun_lulus}</td>
-                  
-                  {/* 🔥 PERBAIKAN PERIODE: Hapus underscore & format judul */}
-                  <td className="py-4 px-6 text-center font-semibold text-gray-700 capitalize">
-                    {item.periode ? item.periode.replace(/_/g, ' ') : "-"}
-                  </td>
-              
-              {/* 🔥 TOTAL DATA: Semi-bold, tanpa background, sejajar dengan periode */}
-                  <td className="py-4 px-6 text-center font-semibold text-gray-700">
-                    {item.pending_count}
-                  </td>
-                  <td className="py-4 px-6 text-center">
-                    <button
-                      onClick={() => handleNavigateDetail(item)}
-                      className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
-                    >
-                      <DetailIcon />
-                    </button>
-                  </td>
-                  <td className="py-4 px-6 text-center">
-                    <button
-                      onClick={() => handleOpenReject(item)}
-                      className="inline-flex items-center justify-center p-1.5 w-8 h-8 rounded-md hover:bg-red-50 text-red-400 hover:text-red-600 border border-transparent hover:border-red-200 transition-colors"
-                      title="Reject Batch"
-                    >
-                      <FiXCircle size={22} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              <tbody
+                className={`${isLoading ? "opacity-50" : ""} transition-opacity duration-200`}
+              >
+                {realBatchData.map((item, i) => (
+                  <tr
+                    key={
+                      item.batch_code ||
+                      item.raw?.batch_code ||
+                      item.id ||
+                      item.nomor_batch_upload ||
+                      i
+                    }
+                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="py-4 px-6 text-center font-bold text-gray-800">
+                      {(currentPage - 1) * itemsPerPage + i + 1}.
+                    </td>
+                    <td className="py-4 px-6 font-bold text-gray-900">
+                      {item.nomor_batch_upload}
+                    </td>
+                    <td className="py-4 px-6 font-normal text-gray-800">
+                      {renderFakultas(item.fakultas)}
+                    </td>
+                    <td className="py-4 px-6 text-center font-semibold text-gray-700">
+                      {item.tahun_lulus}
+                    </td>
 
-              {realBatchData.length === 0 && !isLoading && (
-                <tr>
-                  <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
-                    <div className="flex flex-col items-center justify-center">
-                      <FiSearch className="text-4xl mb-3 text-gray-300" />
-                      <p>Data batch tidak ditemukan.</p>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
+                    {/* 🔥 PERBAIKAN PERIODE: Hapus underscore & format judul */}
+                    <td className="py-4 px-6 text-center font-semibold text-gray-700 capitalize">
+                      {item.periode ? item.periode.replace(/_/g, " ") : "-"}
+                    </td>
+
+                    {/* 🔥 TOTAL DATA: Semi-bold, tanpa background, sejajar dengan periode */}
+                    <td className="py-4 px-6 text-center font-semibold text-gray-700">
+                      {item.pending_count}
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      <button
+                        onClick={() => handleNavigateDetail(item)}
+                        className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
+                      >
+                        <DetailIcon />
+                      </button>
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      <button
+                        onClick={() => handleOpenReject(item)}
+                        className="inline-flex items-center justify-center p-1.5 w-8 h-8 rounded-md hover:bg-red-50 text-red-400 hover:text-red-600 border border-transparent hover:border-red-200 transition-colors"
+                        title="Reject Batch"
+                      >
+                        <FiXCircle size={22} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+
+                {realBatchData.length === 0 && !isLoading && (
+                  <tr>
+                    <td
+                      colSpan="8"
+                      className="py-12 text-center text-gray-400 font-medium"
+                    >
+                      <div className="flex flex-col items-center justify-center">
+                        <FiSearch className="text-4xl mb-3 text-gray-300" />
+                        <p>Data batch tidak ditemukan.</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
             </table>
           </div>
 
           {/* PAGINATION */}
           {totalPages > 1 && (
             <div className="flex justify-end items-center px-6 py-5 gap-2 border-t border-gray-100 bg-white">
-              <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1}
-                className="flex items-center justify-center px-2 text-[18px] font-bold text-gray-400 hover:text-gray-800 disabled:opacity-30 transition-colors cursor-pointer">&lt;</button>
-              <button onClick={() => setCurrentPage(1)}
-                className={`w-8 h-8 flex items-center justify-center rounded text-sm font-bold shadow-sm transition-colors ${currentPage === 1 ? "bg-[#117065] text-white" : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"}`}>1</button>
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                disabled={currentPage === 1}
+                className="flex items-center justify-center px-2 text-[18px] font-bold text-gray-400 hover:text-gray-800 disabled:opacity-30 transition-colors cursor-pointer"
+              >
+                &lt;
+              </button>
+              <button
+                onClick={() => setCurrentPage(1)}
+                className={`w-8 h-8 flex items-center justify-center rounded text-sm font-bold shadow-sm transition-colors ${currentPage === 1 ? "bg-[#117065] text-white" : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"}`}
+              >
+                1
+              </button>
               {totalPages >= 2 && (
-                <button onClick={() => setCurrentPage(2)}
-                  className={`w-8 h-8 flex items-center justify-center rounded text-sm font-bold shadow-sm transition-colors ${currentPage === 2 ? "bg-[#117065] text-white" : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"}`}>2</button>
+                <button
+                  onClick={() => setCurrentPage(2)}
+                  className={`w-8 h-8 flex items-center justify-center rounded text-sm font-bold shadow-sm transition-colors ${currentPage === 2 ? "bg-[#117065] text-white" : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"}`}
+                >
+                  2
+                </button>
               )}
               {totalPages > 3 && (
-                <span className="w-8 h-8 flex items-center justify-center rounded bg-[#E5E7EB] text-gray-400 text-sm font-bold">...</span>
+                <span className="w-8 h-8 flex items-center justify-center rounded bg-[#E5E7EB] text-gray-400 text-sm font-bold">
+                  ...
+                </span>
               )}
               {totalPages > 2 && (
-                <button onClick={() => setCurrentPage(totalPages)}
-                  className={`w-8 h-8 flex items-center justify-center rounded text-sm font-bold shadow-sm transition-colors ${currentPage === totalPages ? "bg-[#117065] text-white" : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"}`}>{totalPages}</button>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  className={`w-8 h-8 flex items-center justify-center rounded text-sm font-bold shadow-sm transition-colors ${currentPage === totalPages ? "bg-[#117065] text-white" : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"}`}
+                >
+                  {totalPages}
+                </button>
               )}
-              <button onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages}
-                className="flex items-center justify-center px-2 text-[18px] font-bold text-gray-400 hover:text-gray-800 disabled:opacity-30 transition-colors cursor-pointer">&gt;</button>
+              <button
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(p + 1, totalPages))
+                }
+                disabled={currentPage === totalPages}
+                className="flex items-center justify-center px-2 text-[18px] font-bold text-gray-400 hover:text-gray-800 disabled:opacity-30 transition-colors cursor-pointer"
+              >
+                &gt;
+              </button>
             </div>
           )}
         </div>
@@ -406,8 +602,15 @@ const DaftarBatch = () => {
         {showRejectReason && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-xl w-[90%] max-w-md p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-1">Alasan Reject</h2>
-              <p className="text-sm text-gray-400 mb-4">Batch: <span className="font-semibold text-gray-600">{selectedBatch?.nomor_batch_upload}</span></p>
+              <h2 className="text-xl font-bold text-gray-800 mb-1">
+                Alasan Reject
+              </h2>
+              <p className="text-sm text-gray-400 mb-4">
+                Batch:{" "}
+                <span className="font-semibold text-gray-600">
+                  {selectedBatch?.nomor_batch_upload}
+                </span>
+              </p>
               <textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
@@ -415,10 +618,19 @@ const DaftarBatch = () => {
                 className="w-full bg-[#F3F4F6] border border-transparent focus:border-red-500 focus:bg-white rounded-xl p-4 text-sm font-medium outline-none resize-none h-32 transition-colors placeholder-gray-400"
               />
               <div className="flex justify-end gap-3 mt-6">
-                <button onClick={() => setShowRejectReason(false)}
-                  className="px-6 py-2.5 rounded-lg font-bold text-gray-600 border border-gray-300 hover:bg-gray-50 transition-colors">Batal</button>
-                <button onClick={handleSubmitReason} disabled={!rejectReason.trim()}
-                  className="px-6 py-2.5 rounded-lg font-bold text-white bg-[#117065] hover:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Konfirmasi</button>
+                <button
+                  onClick={() => setShowRejectReason(false)}
+                  className="px-6 py-2.5 rounded-lg font-bold text-gray-600 border border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleSubmitReason}
+                  disabled={!rejectReason.trim()}
+                  className="px-6 py-2.5 rounded-lg font-bold text-white bg-[#117065] hover:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Konfirmasi
+                </button>
               </div>
             </div>
           </div>
@@ -431,17 +643,19 @@ const DaftarBatch = () => {
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FiAlertTriangle className="text-red-500 text-3xl" />
               </div>
-              <h2 className="text-lg font-bold text-gray-800 mb-1">Apakah Anda yakin ingin melakukan reject?</h2>
+              <h2 className="text-lg font-bold text-gray-800 mb-1">
+                Apakah Anda yakin ingin melakukan reject?
+              </h2>
               <div className="flex justify-center gap-3 mt-8">
-                <button 
-                  onClick={() => setShowRejectConfirm(false)} 
+                <button
+                  onClick={() => setShowRejectConfirm(false)}
                   disabled={isRejecting}
                   className="flex-1 px-4 py-2.5 rounded-lg font-bold text-gray-600 border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Batal
                 </button>
-                <button 
-                  onClick={handleConfirmReject} 
+                <button
+                  onClick={handleConfirmReject}
                   disabled={isRejecting}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-75 disabled:cursor-wait"
                 >
@@ -466,16 +680,21 @@ const DaftarBatch = () => {
               <div className="w-20 h-20 bg-teal-50 rounded-full flex items-center justify-center mx-auto mb-5 border-4 border-white shadow-sm">
                 <FiCheckCircle className="text-[#117065] text-5xl" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Reject Berhasil</h2>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                Reject Berhasil
+              </h2>
               <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8">
                 Data telah berhasil ditolak dan status telah diperbarui
               </p>
-              <button onClick={handleFinishReject}
-                className="w-full px-4 py-3 rounded-xl font-bold text-white bg-[#117065] hover:bg-teal-800 transition-colors">Selesai</button>
+              <button
+                onClick={handleFinishReject}
+                className="w-full px-4 py-3 rounded-xl font-bold text-white bg-[#117065] hover:bg-teal-800 transition-colors"
+              >
+                Selesai
+              </button>
             </div>
           </div>
         )}
-
       </div>
     </DashboardLayout>
   );

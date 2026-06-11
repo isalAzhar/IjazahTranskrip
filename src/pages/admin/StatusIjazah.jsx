@@ -3,45 +3,66 @@ import DashboardLayout from "../../components/ui/DashboardLayout";
 import { FiSearch, FiChevronDown } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
 // 🔥 IMPORT DARI DASHBOARD API, BUKAN API BIASA
-import { getDashboardBatches } from "../../services/dashboard.api"; 
-import { encodeId } from "@/components/shared/hashId";
+import { getDashboardBatches } from "../../services/dashboard.api";
 
 const normalizeStatus = (status) => {
   const value = status?.toString().toLowerCase();
-  if (value === "terbit" || value === "approved" || value === "valid") return "terbit";
+  if (value === "terbit" || value === "approved" || value === "valid")
+    return "terbit";
   if (value === "proses" || value === "pending") return "proses";
-  if (value === "reject" || value === "rejected" || value === "ditolak") return "reject";
-  if (value === "revoke" || value === "revoked" || value === "dicabut") return "revoke";
+  if (value === "reject" || value === "rejected" || value === "ditolak")
+    return "reject";
+  if (value === "revoke" || value === "revoked" || value === "dicabut")
+    return "revoke";
   return value || "";
 };
 
 const getBadgeLabel = (status) => {
   const normalized = normalizeStatus(status);
   switch (normalized) {
-    case "terbit": return "Terbit";
-    case "proses": return "Proses";
-    case "reject": return "Reject";
-    case "revoke": return "Revoke";
-    default: return status || "-";
+    case "terbit":
+      return "Terbit";
+    case "proses":
+      return "Proses";
+    case "reject":
+      return "Reject";
+    case "revoke":
+      return "Revoke";
+    default:
+      return status || "-";
   }
 };
 
 const formatStatusEmail = (statusKirimRaw) => {
   const raw = String(statusKirimRaw || "").toLowerCase();
-  if (raw.includes("sudah") || (raw.includes("terkirim") && !raw.includes("belum"))) {
+  if (
+    raw.includes("sudah") ||
+    (raw.includes("terkirim") && !raw.includes("belum"))
+  ) {
     return "Email Terkirim";
   }
   return "Belum Diemail";
 };
 
 const buildFakultasOptions = (rows = []) => {
-  return [...new Set(rows.map((item) => item.fakultas).filter((item) => item && item !== "-"))];
+  return [
+    ...new Set(
+      rows.map((item) => item.fakultas).filter((item) => item && item !== "-"),
+    ),
+  ];
 };
 
 const buildYearOptions = (rows = []) => {
-  return [...new Set(rows.map((item) => item.tahun).filter((item) => item && item !== "-"))]
-    .sort((a, b) => Number(b) - Number(a));
-};
+  return [
+    ...new Set(
+      rows
+        .map((item) =>
+          (item.tahun_lulus || item.tahun)?.toString()
+        )
+        .filter((item) => item && item !== "-")
+    ),
+  ].sort((a, b) => Number(b) - Number(a));
+};  
 
 const StatusIjazah = () => {
   const navigate = useNavigate();
@@ -69,20 +90,76 @@ const StatusIjazah = () => {
       try {
         setIsLoading(true);
         setApiError("");
-        setStatusEmail(""); 
+        setStatusEmail("");
 
         // 🔥 BIARKAN BACKEND YANG MENGELOMPOKKAN & FILTER STATUS
         const result = await getDashboardBatches({
           limit: 10000,
-          status: currentStatus 
+          status: currentStatus,
         });
 
         // Tambahkan properti UI (status email & label) ke data murni dari backend
-        const finalData = result.data.map(item => ({
-          ...item,
-          status: displayLabel,
-          status_email: formatStatusEmail(item.raw?.status_kirim || item.raw?.statusKirim)
-        }));
+        const rows = Array.isArray(result?.data) ? result.data : [];
+
+const finalData = rows.map((item) => {
+  const raw = item.raw || item;
+
+  return {
+    ...item,
+
+    id:
+      item.batch_code ||
+      raw.batch_code ||
+      item.id,
+
+    batch_code:
+      item.batch_code ||
+      raw.batch_code,
+
+    batch:
+      item.batch ||
+      raw.nomor_batch_upload ||
+      raw.batch ||
+      "-",
+
+    fakultas:
+      item.fakultas ||
+      raw.fakultas ||
+      "-",
+
+    tahun:
+      item.tahun?.toString() ||
+      raw.tahun_lulus?.toString() ||
+      "-",
+
+    tahun_lulus:
+      item.tahun_lulus ||
+      raw.tahun_lulus ||
+      "-",
+
+    periode:
+      item.periode ||
+      raw.periode ||
+      "-",
+
+    total:
+      item.total ??
+      raw.total_mahasiswa ??
+      raw.total_record ??
+      0,
+
+    status: displayLabel,
+
+    status_email: formatStatusEmail(
+      item.status_kirim ||
+      item.statusKirim ||
+      raw.status_kirim ||
+      raw.statusKirim
+    ),
+
+    raw,
+  };
+});
 
         setBatchData(finalData);
         setFakultasList(buildFakultasOptions(finalData));
@@ -101,24 +178,33 @@ const StatusIjazah = () => {
   const filtered = batchData
     .filter((item) => {
       const keyword = search.toLowerCase();
-      const matchSearch = 
-        item.batch.toLowerCase().includes(keyword) || 
-        item.fakultas.toLowerCase().includes(keyword) || 
-        item.periode.toLowerCase().includes(keyword) || 
-        item.tahun.toLowerCase().includes(keyword);
+      const matchSearch =
+      String(item.batch || "").toLowerCase().includes(keyword) ||
+      String(item.fakultas || "").toLowerCase().includes(keyword) ||
+      String(item.periode || "").toLowerCase().includes(keyword) ||
+      String(item.tahun || "").toLowerCase().includes(keyword);
 
       const matchesFakultas = fakultas ? item.fakultas === fakultas : true;
       const matchesTahun = tahun ? item.tahun === tahun : true;
-      const matchesStatusEmail = (currentStatus === "terbit" && statusEmail) 
-        ? item.status_email === statusEmail
-        : true;
+      const matchesStatusEmail =
+        currentStatus === "terbit" && statusEmail
+          ? item.status_email === statusEmail
+          : true;
 
-      return matchSearch && matchesFakultas && matchesTahun && matchesStatusEmail;
+      return (
+        matchSearch && matchesFakultas && matchesTahun && matchesStatusEmail
+      );
     })
-    .sort((a, b) => a.fakultas.localeCompare(b.fakultas) || a.tahun.localeCompare(b.tahun));
+    .sort(
+      (a, b) =>
+        a.fakultas.localeCompare(b.fakultas) || a.tahun.localeCompare(b.tahun),
+    );
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const paginatedData = filtered.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
 
   useEffect(() => {
     setCurrentPage(1);
@@ -129,9 +215,19 @@ const StatusIjazah = () => {
   };
 
   const handleDetailBatch = (item) => {
-    const safeId = encodeId(item.id);
-    navigate(`../batch/${currentStatus}/${safeId}`, { state: item });
-  };
+  const batchCode = item.batch_code || item.raw?.batch_code || item.id;
+
+  if (!batchCode) {
+    console.error("Batch code tidak ditemukan:", item);
+    return;
+  }
+
+  navigate(`/batch/${currentStatus}/${batchCode}`, {
+    state: {
+      batch: item,
+    },
+  });
+};
 
   const renderPaginationButtons = () => {
     const pages = [];
@@ -139,8 +235,10 @@ const StatusIjazah = () => {
     pages.push(1);
     if (currentPage > 2 && totalPages > 3) pages.push("...");
     if (currentPage === 1 && totalPages > 1) pages.push(2);
-    else if (currentPage === totalPages && totalPages > 2) pages.push(totalPages - 1);
-    else if (currentPage > 1 && currentPage < totalPages) pages.push(currentPage);
+    else if (currentPage === totalPages && totalPages > 2)
+      pages.push(totalPages - 1);
+    else if (currentPage > 1 && currentPage < totalPages)
+      pages.push(currentPage);
     if (currentPage < totalPages - 1 && totalPages > 3) pages.push("...");
     if (totalPages > 1 && !pages.includes(totalPages)) pages.push(totalPages);
 
@@ -151,7 +249,11 @@ const StatusIjazah = () => {
         onClick={() => typeof page === "number" && handlePageChange(page)}
         disabled={page === "..."}
         className={`w-8 h-8 flex items-center justify-center rounded text-xs font-bold shadow-sm transition-colors ${
-          page === currentPage ? "bg-[#117065] text-white" : page === "..." ? "bg-transparent text-gray-400 cursor-default shadow-none" : "bg-white border border-gray-300 text-gray-500 hover:bg-gray-100"
+          page === currentPage
+            ? "bg-[#117065] text-white"
+            : page === "..."
+              ? "bg-transparent text-gray-400 cursor-default shadow-none"
+              : "bg-white border border-gray-300 text-gray-500 hover:bg-gray-100"
         }`}
       >
         {page}
@@ -176,8 +278,14 @@ const StatusIjazah = () => {
           <h1 className="text-[26px] font-bold text-gray-900 capitalize">
             List Ijazah {displayLabel}
           </h1>
-          <p className="text-[#9CA3AF] text-sm mt-1 capitalize">Melihat kumpulan data batch yang berstatus {displayLabel}</p>
-          {apiError && <p className="text-sm text-red-500 mt-2 font-semibold">{apiError}</p>}
+          <p className="text-[#9CA3AF] text-sm mt-1 capitalize">
+            Melihat kumpulan data batch yang berstatus {displayLabel}
+          </p>
+          {apiError && (
+            <p className="text-sm text-red-500 mt-2 font-semibold">
+              {apiError}
+            </p>
+          )}
         </div>
 
         {/* FILTER BOX */}
@@ -198,24 +306,44 @@ const StatusIjazah = () => {
 
             <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
               <div className="relative w-full sm:w-56">
-                <select value={fakultas} onChange={(e) => setFakultas(e.target.value)} className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left">
+                <select
+                  value={fakultas}
+                  onChange={(e) => setFakultas(e.target.value)}
+                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
+                >
                   <option value="">Semua Fakultas</option>
-                  {fakultasList.map((item, i) => <option key={i} value={item}>{item}</option>)}
+                  {fakultasList.map((item, i) => (
+                    <option key={i} value={item}>
+                      {item}
+                    </option>
+                  ))}
                 </select>
                 <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
               </div>
 
               <div className="relative w-full sm:w-40">
-                <select value={tahun} onChange={(e) => setTahun(e.target.value)} className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left">
+                <select
+                  value={tahun}
+                  onChange={(e) => setTahun(e.target.value)}
+                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
+                >
                   <option value="">Semua Tahun</option>
-                  {years.map((item, i) => <option key={i} value={item}>{item}</option>)}
+                  {years.map((item, i) => (
+                    <option key={i} value={item}>
+                      {item}
+                    </option>
+                  ))}
                 </select>
                 <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
               </div>
 
               {currentStatus === "terbit" && (
                 <div className="relative w-full sm:w-48">
-                  <select value={statusEmail} onChange={(e) => setStatusEmail(e.target.value)} className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-[#117065] px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left">
+                  <select
+                    value={statusEmail}
+                    onChange={(e) => setStatusEmail(e.target.value)}
+                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-[#117065] px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
+                  >
                     <option value="">Semua Status Email</option>
                     <option value="Belum Diemail">Belum Diemail</option>
                     <option value="Email Terkirim">Email Terkirim</option>
@@ -248,11 +376,11 @@ const StatusIjazah = () => {
                 <th className="px-4 py-4 text-center">Tahun Lulus</th>
                 <th className="px-4 py-4 text-center">Periode</th>
                 <th className="px-4 py-4 text-center">Total</th>
-                
+
                 {currentStatus === "terbit" && (
                   <th className="px-4 py-4 text-center">Status Email</th>
                 )}
-                
+
                 <th className="px-4 py-4 text-center">Detail</th>
               </tr>
             </thead>
@@ -261,28 +389,50 @@ const StatusIjazah = () => {
                 paginatedData.map((item, i) => {
                   const actualIndex = (currentPage - 1) * itemsPerPage + i + 1;
                   return (
-                    <tr key={item.id || i} className="h-[70px] border-t border-gray-200 hover:bg-gray-50">
-                      <td className="px-4 py-4 text-center align-middle">{actualIndex}</td>
-                      <td className="px-4 py-4 font-bold text-gray-900 align-middle">{item.batch}</td>
-                      <td className="py-4 px-4 text-center font-medium align-middle">{item.fakultas}</td>
-                      <td className="px-4 py-4 text-center font-semibold align-middle">{item.tahun}</td>
-                      <td className="px-4 py-4 text-center font-semibold align-middle">{item.periode}</td>
-                      <td className="px-4 py-4 text-center font-semibold align-middle">{item.total}</td>
-                      
+                    <tr
+                      key={item.id || i}
+                      className="h-[70px] border-t border-gray-200 hover:bg-gray-50"
+                    >
+                      <td className="px-4 py-4 text-center align-middle">
+                        {actualIndex}
+                      </td>
+                      <td className="px-4 py-4 font-bold text-gray-900 align-middle">
+                        {item.batch}
+                      </td>
+                      <td className="py-4 px-4 text-center font-medium align-middle">
+                        {item.fakultas}
+                      </td>
+                      <td className="px-4 py-4 text-center font-semibold align-middle">
+                        {item.tahun}
+                      </td>
+                      <td className="px-4 py-4 text-center font-semibold align-middle">
+                        {item.periode}
+                      </td>
+                      <td className="px-4 py-4 text-center font-semibold align-middle">
+                        {item.total}
+                      </td>
+
                       {currentStatus === "terbit" && (
                         <td className="px-4 py-4 text-center align-middle">
-                          <span className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${
-                            item.status_email === "Email Terkirim"
-                              ? "bg-green-100 text-green-700" 
-                              : "bg-orange-100 text-orange-700"
-                          }`}>
+                          <span
+                            className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${
+                              item.status_email === "Email Terkirim"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-orange-100 text-orange-700"
+                            }`}
+                          >
                             {item.status_email}
                           </span>
                         </td>
                       )}
 
                       <td className="px-4 py-3 text-center align-middle">
-                        <button type="button" onClick={() => handleDetailBatch(item)} className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-100 transition" title="Lihat detail batch">
+                        <button
+                          type="button"
+                          onClick={() => handleDetailBatch(item)}
+                          className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-100 transition"
+                          title="Lihat detail batch"
+                        >
                           <div className="w-3 h-3 border-t-2 border-b-2 border-gray-400" />
                         </button>
                       </td>
@@ -291,7 +441,10 @@ const StatusIjazah = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan={currentStatus === "terbit" ? "8" : "7"} className="px-4 py-8 text-center text-gray-400">
+                  <td
+                    colSpan={currentStatus === "terbit" ? "8" : "7"}
+                    className="px-4 py-8 text-center text-gray-400"
+                  >
                     Data {displayLabel} tidak ditemukan.
                   </td>
                 </tr>
@@ -306,9 +459,23 @@ const StatusIjazah = () => {
             </p>
             {totalPages > 1 && (
               <div className="flex items-center gap-1.5">
-                <button type="button" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50">{"<"}</button>
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50"
+                >
+                  {"<"}
+                </button>
                 {renderPaginationButtons()}
-                <button type="button" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50">{">"}</button>
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50"
+                >
+                  {">"}
+                </button>
               </div>
             )}
           </div>

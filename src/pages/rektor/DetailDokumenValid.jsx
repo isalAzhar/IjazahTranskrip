@@ -17,24 +17,67 @@ const formatPeriode = (periode) => {
 // ✅ Format nama batch
 const formatNamaBatch = (kode) => {
   if (!kode) return "-";
-  const parts = kode.split("-");
-  if (parts.length < 2) return kode;
+
+  const safeKode =
+    typeof kode === "string"
+      ? kode
+      : kode.nomor_batch_upload ||
+        kode.batch ||
+        kode.batch_code ||
+        "";
+
+  if (!safeKode) return "-";
+
+  const parts = safeKode.split("-");
+
+  if (parts.length < 2) return safeKode;
+
   const raw = parts[1];
-  if (raw.length !== 8) return kode;
+
+  if (!raw || raw.length !== 8) return safeKode;
+
   const year = raw.substring(0, 4);
   const month = raw.substring(4, 6);
   const day = raw.substring(6, 8);
-  const bulan = ["", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-    "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-  return `Batch ${parseInt(day)} ${bulan[parseInt(month)]} ${year}`;
+
+  const bulan = [
+    "",
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
+  ];
+
+  return `Batch ${parseInt(day)} ${bulan[parseInt(month)] || ""} ${year}`;
 };
 
 const DetailDokumenValidRektor = () => {
   const navigate = useNavigate();
-  const { batchId } = useParams();
-  const { state } = useLocation();
+  const { batchCode, batchId, id } = useParams();
+const location = useLocation();
 
-  const batchFromState = state || {};
+const batchFromState =
+  location.state?.batch ||
+  location.state ||
+  {};
+
+const currentBatchCode = decodeURIComponent(
+  batchCode ||
+  batchId ||
+  id ||
+  batchFromState.batch_code ||
+  batchFromState.batchCode ||
+  batchFromState.id ||
+  ""
+);
 
   const [batch, setBatch] = useState(batchFromState);
   const [mahasiswa, setMahasiswa] = useState([]);
@@ -46,11 +89,7 @@ const DetailDokumenValidRektor = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const activeBatchId =
-    batchId ||
-    batchFromState.id_batch_upload ||
-    batchFromState.id ||
-    batchFromState.batchId;
+  const activeBatchId = currentBatchCode;
 
   const fetchDetailDokumen = async () => {
     if (!activeBatchId) {
@@ -112,8 +151,22 @@ const DetailDokumenValidRektor = () => {
   };
 
   const handleGoDetailMahasiswa = (student) => {
-    navigate(`/rektor/detail-mahasiswa/${student.nim}`, { state: student });
-  };
+const mahasiswaCode =
+  student.mahasiswa_code ||
+  student.mahasiswaCode ||
+  student.raw?.mahasiswa_code;
+
+if (!mahasiswaCode) {
+  console.error("Mahasiswa code tidak ditemukan:", student);
+  alert("Kode mahasiswa tidak ditemukan.");
+  return;
+}
+
+navigate(`/rektor/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`, {
+  state: {
+    mahasiswa: student,
+  },
+});};
 
   const DetailIcon = () => (
     <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500" />
@@ -192,7 +245,7 @@ const DetailDokumenValidRektor = () => {
             {searchSuggestions.length > 0 ? (
               searchSuggestions.map((student) => (
                 <div
-                  key={student.id_mahasiswa || student.nim}
+                key={student.mahasiswa_code || student.mahasiswaCode || student.nim}
                   onClick={() => { setShowSuggestions(false); handleGoDetailMahasiswa(student); }}
                   className="px-6 py-4 border-b border-gray-50 hover:bg-teal-50 cursor-pointer flex justify-between items-center transition-colors last:border-b-0"
                 >
@@ -248,7 +301,7 @@ const DetailDokumenValidRektor = () => {
                   </tr>
                 ) : filteredTable.length > 0 ? (
                   filteredTable.map((item, i) => (
-                    <tr key={item.id_mahasiswa || item.nim} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <tr key={item.mahasiswa_code || item.mahasiswaCode || item.nim}  className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                       <td className="py-4 px-6 text-center font-semibold text-gray-800">{i + 1}.</td>
                       <td className="py-4 px-6 font-semibold text-gray-900">{item.nama || item.nama_mahasiswa || "-"}</td>
                       <td className="py-4 px-6 text-center font-normal text-gray-700">{item.nim || "-"}</td>
