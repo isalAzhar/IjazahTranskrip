@@ -99,74 +99,113 @@ const DetailBatch = () => {
 
         const result = await getDetailBatch(id);
 
-        const rows = Array.isArray(result?.mahasiswa)
-          ? result.mahasiswa
-          : [];
+// Support 2 bentuk response:
+// 1. result.data.batch + result.data.mahasiswa
+// 2. result.batch + result.mahasiswa
+const payload = result?.data || result;
 
-        const newBatchData = {
-          id: result?.id_batch_upload || batchFromState?.id || id,
+const batchInfo = payload?.batch || {};
+const rows = Array.isArray(payload?.mahasiswa)
+  ? payload.mahasiswa
+  : [];
 
-          id_batch_upload:
-            result?.id_batch_upload || batchFromState?.id_batch_upload || id,
+const newBatchData = {
+  batch_code:
+    batchInfo?.batch_code ||
+    batchInfo?.uuid ||
+    batchFromState?.batch_code ||
+    batchFromState?.uuid ||
+    id,
 
-          batch:
-            result?.nomor_batch_upload ||
-            batchFromState?.batch ||
-            batchFromState?.nomor_batch_upload ||
-            `Batch ${id}`,
+  id: batchInfo?.id || batchInfo?.id_batch_upload || batchFromState?.id || null,
 
-          nomor_batch_upload:
-            result?.nomor_batch_upload ||
-            batchFromState?.nomor_batch_upload ||
-            batchFromState?.batch ||
-            `Batch ${id}`,
+  id_batch_upload:
+    batchInfo?.id_batch_upload ||
+    batchFromState?.id_batch_upload ||
+    null,
 
-          fakultas: result?.fakultas || batchFromState?.fakultas || "-",
+  batch:
+    batchInfo?.nomor_batch_upload ||
+    batchInfo?.batch ||
+    batchFromState?.nomor_batch_upload ||
+    batchFromState?.batch ||
+    "Batch",
 
-          tahun:
-            result?.tahun_lulus?.toString() ||
-            batchFromState?.tahun?.toString() ||
-            batchFromState?.tahun_lulus?.toString() ||
-            "-",
+  nomor_batch_upload:
+    batchInfo?.nomor_batch_upload ||
+    batchInfo?.batch ||
+    batchFromState?.nomor_batch_upload ||
+    batchFromState?.batch ||
+    "Batch",
 
-          tahun_lulus:
-            result?.tahun_lulus ||
-            batchFromState?.tahun_lulus ||
-            batchFromState?.tahun ||
-            "-",
+  nama_file:
+    batchInfo?.nama_file ||
+    batchFromState?.nama_file ||
+    "-",
 
-          periode: result?.periode || batchFromState?.periode || "-",
+  fakultas:
+    batchInfo?.fakultas ||
+    batchFromState?.fakultas ||
+    "-",
 
-          total: rows.length,
+  tahun:
+    batchInfo?.tahun?.toString() ||
+    batchInfo?.tahun_lulus?.toString() ||
+    batchFromState?.tahun?.toString() ||
+    batchFromState?.tahun_lulus?.toString() ||
+    "-",
+
+  tahun_lulus:
+    batchInfo?.tahun_lulus ||
+    batchInfo?.tahun ||
+    batchFromState?.tahun_lulus ||
+    batchFromState?.tahun ||
+    "-",
+
+  periode:
+    batchInfo?.periode ||
+    batchFromState?.periode ||
+    "-",
+
+  total:
+    batchInfo?.total ||
+    rows.length,
         };
 
         setBatchData(newBatchData);
-
         const formattedMahasiswa = rows.map((item, index) => ({
-          ...item,
+  ...item,
 
-          id: item.id || item.id_mahasiswa || index + 1,
-          id_mahasiswa: item.id_mahasiswa,
+  mahasiswa_code:
+    item.mahasiswa_code ||
+    item.mahasiswaCode ||
+    item.uuid ||
+    item.raw?.mahasiswa_code ||
+    null,
 
-          nama: item.nama || item.nama_mahasiswa || "-",
-          nama_mahasiswa: item.nama_mahasiswa || item.nama || "-",
+  id: item.id || item.id_mahasiswa || index + 1,
+  id_mahasiswa: item.id_mahasiswa,
 
-          nim: item.nim || item.npm || "-",
+  nama: item.nama || item.nama_mahasiswa || "-",
+  nama_mahasiswa: item.nama_mahasiswa || item.nama || "-",
 
-          prodi: item.prodi || item.program_studi || item.nama_prodi || "-",
-          program_studi:
-            item.program_studi || item.prodi || item.nama_prodi || "-",
+  nim: item.nim || item.npm || "-",
 
-          fakultas: item.fakultas || newBatchData.fakultas || "-",
+  prodi: item.prodi || item.program_studi || item.nama_prodi || "-",
+  program_studi:
+    item.program_studi || item.prodi || item.nama_prodi || "-",
 
-          tahun: item.tahun || item.tahun_lulus || newBatchData.tahun || "-",
-          tahun_lulus:
-            item.tahun_lulus || item.tahun || newBatchData.tahun || "-",
+  fakultas: item.fakultas || newBatchData.fakultas || "-",
 
-          status: item.status || item.status_validasi || "proses",
+  tahun: item.tahun || item.tahun_lulus || newBatchData.tahun || "-",
+  tahun_lulus:
+    item.tahun_lulus || item.tahun || newBatchData.tahun || "-",
 
-          batch: newBatchData.batch,
-        }));
+  status: item.status || item.status_validasi || "proses",
+
+  batch: newBatchData.batch,
+}));
+
 
         setMahasiswa(formattedMahasiswa);
       } catch (error) {
@@ -244,7 +283,7 @@ const safeMahasiswaCode = encodeURIComponent(mahasiswaCode);
         <div className="mb-6">
           <div className="flex flex-col gap-1">
             <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">
-              Detail Batch - {batchData?.batch || "-"}
+              Detail Batch -  {batchData?.nomor_batch_upload || batchData?.batch || "-"}
             </h1>
 
             <p className="text-[#9CA3AF] text-[14px] font-medium">
