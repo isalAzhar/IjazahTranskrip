@@ -341,8 +341,8 @@ await revokeMahasiswa(mahasiswaCode, revokeReason);
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl p-7 w-full max-w-md mx-4">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
-                <FiAlertTriangle className="text-orange-500" size={20} />
+              <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
+                <FiAlertTriangle className="text-yellow-500" size={20} />
               </div>
               <div>
                 <h3 className="font-bold text-gray-900 text-[16px]">Revoke Mahasiswa</h3>
@@ -355,7 +355,7 @@ await revokeMahasiswa(mahasiswaCode, revokeReason);
               onChange={(e) => setRevokeReason(e.target.value)}
               placeholder="Tuliskan alasan revoke mahasiswa ini..."
               rows={3}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-orange-400 resize-none"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-yellow-400 resize-none"
             />
             <div className="flex gap-3 mt-5">
               <button onClick={() => setShowRevokeReason(false)}
@@ -363,7 +363,7 @@ await revokeMahasiswa(mahasiswaCode, revokeReason);
                 Batal
               </button>
               <button onClick={handleSubmitRevokeReason} disabled={!revokeReason.trim()}
-                className="flex-1 py-2.5 rounded-xl bg-orange-500 text-white font-bold text-sm hover:bg-orange-600 disabled:opacity-50">
+                className="flex-1 py-2.5 rounded-xl bg-yellow-500 text-white font-bold text-sm hover:bg-yellow-600 disabled:opacity-50">
                 Lanjutkan
               </button>
             </div>
@@ -376,8 +376,8 @@ await revokeMahasiswa(mahasiswaCode, revokeReason);
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl p-7 w-full max-w-md mx-4">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                <FiAlertTriangle className="text-red-500" size={20} />
+              <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
+                <FiAlertTriangle className="text-yellow-500" size={20} />
               </div>
               <div>
                 <h3 className="font-bold text-gray-900 text-[16px]">Konfirmasi Revoke</h3>
@@ -392,7 +392,7 @@ await revokeMahasiswa(mahasiswaCode, revokeReason);
                 Batal
               </button>
               <button onClick={handleConfirmRevoke} disabled={isRevoking}
-                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-2">
+                className="flex-1 py-2.5 rounded-xl bg-yellow-500 text-white font-bold text-sm hover:bg-yellow-600 disabled:opacity-50 flex items-center justify-center gap-2">
                 {isRevoking ? <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white" /> : "Ya, Revoke"}
               </button>
             </div>

@@ -178,7 +178,7 @@ const Dashboard = () => {
     );
   }
 
-  return (
+return (
     <DashboardLayout>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Ringkasan Statistik</h1>
@@ -208,32 +208,32 @@ const Dashboard = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100">
         <div className="p-6 border-b border-gray-100">
           <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-            <h2 className="text-xl font-bold text-gray-800">Aktivitas Verifikasi Terbaru</h2>
+            <h2 className="text-xl font-bold text-gray-800">Aktivitas Verifikasi</h2>
             <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto xl:justify-end">
               
               <div className="relative w-full sm:w-72">
                 <FiSearch className="absolute left-3 top-2.5 text-gray-400" size={16} />
-                <input type="text" placeholder="Cari: Nama, NIM, Prodi" className="w-full pl-9 pr-4 py-2 rounded-md bg-[#f3f4f6] text-sm outline-none border border-transparent focus:border-teal-500 transition-colors" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                <input type="text" placeholder="Cari: Nama, NIM, Prodi" className="w-full pl-9 pr-4 py-2 rounded-md bg-white text-sm outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] transition-colors" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
               </div>
               
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:ml-auto">
                 {/* 🔥 DROPDOWN FAKULTAS DIKEMBALIKAN */}
                 <div className="relative w-full sm:w-64">
-                  <select className="w-full appearance-none bg-[#f3f4f6] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-transparent focus:border-teal-500 cursor-pointer transition-colors" value={selectedFakultas} onChange={(e) => setSelectedFakultas(e.target.value)}>
+                  <select className="w-full appearance-none bg-white text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] cursor-pointer transition-colors" value={selectedFakultas} onChange={(e) => setSelectedFakultas(e.target.value)}>
                     {fakultasOptions.map((fakultas, index) => <option key={index} value={fakultas}>{fakultas}</option>)}
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-600">{Icons.DropdownArrow}</div>
                 </div>
 
                 <div className="relative w-full sm:w-44">
-                  <select className="w-full appearance-none bg-[#f3f4f6] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-transparent focus:border-teal-500 cursor-pointer transition-colors" value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
+                  <select className="w-full appearance-none bg-white text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] cursor-pointer transition-colors" value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
                     {statusOptions.map((status, index) => <option key={index} value={status}>{status}</option>)}
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-600">{Icons.DropdownArrow}</div>
                 </div>
 
                 <div className="relative w-full sm:w-40">
-                  <select className="w-full appearance-none bg-[#f3f4f6] text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-transparent focus:border-teal-500 cursor-pointer transition-colors" value={selectedTahun} onChange={(e) => setSelectedTahun(e.target.value)}>
+                  <select className="w-full appearance-none bg-white text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] cursor-pointer transition-colors" value={selectedTahun} onChange={(e) => setSelectedTahun(e.target.value)}>
                     {tahunOptions.map((tahun, index) => <option key={index} value={tahun}>{tahun}</option>)}
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-600">{Icons.DropdownArrow}</div>

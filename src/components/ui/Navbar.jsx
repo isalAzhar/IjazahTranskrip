@@ -4,39 +4,12 @@ import { FiBell, FiUser, FiMenu, FiX } from "react-icons/fi";
 import { useAuth } from "../../pages/context/AuthContext";
 import logo from "../../assets/img/Logo.jpg";
 
-// Role-role level rektorat/universitas — tidak perlu tampilkan sub-label fakultas
-const UNIVERSITY_ROLES = [
-  "rektor",
-  "wakil_rektor_1",
-  "tu_rektorat",
-  "admin",
-  "admin_sistem",
-];
-
-// Mapping role DB → label tampilan yang rapi
-const roleDisplayMap = {
-  // Admin
-  admin:          "Admin Sistem",
-  admin_sistem:   "Admin Sistem",
-  // Operator
-  operator:       "Operator",
-  operator_data:  "Operator Data",
-  // Tingkat Fakultas
-  tu_fakultas:    "Tata Usaha Fakultas",
-  wakil_dekan_1:  "Wakil Dekan",
-  dekan:          "Dekan",
-  // Tingkat Rektorat
-  tu_rektorat:    "Tata Usaha Rektorat",
-  wakil_rektor_1: "Wakil Rektor",
-  rektor:         "Rektor",
-};
-
 const ROLES_WITHOUT_NOTIF = ["admin", "admin_sistem"];
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth(); // 🔥 Semua data berasal dari AuthContext
+  const { user } = useAuth();
 
   const [openMenu, setOpenMenu] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
@@ -48,19 +21,35 @@ const Navbar = () => {
   // ==========================================
   // EKSTRAKSI DATA USER
   // ==========================================
-  const userRole = user?.role?.toLowerCase().trim() || "";
+ const userRole = user?.role?.toLowerCase().trim() || "";
   const fallbackName = user?.email ? user.email.split("@")[0] : "User";
-  const userName = user?.name || user?.fullname || user?.username || fallbackName;
-
-  const currentRoleName = roleDisplayMap[userRole] || "User";
-  const isUniversityRole = UNIVERSITY_ROLES.includes(userRole);
-
-  const unitName = isUniversityRole 
-    ? null 
-    : (user?.nama_unit || user?.unit || user?.fakultas || user?.department || null);
+  
+  // 🔥 TEKS ATAS: Paksa jadi "Admin" jika role-nya admin
+  let displayTitle = user?.name || user?.fullname || user?.username || fallbackName;
+  if (["admin", "admin_sistem"].includes(userRole)) {
+    displayTitle = "Admin";
+  }
 
   const showNotifIcon = !ROLES_WITHOUT_NOTIF.includes(userRole);
 
+  // 🔥 TEKS BAWAH (SUB-BAB)
+  let displaySubtitle = null;
+  const rawUnitName = user?.nama_unit || user?.unit || user?.fakultas || user?.department || user?.prodi?.unit?.nama_unit || "";
+  const cleanUnit = rawUnitName.replace(/^fakultas\s+/i, "").trim();
+
+  if (["admin", "admin_sistem"].includes(userRole)) {
+    displaySubtitle = "Sistem"; 
+  } else if (["operator", "operator_data"].includes(userRole)) {
+    displaySubtitle = "Data"; 
+  } else if (["rektor"].includes(userRole)) {
+    displaySubtitle = null; 
+  } else if (["wakil_rektor_1", "wakil_rektor", "tu_rektorat"].includes(userRole)) {
+    displaySubtitle = "Rektorat"; 
+  } else if (["dekan", "wakil_dekan_1", "wakil_dekan", "tu_fakultas"].includes(userRole)) {
+    displaySubtitle = cleanUnit ? `Fakultas ${cleanUnit}` : "Fakultas"; 
+  } else {
+    displaySubtitle = cleanUnit ? `Fakultas ${cleanUnit}` : userRole;
+  }
   // KONFIGURASI MENU
   const adminMenu = [
     { name: "Dashboard",       path: "/admin/dashboard" },
@@ -79,26 +68,25 @@ const Navbar = () => {
 
   const verifikatorMenu = [
     { name: "Dashboard",      path: "/verifikator/dashboard" },
-    { name: "Manajemen Data", path: "/verifikator/daftar-batch" },
+    { name: "Daftar Batch",   path: "/verifikator/daftar-batch" },
     { name: "Pelaporan",      path: "/verifikator/pelaporan" },
   ];
 
   const rektorMenu = [
     { name: "Dashboard",      path: "/rektor/dashboard" },
-    { name: "Manajemen Data", path: "/rektor/daftar-batch" },
+    { name: "Daftar Batch",   path: "/rektor/daftar-batch" },
     { name: "Pelaporan",      path: "/rektor/pelaporan" },
     { name: "Dokumen Valid",  path: "/rektor/dokumen-valid" },
   ];
 
-  // 🔥 PERBAIKAN: Arahkan tu_rektorat dan wakil_rektor_1 ke rektorMenu
   const menuConfig = {
     admin:          adminMenu,
     admin_sistem:   adminMenu,
     operator:       operatorMenu,
     operator_data:  operatorMenu,
-    rektor:         rektorMenu,          // Hanya Rektor yang pakai rektorMenu
-    tu_rektorat:    verifikatorMenu,     // Rektorat level 1 & 2 kembali ke Verifikator
-    wakil_rektor_1: verifikatorMenu,     // Rektorat level 1 & 2 kembali ke Verifikator
+    rektor:         rektorMenu,          
+    tu_rektorat:    verifikatorMenu,     
+    wakil_rektor_1: verifikatorMenu,     
     tu_fakultas:    verifikatorMenu,
     wakil_dekan_1:  verifikatorMenu,
     dekan:          verifikatorMenu,
@@ -106,19 +94,16 @@ const Navbar = () => {
 
   const activeMenus = menuConfig[userRole] || verifikatorMenu;
 
-  // 🔥 PERBAIKAN: Buat indikator active menu tetap menyala saat masuk ke detail
   const isRouteActive = (path) => {
     if (path === "/admin/data-mahasiswa" && location.pathname.startsWith("/admin/data-mahasiswa")) return true;
     if (path === "/operator/detail-mahasiswa" && location.pathname.startsWith("/operator/detail-mahasiswa")) return true;
     
-    // Biarkan menu Manajemen Data tetap aktif saat berada di halaman detail batch
     if (path.includes("/daftar-batch") && location.pathname.includes("/detail-batch")) return true;
     if (path.includes("/dokumen-valid") && location.pathname.includes("/detail-dokumen-valid")) return true;
     
     return location.pathname === path;
   };
 
-  // 🔥 PERBAIKAN: Arahkan klik profile ke rute yang benar
   const handleProfileClick = () => {
     switch (userRole) {
       case "admin":
@@ -126,12 +111,10 @@ const Navbar = () => {
       case "operator":
       case "operator_data": return navigate("/operator/profile");
       case "rektor": return navigate("/rektor/profile");
-      // tu_rektorat dan wakil_rektor_1 otomatis akan masuk ke default (verifikator)
       default: return navigate("/verifikator/profile");
     }
   };
 
-  // 🔥 PERBAIKAN: Arahkan klik logo ke dashboard yang benar
   const getDashboardPath = () => {
     switch (userRole) {
       case "admin":
@@ -139,7 +122,6 @@ const Navbar = () => {
       case "operator":
       case "operator_data": return "/operator/dashboard";
       case "rektor": return "/rektor/dashboard";
-      // tu_rektorat dan wakil_rektor_1 otomatis akan masuk ke default (verifikator)
       default: return "/verifikator/dashboard";
     }
   };
@@ -173,12 +155,15 @@ const Navbar = () => {
     }`;
   };
 
-  const ProfileSubtitle = () => (
-    <div className="text-[10px] text-gray-500 font-medium tracking-wide">
-      {currentRoleName}
-      {unitName && <span className="text-gray-400"> - {unitName}</span>}
-    </div>
-  );
+  // 🔥 Komponen Subtitle: Hanya dirender kalau ada isinya (Kalau Rektor dia akan hilang 100%)
+  const ProfileSubtitle = () => {
+    if (!displaySubtitle) return null;
+    return (
+      <div className="text-[12px] text-gray-500 font-medium tracking-wide capitalize mt-0.5">
+        {displaySubtitle}
+      </div>
+    );
+  };
 
   return (
     <nav className={`w-full bg-white sticky top-0 z-50 border-b border-gray-100 transition-shadow duration-300 ${scrolled ? "shadow-md" : "shadow-sm"}`}>
@@ -222,7 +207,9 @@ const Navbar = () => {
           {/* Profile */}
           <div className="flex items-center gap-3 border-l pl-3 md:pl-4 cursor-pointer group" onClick={handleProfileClick}>
             <div className="text-right leading-tight hidden sm:block">
-              <div className="text-gray-800 font-bold text-sm capitalize">{userName}</div>
+              {/* Teks Atas: Nama Asli dari DB */}
+              <div className="text-gray-800 font-bold text-sm capitalize">{displayTitle}</div>
+              {/* Teks Bawah: Mapping Sub-bab Cerdas */}
               <ProfileSubtitle />
             </div>
             <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-[#27AE60] flex items-center justify-center text-[#27AE60] bg-gray-50 group-hover:bg-[#27AE60] group-hover:text-white transition-all duration-300">
@@ -253,14 +240,14 @@ const Navbar = () => {
               <FiUser size={16} />
             </div>
             <div>
-              <div className="text-gray-800 font-bold text-sm capitalize">{userName}</div>
+              <div className="text-gray-800 font-bold text-sm capitalize">{displayTitle}</div>
               <ProfileSubtitle />
             </div>
           </div>
         </div>
       </div>
     </nav>
-  );
+  );  
 };
 
 export default Navbar;

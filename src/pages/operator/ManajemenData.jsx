@@ -239,7 +239,7 @@ navigate(`/operator/detail-pelaporan/${encodeURIComponent(mahasiswaCode)}`, {
 
         {/* FILTER BOX - DIUBAH JADI PUTIH */}
         <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-200">
-          <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 w-full transition-all shadow-sm">
+          <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 w-full md:max-w-md lg:max-w-lg transition-all shadow-sm">
             <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
             <input
               type="text"
