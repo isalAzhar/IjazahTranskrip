@@ -19,6 +19,8 @@ const initialImportResult = {
   totalFailed: 0,
   totalData: 0,
   totalBatch: 0,
+  message: "",
+  ditolak: false,
   importInfo: {
     tahun: "",
     periode: "",
@@ -43,7 +45,7 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
   const [showResult, setShowResult] = useState(false);
   const [importResult, setImportResult] = useState(initialImportResult);
 
-  // Fungsi untuk download data gagal sebagai Excel
+  // Download data gagal dari response upload sebagai Excel
   const downloadFailedData = () => {
     if (
       !Array.isArray(importResult.failed) ||
@@ -82,14 +84,11 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
       ["PETUNJUK PERBAIKAN DATA"],
       [""],
       ["1. Lihat kolom 'Baris Excel' untuk mengetahui baris yang bermasalah."],
-      [
-        "2. Lihat kolom 'Field Error' untuk mengetahui kolom yang perlu diperbaiki.",
-      ],
-      [
-        "3. Lihat kolom 'Keterangan Error' untuk mengetahui alasan data gagal diimport.",
-      ],
+      ["2. Lihat kolom 'Field Error' untuk mengetahui kolom yang perlu diperbaiki."],
+      ["3. Lihat kolom 'Keterangan Error' untuk mengetahui alasan data gagal diimport."],
       ["4. Setelah diperbaiki, upload ulang file Excel."],
       [""],
+      [`Pesan server: ${importResult.message || "-"}`],
       [`Total data gagal: ${importResult.failed.length}`],
       [`Total data Excel: ${importResult.totalData}`],
       [`Waktu export: ${new Date().toLocaleString("id-ID")}`],
@@ -99,16 +98,13 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
     petunjukSheet["!cols"] = [{ wch: 100 }];
     XLSX.utils.book_append_sheet(workbook, petunjukSheet, "Petunjuk");
 
-    const now = new Date();
-    const timestamp = now
+    const timestamp = new Date()
       .toISOString()
       .slice(0, 19)
       .replace("T", "_")
       .replaceAll(":", "-");
 
-    const fileName = `response_gagal_upload_${timestamp}.xlsx`;
-
-    XLSX.writeFile(workbook, fileName);
+    XLSX.writeFile(workbook, `response_gagal_upload_${timestamp}.xlsx`);
   };
 
   const getPayloadData = (response) => {
@@ -119,6 +115,16 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
       response?.data ||
       response ||
       {}
+    );
+  };
+
+  const getResponseMessage = (response, fallback = "Hasil pemrosesan file Excel telah selesai.") => {
+    return (
+      response?.response?.data?.message ||
+      response?.data?.message ||
+      response?.message ||
+      getPayloadData(response)?.message ||
+      fallback
     );
   };
 
@@ -140,6 +146,10 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
       jenis_kelamin: "Jenis Kelamin",
       tempat_lahir: "Tempat Lahir",
       judul_skripsi: "Judul Skripsi",
+      fakultas: "Fakultas",
+      unknown_columns: "Kolom Tidak Dikenal",
+      kolom_tidak_ada: "Kolom Tidak Ada",
+      kolom_tidak_dikenal: "Kolom Tidak Dikenal",
     };
 
     return map[field] || String(field || "-").replaceAll("_", " ");
@@ -164,7 +174,9 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
       err?.detail ||
       "Terjadi kesalahan pada data.";
 
-    const errorList = Array.isArray(err?.errors) ? err.errors : [errorMessage];
+    const errorList = Array.isArray(err?.errors)
+      ? err.errors
+      : [errorMessage];
 
     return {
       nomor: err?.row || err?.nomor || index + 1,
@@ -178,6 +190,7 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
 
   const normalizeUploadResult = (response) => {
     const data = getPayloadData(response);
+    const message = getResponseMessage(response);
 
     const mahasiswaResult = data.mahasiswa || {};
     const mahasiswaData = Array.isArray(mahasiswaResult.data)
@@ -191,15 +204,23 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
       data.kolom_tidak_dikenal ||
       [];
 
-    const errors = Array.isArray(rawErrors) ? rawErrors : [];
+    const errors = Array.isArray(rawErrors)
+      ? rawErrors
+      : rawErrors
+        ? [rawErrors]
+        : [];
+
     const batches = Array.isArray(data.batches) ? data.batches : [];
 
+    const fakultasFromMahasiswa = mahasiswaData
+      .map((item) => item.fakultas)
+      .filter((item) => item && item !== "-");
+
     const fakultasTerdeteksi = Array.from(
-      new Set(
-        mahasiswaData
-          .map((item) => item.fakultas)
-          .filter((item) => item && item !== "-"),
-      ),
+      new Set([
+        ...(data.fakultas_utama ? [data.fakultas_utama] : []),
+        ...fakultasFromMahasiswa,
+      ]),
     );
 
     const failed = errors
@@ -220,6 +241,8 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
       totalFailed,
       totalData,
       totalBatch,
+      message,
+      ditolak: Boolean(data.ditolak),
       importInfo: {
         tahun,
         periode,
@@ -240,7 +263,9 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
 
   const startImport = async () => {
     setIsProcessing(true);
+    setShowResult(false);
     setProgress(0);
+    setImportResult(initialImportResult);
 
     const interval = setInterval(() => {
       setProgress((prev) => {
@@ -260,19 +285,9 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
 
       const result = normalizeUploadResult(response);
 
-      clearInterval(interval);
-      setProgress(100);
       setImportResult(result);
-
-      setTimeout(() => {
-        setIsProcessing(false);
-        setShowResult(true);
-      }, 500);
     } catch (error) {
       console.error("UPLOAD ERROR:", error);
-
-      clearInterval(interval);
-      setProgress(100);
 
       const data = getPayloadData(error);
 
@@ -281,37 +296,36 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
         data.unknown_columns ||
         data.kolom_tidak_ada ||
         data.kolom_tidak_dikenal ||
-        data.alasan ||
         data.message ||
         [];
 
-      const errors = Array.isArray(rawErrors) ? rawErrors : [rawErrors];
+      const errors = Array.isArray(rawErrors)
+        ? rawErrors
+        : rawErrors
+          ? [rawErrors]
+          : [];
 
       const failed = errors
         .map((err, index) => normalizeErrorItem(err, index))
         .sort((a, b) => Number(a.nomor || 0) - Number(b.nomor || 0));
 
       setImportResult({
-        success: [],
+        ...initialImportResult,
         failed,
-        totalSuccess: 0,
-        totalFailed: failed.length,
-        totalData: failed.length,
-        totalBatch: 0,
+        totalFailed: Number(data.total_gagal || failed.length || 0),
+        totalData: Number(data.total_data_excel || failed.length || 0),
+        totalBatch: Number(data.total_batch || 0),
+        message: getResponseMessage(error, "Gagal memproses file upload."),
+        ditolak: Boolean(data.ditolak),
         importInfo: {
           tahun,
           periode,
-          fakultas: [],
+          fakultas: data.fakultas_utama ? [data.fakultas_utama] : [],
         },
-        mahasiswaData: [],
-        pagination: {
-          page: 1,
-          limit: 10,
-          total: 0,
-          total_pages: 0,
-        },
-        batchIds: [],
       });
+    } finally {
+      clearInterval(interval);
+      setProgress(100);
 
       setTimeout(() => {
         setIsProcessing(false);
@@ -341,9 +355,22 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files?.[0];
+
+    setFile(null);
+    setShowResult(false);
+    setImportResult(initialImportResult);
+
     if (!selectedFile) return;
 
     const fileSize = selectedFile.size / 1024 / 1024;
+    const allowedExtensions = ["xls", "xlsx"];
+    const extension = selectedFile.name.split(".").pop()?.toLowerCase();
+
+    if (!allowedExtensions.includes(extension || "")) {
+      alert("Format file harus .xls atau .xlsx.");
+      e.target.value = "";
+      return;
+    }
 
     if (fileSize > 2) {
       alert("Ukuran file maksimal 2 MB!");
@@ -422,25 +449,50 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
       totalData,
       totalBatch,
       importInfo,
+      message,
+      ditolak,
     } = importResult;
+
+    const hasFailed = Array.isArray(failed) && failed.length > 0;
+    const isFullFailure =
+      Boolean(ditolak) || (Number(totalSuccess) === 0 && Number(totalFailed) > 0);
+    const isPartialFailure = Number(totalSuccess) > 0 && Number(totalFailed) > 0;
+
+    const resultTheme = isFullFailure
+      ? {
+          header: "bg-red-50 border-red-200",
+          badge: "text-red-700 bg-red-100",
+          message: "text-red-700 bg-red-50 border-red-200",
+          title: "Import Data Ditolak",
+        }
+      : isPartialFailure
+        ? {
+            header: "bg-red-50 border-red-200",
+            badge: "text-green-700 bg-green-100",
+            message: "text-green-700 bg-green-50 border-green-200",
+            title: "Import Data Selesai dengan Catatan",
+          }
+        : {
+            header: "bg-green-50 border-green-200",
+            badge: "text-green-700 bg-green-100",
+            message: "text-green-700 bg-green-50 border-green-200",
+            title: "Import Data Berhasil",
+          };
 
     return (
       <div className="fixed inset-0 z-[999] bg-black/45 flex items-center justify-center p-4">
         <div className="w-[860px] max-h-[88vh] bg-white rounded-xl shadow-xl overflow-hidden">
-          <div className="px-6 py-4 bg-green-50 border-b border-green-200">
+          <div className={`px-6 py-4 border-b ${resultTheme.header}`}>
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-gray-800">
-                  Import Data Selesai
+                  {resultTheme.title}
                 </h2>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Hasil pemrosesan file Excel telah selesai.
-                </p>
               </div>
 
               <button
                 onClick={handleClose}
-                className="p-1.5 hover:bg-green-100 rounded-full transition-colors"
+                className="p-1.5 hover:bg-white/60 rounded-full transition-colors"
               >
                 <FiX size={18} className="text-gray-500" />
               </button>
@@ -448,12 +500,18 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
           </div>
 
           <div className="p-6 overflow-y-auto max-h-[68vh]">
+            {message && (
+              <div className={`mb-4 px-4 py-3 rounded-xl border text-xs font-semibold ${resultTheme.message}`}>
+                {message}
+              </div>
+            )}
+
             <div className="mb-5 p-4 bg-blue-50 rounded-xl border border-blue-200">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-bold text-gray-800">
                   Informasi Import
                 </h3>
-                <span className="text-[10px] font-semibold text-blue-700 bg-blue-100 px-2 py-1 rounded-full">
+                <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${resultTheme.badge}`}>
                   Ringkasan Upload
                 </span>
               </div>
@@ -463,7 +521,9 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
                   <p className="text-[10px] text-gray-500 font-semibold">
                     Total Excel
                   </p>
-                  <p className="text-lg font-bold text-gray-800">{totalData}</p>
+                  <p className="text-lg font-bold text-gray-800">
+                    {totalData}
+                  </p>
                 </div>
 
                 <div className="bg-white border border-green-100 rounded-lg p-3">
@@ -510,7 +570,9 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
                 </div>
 
                 <div className="col-span-2 mt-1">
-                  <span className="text-gray-500">Fakultas:</span>
+                  <span className="text-gray-500">
+                    Fakultas:
+                  </span>
 
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     {importInfo.fakultas.length > 0 ? (
@@ -582,20 +644,20 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
                           >
                             <td className="px-3 py-2 align-top font-semibold text-gray-700">
                               {item.nomor}
-                            </td>
+                             </td>
                             <td className="px-3 py-2 align-top font-mono text-gray-700">
                               {item.nim || "-"}
-                            </td>
+                             </td>
                             <td className="px-3 py-2 align-top">
                               <div className="text-gray-800 font-medium">
                                 {item.nama || "-"}
                               </div>
-                            </td>
+                             </td>
                             <td className="px-3 py-2 align-top">
                               <span className="inline-block px-2 py-1 bg-red-100 text-red-700 rounded-full text-[10px] font-semibold">
                                 {formatFieldName(item.field)}
                               </span>
-                            </td>
+                             </td>
                             <td className="px-3 py-2 align-top">
                               {item.errors?.map((err, i) => (
                                 <div
@@ -605,8 +667,8 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
                                   • {err}
                                 </div>
                               ))}
-                            </td>
-                          </tr>
+                             </td>
+                           </tr>
                         ))}
                       </tbody>
                     </table>
@@ -672,27 +734,13 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
               onChange={(e) => setTahun(e.target.value)}
               className="w-full h-[42px] rounded-lg border border-gray-300 px-4 pr-10 text-[12px] outline-none appearance-none font-medium text-gray-900 bg-white focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] transition-all"
             >
-              <option value="" className="text-gray-400">
-                Pilih Tahun Lulus
-              </option>
-              <option value="2021" className="text-gray-900">
-                2021
-              </option>
-              <option value="2022" className="text-gray-900">
-                2022
-              </option>
-              <option value="2023" className="text-gray-900">
-                2023
-              </option>
-              <option value="2024" className="text-gray-900">
-                2024
-              </option>
-              <option value="2025" className="text-gray-900">
-                2025
-              </option>
-              <option value="2026" className="text-gray-900">
-                2026
-              </option>
+              <option value="" className="text-gray-400">Pilih Tahun Lulus</option>
+              <option value="2021" className="text-gray-900">2021</option>
+              <option value="2022" className="text-gray-900">2022</option>
+              <option value="2023" className="text-gray-900">2023</option>
+              <option value="2024" className="text-gray-900">2024</option>
+              <option value="2025" className="text-gray-900">2025</option>
+              <option value="2026" className="text-gray-900">2026</option>
             </select>
 
             <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
@@ -710,15 +758,9 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
               onChange={(e) => setPeriode(e.target.value)}
               className="w-full h-[42px] rounded-lg border border-gray-300 px-4 pr-10 text-[12px] outline-none appearance-none font-medium text-gray-900 bg-white focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] transition-all"
             >
-              <option value="" className="text-gray-400">
-                Pilih Periode
-              </option>
-              <option value="semester ganjil" className="text-gray-900">
-                Semester Ganjil
-              </option>
-              <option value="semester genap" className="text-gray-900">
-                Semester Genap
-              </option>
+              <option value="" className="text-gray-400">Pilih Periode</option>
+              <option value="semester ganjil" className="text-gray-900">Semester Ganjil</option>
+              <option value="semester genap" className="text-gray-900">Semester Genap</option>
             </select>
 
             <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
