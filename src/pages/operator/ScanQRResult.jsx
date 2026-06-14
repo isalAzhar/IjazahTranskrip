@@ -2,81 +2,14 @@
 // Halaman hasil scan QR Ijazah — mobile-first, responsive di web
 
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { FiCheckCircle, FiAlertCircle } from "react-icons/fi";
 
 // Logo dari folder assets/img/
 import Logo from "../../assets/img/Logo.jpg";
+import { verifyDocumentByQr } from "../../services/document.api";
 
-// ── Data dummy mahasiswa ─────────────────────────────────────────────────────
-const MAHASISWA_DB = {
-  "231106040902": {
-    nama: "Adi Saputra",
-    nim: "231106040902",
-    fakultas: "Fakultas Teknik dan Sains",
-    prodi: "Teknik Informatika",
-    tahunLulus: "2026",
-    status: "Terbit",
-    ipk: "3.85",
-    noSeriIjazah: "077/S.4.0/UIKA/2026",
-    tanggalKelulusan: "24 Juni 2026",
-    tempatLahir: "Bogor",
-    tanggalLahir: "18 Oktober 2004",
-    jenisKelamin: "Laki-laki",
-    email: "adi.saputra@student.uika.ac.id",
-    noTelp: "081234567890",
-    batch: "Batch 11",
-    tahunMasuk: "2022",
-    totalSks: "144",
-    nik: "3271012010040001",
-    noIjazahNasional: "DN-231106040902-2026",
-    skAkreditasi: "123/SK/LAM-INFRA/Akred/S/IX/2024",
-  },
-  "231106040903": {
-    nama: "Rani Maharani",
-    nim: "231106040903",
-    fakultas: "Fakultas Ekonomi dan Bisnis",
-    prodi: "Manajemen",
-    tahunLulus: "2026",
-    status: "Terbit",
-    ipk: "3.92",
-    noSeriIjazah: "078/S.4.0/UIKA/2026",
-    tanggalKelulusan: "24 Juni 2026",
-    tempatLahir: "Jakarta",
-    tanggalLahir: "15 Maret 2004",
-    jenisKelamin: "Perempuan",
-    email: "rani.maharani@student.uika.ac.id",
-    noTelp: "081234567891",
-    batch: "Batch 4",
-    tahunMasuk: "2022",
-    totalSks: "144",
-    nik: "3171011503040002",
-    noIjazahNasional: "DN-231106040903-2026",
-    skAkreditasi: "456/SK/LAM-FEB/Akred/S/IX/2024",
-  },
-  "231106040910": {
-    nama: "Budi Pratama",
-    nim: "231106040910",
-    fakultas: "Fakultas Teknik dan Sains",
-    prodi: "Teknik Mesin",
-    tahunLulus: "2026",
-    status: "Terbit",
-    ipk: "3.75",
-    noSeriIjazah: "079/S.4.0/UIKA/2026",
-    tanggalKelulusan: "24 Juni 2026",
-    tempatLahir: "Bandung",
-    tanggalLahir: "10 Februari 2004",
-    jenisKelamin: "Laki-laki",
-    email: "budi.pratama@student.uika.ac.id",
-    noTelp: "081234567892",
-    batch: "Batch 11",
-    tahunMasuk: "2022",
-    totalSks: "144",
-    nik: "3273011002040003",
-    noIjazahNasional: "DN-231106040910-2026",
-    skAkreditasi: "789/SK/LAM-TEKNIK/Akred/S/IX/2024",
-  },
-};
+
 
 // ── Format tanggal Indonesia ──────────────────────────────────────────────────
 const formatTanggalIndonesia = (tanggal) => {
@@ -90,18 +23,36 @@ const formatTanggalIndonesia = (tanggal) => {
 
 // ── Komponen utama ────────────────────────────────────────────────────────────
 const ScanQRResult = () => {
-  const { nim } = useParams();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+const { kodeQr } = useParams();
+const [data, setData] = useState(null);
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState("");
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const found = MAHASISWA_DB[nim] || MAHASISWA_DB["231106040902"];
-      setData(found);
+useEffect(() => {
+  const fetchVerification = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const result = await verifyDocumentByQr(kodeQr);
+
+      if (!result?.success || result?.data?.is_valid !== true) {
+        setData(null);
+        setError(result.message || "Dokumen tidak ditemukan atau tidak valid.");
+        return;
+      }
+
+      setData(result.data);
+    } catch (err) {
+      setData(null);
+      setError(err.message || "Gagal memverifikasi dokumen.");
+    } finally {
       setLoading(false);
-    }, 900);
-    return () => clearTimeout(timer);
-  }, [nim]);
+    }
+  };
+
+  fetchVerification();
+}, [kodeQr]);
 
   if (loading) {
     return (
@@ -173,9 +124,22 @@ const ScanQRResult = () => {
     );
   }
 
-  const tanggalTerbit = formatTanggalIndonesia(data.tanggalKelulusan);
-  const inisial = data.nama.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
-  const bgColor = data.jenisKelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
+const mahasiswa = data.mahasiswa || {};
+const fotoUrl = mahasiswa.foto
+  ? mahasiswa.foto.startsWith("http")
+    ? mahasiswa.foto
+    : `${API_BASE_URL}${mahasiswa.foto.startsWith("/") ? mahasiswa.foto : `/${mahasiswa.foto}`}`
+  : null;
+const tanggalTerbit = formatTanggalIndonesia(data.tanggal_terbit);
+const namaMahasiswa = mahasiswa.nama_mahasiswa || "-";
+const inisial = namaMahasiswa
+  .split(" ")
+  .map((n) => n[0])
+  .join("")
+  .toUpperCase()
+  .slice(0, 2);
+
+const bgColor = mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
 
   return (
     <div style={{ minHeight: "100vh", background: "#F9FAFB" }}>
@@ -298,15 +262,53 @@ const ScanQRResult = () => {
                 flexShrink: 0,
               }}
             >
-              <span
-                style={{
-                  fontSize: "42px",
-                  fontWeight: "700",
-                  color: "white",
-                }}
-              >
-                {inisial}
-              </span>
+
+{fotoUrl ? (
+  <img
+    src={fotoUrl}
+    alt={namaMahasiswa}
+    style={{
+      width: "100%",
+      height: "100%",
+      objectFit: "cover",
+      borderRadius: "8px",
+    }}
+  />) :
+   (
+  <>
+    <span
+      style={{
+        fontSize: "38px",
+        fontWeight: "700",
+        color: "white",
+        marginBottom: "4px",
+      }}
+    >
+      {inisial}
+    </span>
+
+    <div
+      style={{
+        width: "35px",
+        height: "2px",
+        background: "rgba(255,255,255,0.3)",
+        margin: "6px 0",
+      }}
+    />
+
+    <p
+      style={{
+        fontSize: "8px",
+        color: "rgba(255,255,255,0.8)",
+        margin: 0,
+        textAlign: "center",
+      }}
+    >
+      {mahasiswa.jenis_kelamin || "-kiki"}
+    </p>
+  </>
+)}
+
             </div>
 
             {/* INFORMASI DOKUMEN & MAHASISWA */}
@@ -353,7 +355,7 @@ const ScanQRResult = () => {
                         margin: 0,
                       }}
                     >
-                      {data.noSeriIjazah}
+                     {data.nomor_dokumen || "-"}
                     </p>
                   </div>
                 </div>
@@ -409,7 +411,7 @@ const ScanQRResult = () => {
                       maxWidth: "55%",
                     }}
                   >
-                    {data.nama}
+                   {mahasiswa.nama_mahasiswa || "-"}
                   </p>
                 </div>
 
@@ -430,7 +432,7 @@ const ScanQRResult = () => {
                       margin: 0,
                     }}
                   >
-                    {data.nim}
+                   {mahasiswa.nim || "-"}
                   </p>
                 </div>
 
@@ -453,7 +455,7 @@ const ScanQRResult = () => {
                       maxWidth: "55%",
                     }}
                   >
-                    {data.fakultas.replace("Fakultas ", "")}
+                    {(mahasiswa.fakultas || "-").replace("Fakultas ", "")}
                   </p>
                 </div>
 
@@ -475,7 +477,7 @@ const ScanQRResult = () => {
                       maxWidth: "55%",
                     }}
                   >
-                    {data.prodi}
+                    {mahasiswa.program_studi || "-"}
                   </p>
                 </div>
               </div>
@@ -495,7 +497,7 @@ const ScanQRResult = () => {
         >
           Dokumen ini telah terverifikasi secara digital
           <br />
-          © {data.tahunLulus} Universitas Ibn Khaldun Bogor
+          © {new Date(data.tanggal_terbit).getFullYear() || new Date().getFullYear()} Universitas Ibn Khaldun Bogor
         </p>
       </div>
     </div>

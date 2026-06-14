@@ -155,11 +155,13 @@ const finalData = rows.map((item) => {
     status: displayLabel,
 
     status_email: formatStatusEmail(
-      item.status_kirim ||
-      item.statusKirim ||
-      raw.status_kirim ||
-      raw.statusKirim
-    ),
+  item.status_email ||
+  item.status_kirim ||
+  item.statusKirim ||
+  raw.status_email ||
+  raw.status_kirim ||
+  raw.statusKirim
+),
 
     raw,
   };
