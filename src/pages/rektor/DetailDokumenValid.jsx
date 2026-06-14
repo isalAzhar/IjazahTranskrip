@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { FiSearch, FiExternalLink } from "react-icons/fi";
+import { FiSearch } from "react-icons/fi";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { getValidDocumentBatchDetail } from "../../services/document.api";
@@ -62,24 +62,24 @@ const formatNamaBatch = (kode) => {
 const DetailDokumenValidRektor = () => {
   const navigate = useNavigate();
   const { batchCode, batchId, id } = useParams();
-const location = useLocation();
+  const location = useLocation();
 
-const batchFromState =
-  location.state?.batch ||
-  location.state ||
-  {};
+  const batchFromState =
+    location.state?.batch ||
+    location.state ||
+    {};
 
-const currentBatchCode = decodeURIComponent(
-  batchCode ||
-  batchId ||
-  id ||
-  batchFromState.batch_code ||
-  batchFromState.batchCode ||
-  batchFromState.uuid ||
-  batchFromState.batch_uuid ||
-  batchFromState.id ||
-  ""
-);
+  const currentBatchCode = decodeURIComponent(
+    batchCode ||
+    batchId ||
+    id ||
+    batchFromState.batch_code ||
+    batchFromState.batchCode ||
+    batchFromState.uuid ||
+    batchFromState.batch_uuid ||
+    batchFromState.id ||
+    ""
+  );
 
   const [batch, setBatch] = useState(batchFromState);
   const [mahasiswa, setMahasiswa] = useState([]);
@@ -147,31 +147,27 @@ const currentBatchCode = decodeURIComponent(
 
   const filteredTable = searchSuggestions;
 
-  const openPdf = (url) => {
-    if (!url) return;
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
-
   const handleGoDetailMahasiswa = (student) => {
-const mahasiswaCode =
-  student.mahasiswa_code ||
-  student.mahasiswaCode ||
-  student.uuid ||
-  student.mahasiswa_uuid ||
-  student.raw?.mahasiswa_code ||
-  student.raw?.uuid;
+    const mahasiswaCode =
+      student.mahasiswa_code ||
+      student.mahasiswaCode ||
+      student.uuid ||
+      student.mahasiswa_uuid ||
+      student.raw?.mahasiswa_code ||
+      student.raw?.uuid;
 
-if (!mahasiswaCode) {
-  console.error("Mahasiswa code tidak ditemukan:", student);
-  alert("Kode mahasiswa tidak ditemukan.");
-  return;
-}
+    if (!mahasiswaCode) {
+      console.error("Mahasiswa code tidak ditemukan:", student);
+      alert("Kode mahasiswa tidak ditemukan.");
+      return;
+    }
 
-navigate(`/rektor/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`, {
-  state: {
-    mahasiswa: student,
-  },
-});};
+    navigate(`/rektor/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`, {
+      state: {
+        mahasiswa: student,
+      },
+    });
+  };
 
   const DetailIcon = () => (
     <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500" />
@@ -190,7 +186,7 @@ navigate(`/rektor/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`, {
           </p>
         </div>
 
-        {/* ✅ INFO BATCH — samakan dengan DetailBatchVerifikator */}
+        {/* ✅ INFO BATCH */}
         {(batch?.batch || batch?.nomor_batch_upload) && (
           <div className="mb-6 px-6 py-4 bg-white border border-gray-200 rounded-xl flex flex-wrap items-center gap-x-12 gap-y-4 shadow-sm relative overflow-hidden">
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#117065]"></div>
@@ -219,7 +215,6 @@ navigate(`/rektor/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`, {
 
             <div className="flex flex-col">
               <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Total Data</span>
-              {/* ✅ Samakan styling dengan DetailBatchVerifikator */}
               <span className="text-[14px] font-bold text-[#117065] bg-teal-50 px-2 py-0.5 rounded-md inline-block text-center w-fit">
                 {batch.total || mahasiswa.length || 0} Mahasiswa
               </span>
@@ -293,14 +288,13 @@ navigate(`/rektor/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`, {
                   <th className="py-4 px-6 text-center">Program Studi</th>
                   <th className="py-4 px-6 text-center w-[120px]">Tahun Lulus</th>
                   <th className="py-4 px-6 text-center w-[120px]">Status</th>
-                  <th className="py-4 px-6 text-center w-[180px]">Dokumen</th>
                   <th className="py-4 px-6 text-center w-20">Detail</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
+                    <td colSpan="7" className="py-12 text-center text-gray-400 font-medium">
                       Memuat data dokumen valid...
                     </td>
                   </tr>
@@ -318,25 +312,6 @@ navigate(`/rektor/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`, {
                         </span>
                       </td>
                       <td className="py-4 px-6 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          {item.ijazah?.file_pdf_url && (
-                            <button type="button" onClick={() => openPdf(item.ijazah.file_pdf_url)}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-[#117065] text-white text-xs font-bold hover:bg-teal-800 transition">
-                              <FiExternalLink /> Ijazah
-                            </button>
-                          )}
-                          {item.transkrip?.file_pdf_url && (
-                            <button type="button" onClick={() => openPdf(item.transkrip.file_pdf_url)}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition">
-                              <FiExternalLink /> Transkrip
-                            </button>
-                          )}
-                          {!item.ijazah?.file_pdf_url && !item.transkrip?.file_pdf_url && (
-                            <span className="text-xs text-gray-400 font-semibold">-</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 text-center">
                         <button onClick={() => handleGoDetailMahasiswa(item)}
                           className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0">
                           <DetailIcon />
@@ -346,7 +321,7 @@ navigate(`/rektor/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`, {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
+                    <td colSpan="7" className="py-12 text-center text-gray-400 font-medium">
                       <div className="flex flex-col items-center justify-center">
                         <FiSearch className="text-4xl mb-3 text-gray-300" />
                         <p>Mahasiswa tidak ditemukan.</p>
