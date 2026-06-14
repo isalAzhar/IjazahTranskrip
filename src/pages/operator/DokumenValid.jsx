@@ -2,7 +2,9 @@ import React, { useState, useRef, useEffect } from "react";
 import { FiSearch, FiChevronDown, FiSend } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/ui/DashboardLayout";
-import { getValidDocumentBatches } from "../../services/document.api";
+import { getValidDocumentBatches, sendBatchDocumentEmail, } from "../../services/document.api";
+
+
 
 const fakultasList = [
   { nama: "Fakultas Agama Islam", kode: "FAI" },
@@ -222,35 +224,72 @@ const OperatorDokumenValid = () => {
     });
   };
 
-  const handleKirimBatch = (item) => {
-    const batchName =
-      item.batch || item.nomor_batch_upload || item.nama_batch || "batch ini";
+const handleKirimBatch = async (item) => {
+  const batchCode =
+    item.batch_code ||
+    item.batchCode ||
+    item.uuid ||
+    item.batch_uuid ||
+    item.raw?.batch_code ||
+    item.raw?.uuid ||
+    item.id;
 
-    const confirmKirim = window.confirm(
-      `Apakah Anda yakin ingin mengirimkan email ijazah untuk ${batchName}?`,
-    );
+  const batchName =
+    item.batch || item.nomor_batch_upload || item.nama_batch || "batch ini";
 
-    if (!confirmKirim) return;
+  if (!batchCode) {
+    alert("Kode batch tidak ditemukan.");
+    return;
+  }
+
+  const confirmKirim = window.confirm(
+    `Apakah Anda yakin ingin mengirimkan email dokumen untuk ${batchName}?`,
+  );
+
+  if (!confirmKirim) return;
+
+  try {
+    const result = await sendBatchDocumentEmail(batchCode);
+    const data = result.data || {};
 
     alert(
-      `Berhasil! Seluruh ijazah pada ${batchName} telah didistribusikan ke email mahasiswa.`,
+      `Proses kirim email selesai.\n\nBerhasil: ${data.berhasil || 0}\nGagal: ${data.gagal || 0}`,
     );
 
     setBatches((prev) =>
       prev.map((batch) => {
-        const sameBatch =
-          (batch.batch_code || batch.batchCode || batch.uuid || batch.raw?.batch_code || batch.raw?.uuid || batch.id) ===
-          (item.batch_code || item.batchCode || item.uuid || item.raw?.batch_code || item.raw?.uuid || item.id);
+        const currentBatchCode =
+          batch.batch_code ||
+          batch.batchCode ||
+          batch.uuid ||
+          batch.batch_uuid ||
+          batch.raw?.batch_code ||
+          batch.raw?.uuid ||
+          batch.id;
 
-        return sameBatch
+        return currentBatchCode === batchCode
           ? {
               ...batch,
-              status_email: "Email Terkirim",
+              status_email:
+                Number(data.gagal || 0) > 0
+                  ? "Email Terkirim Sebagian"
+                  : "Email Terkirim",
             }
           : batch;
       }),
     );
-  };
+
+    fetchValidBatches();
+  } catch (error) {
+    console.error("Gagal mengirim email batch:", error);
+
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Gagal mengirim email batch.",
+    );
+  }
+};
 
   const renderPages = () => {
     let pages = [];

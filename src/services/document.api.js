@@ -99,3 +99,31 @@ export const getValidDocumentBatchDetail = async (
     "Gagal mengambil detail batch dokumen valid.",
   );
 };
+
+export const sendBatchDocumentEmail = async (batchCode) => {
+  const token = getAuthToken();
+
+  if (!token) {
+    throw new Error("Token tidak ditemukan.");
+  }
+
+  if (!batchCode) {
+    throw new Error("Kode batch tidak ditemukan.");
+  }
+
+  const response = await fetch(
+    `/api/document/send-email/batch/${encodeURIComponent(batchCode)}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    },
+  );
+
+  return handleResponse(
+    response,
+    "Gagal mengirim email dokumen batch.",
+  );
+};

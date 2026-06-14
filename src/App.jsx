@@ -2,6 +2,7 @@ import React from "react";
 import { createHashRouter, RouterProvider, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./pages/context/AuthContext";
 import ProtectedRoute from "./components/shared/ProtectedRoute";
+import StudentDownloadPage from "./pages/public/StudentDownloadPage";
 
 // Public
 import Login from "./pages/context/login";
@@ -74,6 +75,7 @@ const RoleBasedRedirect = () => {
 // URL jadi: http://localhost:5173/#/admin/dashboard
 const router = createHashRouter([
   { path: "/login", element: <Login /> },
+  { path: "/download/:token", element: <StudentDownloadPage /> },
 
   // ADMIN ROUTES
   { path: "/admin/dashboard", element: <ProtectedRoute allowedGroup="ADMIN"><AdminDashboard /></ProtectedRoute> },
