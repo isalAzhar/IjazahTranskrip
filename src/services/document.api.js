@@ -1,3 +1,6 @@
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://103.158.196.32:8010";
+
+
 const getAuthToken = () => {
   return (
     localStorage.getItem("authToken") ||
@@ -126,4 +129,26 @@ export const sendBatchDocumentEmail = async (batchCode) => {
     response,
     "Gagal mengirim email dokumen batch.",
   );
+};
+
+
+export const verifyDocumentByQr = async (kodeQr) => {
+  if (!kodeQr) {
+    throw new Error("Kode QR tidak ditemukan.");
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/document/verify/${encodeURIComponent(kodeQr)}`,
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    },
+  );
+
+  const result = await response.json();
+
+  // Untuk QR invalid, backend bisa return 404 tapi tetap ada data pesan error
+  return result;
 };

@@ -101,7 +101,9 @@ const router = createHashRouter([
   { path: "/operator/detail-mahasiswa/:mahasiswaCode", element: <ProtectedRoute allowedGroup="OPERATOR"><DetailMahasiswa /></ProtectedRoute> },
 
   // SCAN QR — public, tanpa protected
-  { path: "/scan-result/:nim", element: <ScanQRResult /> },
+  { path: "/verify/:kodeQr", element: <ScanQRResult /> },
+
+  { path: "/scan-result/:kodeQr", element: <ScanQRResult /> },
 
   // VERIFIKATOR ROUTES
   { path: "/verifikator/dashboard", element: <ProtectedRoute allowedGroup="VERIFIKATOR"><VerifikatorDashboard /></ProtectedRoute> },
