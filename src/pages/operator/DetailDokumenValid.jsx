@@ -162,7 +162,7 @@ const DetailDokumenValid = () => {
       return;
     }
 
-    navigate(`/operator/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`, {
+    navigate(`/operator/detail-pelaporan/${encodeURIComponent(mahasiswaCode)}`, {
       state: {
         mahasiswa: student,
       },
