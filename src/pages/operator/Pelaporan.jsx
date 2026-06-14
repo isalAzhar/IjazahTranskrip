@@ -333,7 +333,7 @@ const Pelaporan = () => {
                               }
 
                               navigate(
-                                `/operator/detail-pelaporan/${encodeURIComponent(mahasiswaCode)}`,
+                                `/operator/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`,
                                 {
                                   state: {
                                     mahasiswa: item,

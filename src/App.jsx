@@ -31,7 +31,6 @@ import DokumenValid from "./pages/operator/DokumenValid";
 import DetailMahasiswa from "@/pages/admin/DetailMahasiswa";
 import IjazahDigital from "./pages/operator/IjazahDigital";
 import DetailPelaporan from "./pages/operator/DetailPelaporan";
-import DetailBatchDokumenValid from "./pages/operator/DetailBatchDokumenValid";
 import DetailDokumenValid from "./pages/operator/DetailDokumenValid";
 import ScanQRResult from "./pages/operator/ScanQRResult";
 
@@ -94,7 +93,6 @@ const router = createHashRouter([
   { path: "/operator/pelaporan", element: <ProtectedRoute allowedGroup="OPERATOR"><Pelaporan /></ProtectedRoute> },
   { path: "/operator/detail-pelaporan/:mahasiswaCode", element: <ProtectedRoute allowedGroup="OPERATOR"><DetailPelaporan /></ProtectedRoute> },
   { path: "/operator/dokumen-valid", element: <ProtectedRoute allowedGroup="OPERATOR"><DokumenValid /></ProtectedRoute> },
-  { path: "/operator/dokumen-valid/batch/:batchCode", element: <ProtectedRoute allowedGroup="OPERATOR"><DetailBatchDokumenValid /></ProtectedRoute> },
   { path: "/operator/detail-dokumen-valid/:batchCode", element: <ProtectedRoute allowedGroup="OPERATOR"><DetailDokumenValid /></ProtectedRoute> },
   { path: "/operator/ijazah-digital/:nim", element: <ProtectedRoute allowedGroup="OPERATOR"><IjazahDigital /></ProtectedRoute> },
   { path: "/operator/batch/:status/:batchCode", element: <ProtectedRoute allowedGroup="OPERATOR"><Statusbatch /></ProtectedRoute> },
