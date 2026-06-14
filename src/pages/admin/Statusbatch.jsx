@@ -2,10 +2,11 @@ import React, { useMemo, useState, useEffect } from "react";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-// 🔥 HANYA IMPORT getDetailBatch
 import { getDetailBatch } from "../../services/dashboard.api";
-import { encodeId } from "@/components/shared/hashId";
 
+// ==========================================
+// KUMPULAN FUNGSI HELPER / FORMATTER
+// ==========================================
 const normalizeStatus = (status) => {
   const value = status?.toString().toLowerCase().trim();
   if (value === "terbit" || value === "approved" || value === "valid") return "terbit";
@@ -15,7 +16,10 @@ const normalizeStatus = (status) => {
   return value || "";
 };
 
-const formatNamaBatch = (kode) => kode || "-";
+// 🔥 INI FUNGSI YANG TADI HILANG DAN BIKIN ERROR
+const formatNamaBatch = (kode) => {
+  return kode || "-";
+};
 
 const formatPeriode = (periode) => {
   const map = {
@@ -40,8 +44,31 @@ const formatSingkatanFakultas = (namaFakultas) => {
   return namaFakultas; 
 };
 
+// 🔥 FORMAT STATUS EMAIL
+const formatStatusEmail = (statusKirimRaw) => {
+  const raw = String(statusKirimRaw || "").toLowerCase();
+  if (
+    raw.includes("sudah") ||
+    (raw.includes("terkirim") && !raw.includes("belum"))
+  ) {
+    return "Terkirim";
+  }
+  return "Belum Terkirim";
+};
+
 const formatMahasiswa = (item, index, batchData, targetStatus) => {
   const coreMhs = item?.mahasiswa || item || {};
+  
+  // Memeriksa keberadaan status kirim individual dari backend
+  const rawStatusKirim = 
+    item.status_email ||
+    item.status_kirim ||
+    item.statusKirim ||
+    coreMhs.status_email ||
+    coreMhs.status_kirim ||
+    item.raw?.status_email ||
+    item.raw?.status_kirim;
+
   return {
     ...item,
     id:
@@ -72,6 +99,9 @@ const formatMahasiswa = (item, index, batchData, targetStatus) => {
     periode: item.periode || batchData?.periode_label || "-",
     status: targetStatus,
     batch: item.nama_batch || batchData?.nama_batch || "-",
+    
+    // 🔥 SINKRONISASI PINTAR: Jika data mahasiswa kosong, warisi status dari Batch induknya langsung
+    status_email: rawStatusKirim ? formatStatusEmail(rawStatusKirim) : (batchData?.status_email || "Belum Terkirim"),
     raw: item.raw || item,
   };
 };
@@ -98,10 +128,14 @@ const getBadgeLabel = (status) => {
   }
 };
 
+// ==========================================
+// KOMPONEN UTAMA
+// ==========================================
 const Statusbatch = () => {
   const navigate = useNavigate();
   const location = useLocation(); 
-  const { status, batchCode, id } = useParams();  const { user } = useAuth();
+  const { status, batchCode, id } = useParams();  
+  const { user } = useAuth();
   const userRole = user?.role?.toLowerCase() || "";
 
   const currentBatchCode = decodeURIComponent(batchCode || id || "" );
@@ -110,33 +144,15 @@ const Statusbatch = () => {
 
   const batchFromState = location.state?.batch || location.state || {};
 
-
- const [batchData, setBatchData] = useState({
-  nama_batch:
-    batchFromState.batch ||
-    batchFromState.nomor_batch_upload ||
-    "-",
-
-  fakultas:
-    formatSingkatanFakultas(batchFromState.fakultas) ||
-    "-",
-
-  tahun_lulus:
-    batchFromState.tahun ||
-    batchFromState.tahun_lulus ||
-    "-",
-
-  periode_label:
-    batchFromState.periode ||
-    "-",
-
-  total_record_label:
-    batchFromState.total
-      ? `${batchFromState.total} Mahasiswa`
-      : "-",
-
-  status: displayLabel,
-});
+  const [batchData, setBatchData] = useState({
+    nama_batch: batchFromState.batch || batchFromState.nomor_batch_upload || "-",
+    fakultas: formatSingkatanFakultas(batchFromState.fakultas) || "-",
+    tahun_lulus: batchFromState.tahun || batchFromState.tahun_lulus || "-",
+    periode_label: batchFromState.periode || "-",
+    total_record_label: batchFromState.total ? `${batchFromState.total} Mahasiswa` : "-",
+    status: displayLabel,
+    status_email: batchFromState.status_email || "Belum Terkirim", // Tangkap status awal grup
+  });
 
   const [mahasiswa, setMahasiswa] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -145,10 +161,10 @@ const Statusbatch = () => {
   useEffect(() => {
     const fetchDetailBatch = async () => {
       if (!currentBatchCode) {
-  setApiError("Kode Batch tidak valid.");
-  setIsLoading(false);
-  return;
-}
+        setApiError("Kode Batch tidak valid.");
+        setIsLoading(false);
+        return;
+      }
 
       try {
         setIsLoading(true);
@@ -157,8 +173,8 @@ const Statusbatch = () => {
         let bData = {};
         let mList = [];
 
-        // Di file Statusbatch.jsx
-        const result = await getDetailBatch(currentBatchCode, currentStatus );
+        // Fetching Data via API
+        const result = await getDetailBatch(currentBatchCode, currentStatus);
         
         if (result) {
           if (Array.isArray(result)) mList = result;
@@ -173,7 +189,7 @@ const Statusbatch = () => {
 
         if (!Array.isArray(mList)) mList = [];
 
-        // 🔥 SUPER FILTER: Menyaring mList sesuai tab status
+        // SUPER FILTER DI FRONTEND
         if (currentStatus && mList.length > 0) {
           const filteredList = mList.filter(item => {
             const rawStatus = 
@@ -185,11 +201,10 @@ const Statusbatch = () => {
               item.mahasiswa?.status || 
               item.mahasiswa?.approval?.status || 
               item.raw?.status || 
-              ""; // Fallback jika benar-benar kosong
+              ""; 
 
             const itemStatus = String(rawStatus).toLowerCase().trim();
             
-            // Logika pencocokan berbagai variasi string dari backend
             if (currentStatus === "terbit") return ["terbit", "valid", "approved"].includes(itemStatus);
             if (currentStatus === "proses") return ["proses", "pending", ""].includes(itemStatus);
             if (currentStatus === "reject") return ["reject", "ditolak", "rejected"].includes(itemStatus);
@@ -198,7 +213,6 @@ const Statusbatch = () => {
             return itemStatus === currentStatus;
           });
 
-          // Fallback cerdas: Jika hasil saringan kosong, kembalikan data utuh
           if (filteredList.length > 0) {
               mList = filteredList;
           }
@@ -246,6 +260,9 @@ const Statusbatch = () => {
           || batchFromState.tahun
           || "-";
 
+        // Ambil status email gabungan dari state navigasi atau respons mentah API
+        const batchEmailStatus = batchFromState.status_email || formatStatusEmail(bData.status_email || bData.status_kirim);
+
         const mappedBatchData = {
           nama_batch: formatNamaBatch(rawBatchName),
           fakultas: extractedFakultas,
@@ -253,6 +270,7 @@ const Statusbatch = () => {
           periode_label: formatPeriode(rawPeriode),
           total_record_label: `${mList.length} Mahasiswa`,
           status: displayLabel,
+          status_email: batchEmailStatus, 
         };
 
         setBatchData(mappedBatchData);
@@ -267,7 +285,7 @@ const Statusbatch = () => {
     };
 
     fetchDetailBatch();
-  },  [currentBatchCode, currentStatus]);
+  }, [currentBatchCode, currentStatus]);
 
   const sortedMahasiswa = useMemo(() => {
     return [...mahasiswa].sort((a, b) => (a.nama || "").localeCompare(b.nama || ""));
@@ -275,21 +293,21 @@ const Statusbatch = () => {
 
   const handleDetailMahasiswa = (item) => {
     const mahasiswaCode =
-  item.mahasiswa_code ||
-  item.mahasiswaCode ||
-  item.uuid ||
-  item.mahasiswa_uuid ||
-  item.raw?.mahasiswa_code ||
-  item.raw?.uuid;
+      item.mahasiswa_code ||
+      item.mahasiswaCode ||
+      item.uuid ||
+      item.mahasiswa_uuid ||
+      item.raw?.mahasiswa_code ||
+      item.raw?.uuid;
 
-if (!mahasiswaCode) {
-  console.error("Mahasiswa code tidak ditemukan:", item);
-  alert("Kode mahasiswa tidak ditemukan.");
-  return;
-}
+    if (!mahasiswaCode) {
+      console.error("Mahasiswa code tidak ditemukan:", item);
+      alert("Kode mahasiswa tidak ditemukan.");
+      return;
+    }
 
-const safeMahasiswaCode = encodeURIComponent(mahasiswaCode);
-    
+    const safeMahasiswaCode = encodeURIComponent(mahasiswaCode);
+        
     const formattedMahasiswa = {
       ...item,
       nama_mahasiswa: item.nama_mahasiswa || item.nama,
@@ -305,11 +323,11 @@ const safeMahasiswaCode = encodeURIComponent(mahasiswaCode);
     else if (userRole.includes("operator")) navigate(`/operator/detail-mahasiswa/${safeMahasiswaCode}`, navState);
     else if (userRole.includes("admin")) navigate(`/admin/detail-mahasiswa/${safeMahasiswaCode}`, navState);
     else navigate(`/verifikator/detail-mahasiswa/${safeMahasiswaCode}`, {
-  state: {
-    mahasiswa: item,
-    batch: batchData,
-  },
-});
+      state: {
+        mahasiswa: item,
+        batch: batchData,
+      },
+    });
   };
 
   if (isLoading) {
@@ -379,7 +397,8 @@ const safeMahasiswaCode = encodeURIComponent(mahasiswaCode);
                 <th className="px-6 py-4 text-center">NIM</th>
                 <th className="px-6 py-4 text-center">Program Studi</th>
                 <th className="px-6 py-4 text-center">Tahun Lulus</th>
-                <th className="px-6 py-4 text-center">Status</th>
+                <th className="px-6 py-4 text-center">Status Berkas</th>
+                <th className="px-6 py-4 text-center">Status Email</th>
                 <th className="px-6 py-4 text-center w-20">Detail</th>
               </tr>
             </thead>
@@ -397,6 +416,17 @@ const safeMahasiswaCode = encodeURIComponent(mahasiswaCode);
                         {getBadgeLabel(mhs.status)}
                       </span>
                     </td>
+                    <td className="px-6 py-4 text-center align-middle">
+                      <span
+                        className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${
+                          mhs.status_email === "Terkirim"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-orange-100 text-orange-700"
+                        }`}
+                      >
+                        {mhs.status_email}
+                      </span>
+                    </td>
                     <td className="px-6 py-4 text-center">
                       <button type="button" onClick={() => handleDetailMahasiswa(mhs)} className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition">
                         <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>
@@ -406,7 +436,7 @@ const safeMahasiswaCode = encodeURIComponent(mahasiswaCode);
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" className="px-6 py-8 text-center text-gray-400 capitalize">
+                  <td colSpan="8" className="px-6 py-8 text-center text-gray-400 capitalize">
                     Data mahasiswa {currentStatus} tidak ditemukan.
                   </td>
                 </tr>

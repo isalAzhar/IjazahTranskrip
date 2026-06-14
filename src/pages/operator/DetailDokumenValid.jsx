@@ -59,6 +59,18 @@ const formatNamaBatch = (kode) => {
   return `Batch ${parseInt(day)} ${bulan[parseInt(month)] || ""} ${year}`;
 };
 
+// ✅ Format Status Email
+const formatStatusEmail = (statusKirimRaw) => {
+  const raw = String(statusKirimRaw || "").toLowerCase();
+  if (
+    raw.includes("sudah") ||
+    (raw.includes("terkirim") && !raw.includes("belum"))
+  ) {
+    return "Terkirim";
+  }
+  return "Belum Terkirim";
+};
+
 const DetailDokumenValid = () => {
   const navigate = useNavigate();
   const { batchCode, batchId, id } = useParams();
@@ -145,7 +157,29 @@ const DetailDokumenValid = () => {
     });
   }, [search, mahasiswa]);
 
-  const filteredTable = searchSuggestions;
+  // 🔥 Logika memformat data tabel dengan pewarisan status_email dari batch (seperti di Statusbatch.jsx)
+  const filteredTable = useMemo(() => {
+    const parentEmailStatus = batchFromState.status_email || formatStatusEmail(batch?.status_email || batch?.status_kirim);
+
+    return searchSuggestions.map((item) => {
+      const coreMhs = item?.mahasiswa || item || {};
+      const rawStatusKirim = 
+        item.status_email ||
+        item.status_kirim ||
+        item.statusKirim ||
+        coreMhs.status_email ||
+        coreMhs.status_kirim ||
+        item.raw?.status_email ||
+        item.raw?.status_kirim;
+
+      return {
+        ...item,
+        // Sinkronisasi pintar
+        status_email: rawStatusKirim ? formatStatusEmail(rawStatusKirim) : parentEmailStatus
+      };
+    });
+  }, [searchSuggestions, batch, batchFromState]);
+
 
   const handleGoDetailMahasiswa = (student) => {
     const mahasiswaCode =
@@ -276,7 +310,7 @@ const DetailDokumenValid = () => {
           </div>
         )}
 
-        {/* TABLE - KOLOM DOKUMEN SUDAH DIHAPUS */}
+        {/* TABLE */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left whitespace-nowrap">
@@ -287,14 +321,16 @@ const DetailDokumenValid = () => {
                   <th className="py-4 px-6 text-center w-[160px]">NIM</th>
                   <th className="py-4 px-6 text-center">Program Studi</th>
                   <th className="py-4 px-6 text-center w-[120px]">Tahun Lulus</th>
-                  <th className="py-4 px-6 text-center w-[120px]">Status</th>
+                  <th className="py-4 px-6 text-center w-[120px]">Status Berkas</th>
+                  {/* 🔥 Tambah Kolom Status Email */}
+                  <th className="py-4 px-6 text-center w-[140px]">Status Email</th>
                   <th className="py-4 px-6 text-center w-20">Detail</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan="7" className="py-12 text-center text-gray-400 font-medium">
+                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
                       Memuat data dokumen valid...
                     </td>
                   </tr>
@@ -311,6 +347,18 @@ const DetailDokumenValid = () => {
                           {item.status || "Terbit"}
                         </span>
                       </td>
+                      {/* 🔥 Badge Status Email */}
+                      <td className="py-4 px-6 text-center align-middle">
+                        <span
+                          className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${
+                            item.status_email === "Terkirim"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-orange-100 text-orange-700"
+                          }`}
+                        >
+                          {item.status_email}
+                        </span>
+                      </td>
                       <td className="py-4 px-6 text-center">
                         <button onClick={() => handleGoDetailMahasiswa(item)}
                           className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0">
@@ -321,7 +369,7 @@ const DetailDokumenValid = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" className="py-12 text-center text-gray-400 font-medium">
+                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
                       <div className="flex flex-col items-center justify-center">
                         <FiSearch className="text-4xl mb-3 text-gray-300" />
                         <p>Mahasiswa tidak ditemukan.</p>

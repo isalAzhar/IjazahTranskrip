@@ -39,9 +39,9 @@ const formatStatusEmail = (statusKirimRaw) => {
     raw.includes("sudah") ||
     (raw.includes("terkirim") && !raw.includes("belum"))
   ) {
-    return "Email Terkirim";
+    return "Terkirim";
   }
-  return "Belum Diemail";
+  return "Belum Terkirim";
 };
 
 const buildFakultasOptions = (rows = []) => {
@@ -73,7 +73,7 @@ const StatusIjazah = () => {
   const [search, setSearch] = useState("");
   const [fakultas, setFakultas] = useState("");
   const [tahun, setTahun] = useState("");
-  const [statusEmail, setStatusEmail] = useState("");
+  const [statusEmail, setStatusEmail] = useState("Terkirim"); // 🔥 Default langsung ke Terkirim
 
   const [currentPage, setCurrentPage] = useState(1);
   const [batchData, setBatchData] = useState([]);
@@ -90,7 +90,6 @@ const StatusIjazah = () => {
       try {
         setIsLoading(true);
         setApiError("");
-        setStatusEmail("");
 
         // 🔥 BIARKAN BACKEND YANG MENGELOMPOKKAN & FILTER STATUS
         const result = await getDashboardBatches({
@@ -101,71 +100,37 @@ const StatusIjazah = () => {
         // Tambahkan properti UI (status email & label) ke data murni dari backend
         const rows = Array.isArray(result?.data) ? result.data : [];
 
-const finalData = rows.map((item) => {
-  const raw = item.raw || item;
+        const finalData = rows.map((item) => {
+          const raw = item.raw || item;
 
-  return {
-    ...item,
-
-    id:
-      item.batch_code ||
-      raw.batch_code ||
-      item.id,
-
-    batch_code:
-      item.batch_code ||
-      item.batchCode ||
-      item.uuid ||
-      item.batch_uuid ||
-      raw.batch_code ||
-      raw.uuid,
-
-    batch:
-      item.batch ||
-      raw.nomor_batch_upload ||
-      raw.batch ||
-      "-",
-
-    fakultas:
-      item.fakultas ||
-      raw.fakultas ||
-      "-",
-
-    tahun:
-      item.tahun?.toString() ||
-      raw.tahun_lulus?.toString() ||
-      "-",
-
-    tahun_lulus:
-      item.tahun_lulus ||
-      raw.tahun_lulus ||
-      "-",
-
-    periode:
-      item.periode ||
-      raw.periode ||
-      "-",
-
-    total:
-      item.total ??
-      raw.total_mahasiswa ??
-      raw.total_record ??
-      0,
-
-    status: displayLabel,
-
-    status_email: formatStatusEmail(
-  item.status_email ||
-  item.status_kirim ||
-  item.statusKirim ||
-  raw.status_email ||
-  raw.status_kirim ||
-  raw.statusKirim
-),
-
-    raw,
-  };
-});
+          return {
+            ...item,
+            id: item.batch_code || raw.batch_code || item.id,
+            batch_code:
+              item.batch_code ||
+              item.batchCode ||
+              item.uuid ||
+              item.batch_uuid ||
+              raw.batch_code ||
+              raw.uuid,
+            batch: item.batch || raw.nomor_batch_upload || raw.batch || "-",
+            fakultas: item.fakultas || raw.fakultas || "-",
+            tahun: item.tahun?.toString() || raw.tahun_lulus?.toString() || "-",
+            tahun_lulus: item.tahun_lulus || raw.tahun_lulus || "-",
+            periode: item.periode || raw.periode || "-",
+            total: item.total ?? raw.total_mahasiswa ?? raw.total_record ?? 0,
+            status: displayLabel,
+            status_email: formatStatusEmail(
+              item.status_email ||
+              item.status_kirim ||
+              item.statusKirim ||
+              raw.status_email ||
+              raw.status_kirim ||
+              raw.statusKirim
+            ),
+            raw,
+          };
+        });
 
         setBatchData(finalData);
         setFakultasList(buildFakultasOptions(finalData));
@@ -185,10 +150,10 @@ const finalData = rows.map((item) => {
     .filter((item) => {
       const keyword = search.toLowerCase();
       const matchSearch =
-      String(item.batch || "").toLowerCase().includes(keyword) ||
-      String(item.fakultas || "").toLowerCase().includes(keyword) ||
-      String(item.periode || "").toLowerCase().includes(keyword) ||
-      String(item.tahun || "").toLowerCase().includes(keyword);
+        String(item.batch || "").toLowerCase().includes(keyword) ||
+        String(item.fakultas || "").toLowerCase().includes(keyword) ||
+        String(item.periode || "").toLowerCase().includes(keyword) ||
+        String(item.tahun || "").toLowerCase().includes(keyword);
 
       const matchesFakultas = fakultas ? item.fakultas === fakultas : true;
       const matchesTahun = tahun ? item.tahun === tahun : true;
@@ -197,19 +162,17 @@ const finalData = rows.map((item) => {
           ? item.status_email === statusEmail
           : true;
 
-      return (
-        matchSearch && matchesFakultas && matchesTahun && matchesStatusEmail
-      );
+      return matchSearch && matchesFakultas && matchesTahun && matchesStatusEmail;
     })
     .sort(
       (a, b) =>
-        a.fakultas.localeCompare(b.fakultas) || a.tahun.localeCompare(b.tahun),
+        a.fakultas.localeCompare(b.fakultas) || a.tahun.localeCompare(b.tahun)
     );
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginatedData = filtered.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
+    currentPage * itemsPerPage
   );
 
   useEffect(() => {
@@ -221,19 +184,20 @@ const finalData = rows.map((item) => {
   };
 
   const handleDetailBatch = (item) => {
-  const batchCode = item.batch_code || item.batchCode || item.uuid || item.batch_uuid || item.raw?.batch_code || item.raw?.uuid || item.id;
+    const batchCode =
+      item.batch_code || item.batchCode || item.uuid || item.batch_uuid || item.raw?.batch_code || item.raw?.uuid || item.id;
 
-  if (!batchCode) {
-    console.error("Batch code tidak ditemukan:", item);
-    return;
-  }
+    if (!batchCode) {
+      console.error("Batch code tidak ditemukan:", item);
+      return;
+    }
 
-  navigate(`/batch/${currentStatus}/${encodeURIComponent(batchCode)}`, {
-    state: {
-      batch: item,
-    },
-  });
-};
+    navigate(`/batch/${currentStatus}/${encodeURIComponent(batchCode)}`, {
+      state: {
+        batch: item,
+      },
+    });
+  };
 
   const renderPaginationButtons = () => {
     const pages = [];
@@ -345,16 +309,17 @@ const finalData = rows.map((item) => {
 
               {currentStatus === "terbit" && (
                 <div className="relative w-full sm:w-48">
+                  {/* 🔥 Update class dropdown jadi text-gray-700 dan options */}
                   <select
                     value={statusEmail}
                     onChange={(e) => setStatusEmail(e.target.value)}
-                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-[#117065] px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
+                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
                   >
-                    <option value="">Semua Status Email</option>
-                    <option value="Belum Diemail">Belum Diemail</option>
-                    <option value="Email Terkirim">Email Terkirim</option>
+                    <option value="Terkirim">Terkirim</option>
+                    <option value="Belum Terkirim">Belum Terkirim</option>
                   </select>
-                  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-[#117065] text-lg pointer-events-none" />
+                  {/* 🔥 Update chevron color jadi text-gray-500 */}
+                  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
                 </div>
               )}
             </div>
@@ -420,9 +385,10 @@ const finalData = rows.map((item) => {
 
                       {currentStatus === "terbit" && (
                         <td className="px-4 py-4 text-center align-middle">
+                          {/* 🔥 Update kondisi badge mencocokkan kata Terkirim */}
                           <span
                             className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${
-                              item.status_email === "Email Terkirim"
+                              item.status_email === "Terkirim"
                                 ? "bg-green-100 text-green-700"
                                 : "bg-orange-100 text-orange-700"
                             }`}

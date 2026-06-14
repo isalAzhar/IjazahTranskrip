@@ -1,6 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://103.158.196.32:8010";
 
-
 const getAuthToken = () => {
   return (
     localStorage.getItem("authToken") ||
@@ -19,7 +18,6 @@ const buildQueryString = (params = {}) => {
   });
 
   const queryString = searchParams.toString();
-
   return queryString ? `?${queryString}` : "";
 };
 
@@ -39,6 +37,7 @@ export const getValidDocumentBatches = async ({
   search = "",
   fakultas = "",
   tahun = "",
+  status_email = "",
 } = {}) => {
   const token = getAuthToken();
 
@@ -46,13 +45,22 @@ export const getValidDocumentBatches = async ({
     throw new Error("Token tidak ditemukan.");
   }
 
-  const query = buildQueryString({
+  // Buat params object
+  const params = {
     page,
     limit,
-    search,
-    fakultas,
-    tahun,
-  });
+  };
+  
+  // Tambahkan hanya jika ada nilai
+  if (search) params.search = search;
+  if (fakultas) params.fakultas = fakultas;
+  if (tahun) params.tahun = tahun;
+  if (status_email) params.status_email = status_email;
+
+  const query = buildQueryString(params);
+  
+  console.log("🚀 Request URL:", `/api/document/valid-batches${query}`);
+  console.log("📦 Request params:", params);
 
   const response = await fetch(`/api/document/valid-batches${query}`, {
     method: "GET",
@@ -78,9 +86,7 @@ export const getValidDocumentBatchDetail = async (
     throw new Error("Token tidak ditemukan.");
   }
 
-  const query = buildQueryString({
-    search,
-  });
+  const query = buildQueryString({ search });
 
   if (!batchCode) {
     throw new Error("Kode batch tidak ditemukan.");
@@ -131,7 +137,6 @@ export const sendBatchDocumentEmail = async (batchCode) => {
   );
 };
 
-
 export const verifyDocumentByQr = async (kodeQr) => {
   if (!kodeQr) {
     throw new Error("Kode QR tidak ditemukan.");
@@ -148,7 +153,5 @@ export const verifyDocumentByQr = async (kodeQr) => {
   );
 
   const result = await response.json();
-
-  // Untuk QR invalid, backend bisa return 404 tapi tetap ada data pesan error
   return result;
 };

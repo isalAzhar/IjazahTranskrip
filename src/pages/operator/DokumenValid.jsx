@@ -1,10 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { FiSearch, FiChevronDown, FiSend } from "react-icons/fi";
+import { FiSearch, FiChevronDown, FiSend, FiCheckCircle, FiAlertTriangle } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/ui/DashboardLayout";
-import { getValidDocumentBatches, sendBatchDocumentEmail, } from "../../services/document.api";
-
-
+import { getValidDocumentBatches, sendBatchDocumentEmail } from "../../services/document.api";
 
 const fakultasList = [
   { nama: "Fakultas Agama Islam", kode: "FAI" },
@@ -15,19 +13,14 @@ const fakultasList = [
   { nama: "Fakultas Ilmu Kesehatan", kode: "FIKES" },
 ];
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 50;
 
 const formatStatusEmail = (statusKirimRaw) => {
   const raw = String(statusKirimRaw || "").toLowerCase();
-
-  if (
-    raw.includes("sudah") ||
-    (raw.includes("terkirim") && !raw.includes("belum"))
-  ) {
-    return "Email Terkirim";
+  if (raw.includes("sudah") || (raw.includes("terkirim") && !raw.includes("belum"))) {
+    return "Terkirim";
   }
-
-  return "Belum Diemail";
+  return "Belum Terkirim";
 };
 
 const OperatorDokumenValid = () => {
@@ -36,55 +29,45 @@ const OperatorDokumenValid = () => {
   const [search, setSearch] = useState("");
   const [selectedFakultas, setSelectedFakultas] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
-  const [statusEmail, setStatusEmail] = useState("");
+  const [statusEmail, setStatusEmail] = useState("Terkirim");
+  
   const [currentPage, setCurrentPage] = useState(1);
-
   const [showSuggestions, setShowSuggestions] = useState(false);
   const filterBarRef = useRef(null);
 
   const [batches, setBatches] = useState([]);
   const [pagination, setPagination] = useState({
-    page: 1,
-    limit: ITEMS_PER_PAGE,
-    total_data: 0,
-    total_page: 1,
+    page: 1, limit: ITEMS_PER_PAGE, total_data: 0, total_page: 1,
   });
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [emailModal, setEmailModal] = useState({
+    show: false, type: "", data: null, message: "",
+  });
 
   const currentYear = new Date().getFullYear();
-  const years = Array.from(
-    { length: currentYear - 2021 + 1 },
-    (_, i) => currentYear - i,
-  );
+  const years = Array.from({ length: currentYear - 2021 + 1 }, (_, i) => currentYear - i);
 
   const totalPages = pagination.total_page || 1;
+  
   const currentData = batches.filter((item) => {
     if (!statusEmail) return true;
-
     const currentStatusEmail =
       item.status_email ||
-      formatStatusEmail(
-        item.status_kirim ||
-          item.statusKirim ||
-          item.raw?.status_kirim ||
-          item.raw?.statusKirim,
-      );
-
+      formatStatusEmail(item.status_kirim || item.statusKirim || item.raw?.status_kirim || item.raw?.statusKirim);
     return currentStatusEmail === statusEmail;
   });
 
+  // 🔥 Filter khusus mencari Mahasiswa
   const searchSuggestions = batches.filter((item) => {
     if (!search.trim()) return true;
-
     const keyword = search.toLowerCase();
-
     return (
-      item.batch?.toLowerCase().includes(keyword) ||
-      item.nomor_batch_upload?.toLowerCase().includes(keyword) ||
-      item.fakultas?.toLowerCase().includes(keyword) ||
-      item.nama_file?.toLowerCase().includes(keyword)
+      item.nama?.toLowerCase().includes(keyword) ||
+      item.nama_mahasiswa?.toLowerCase().includes(keyword) ||
+      item.nim?.toLowerCase().includes(keyword) ||
+      item.batch?.toLowerCase().includes(keyword)
     );
   });
 
@@ -94,63 +77,29 @@ const OperatorDokumenValid = () => {
 
     try {
       const result = await getValidDocumentBatches({
-        page: currentPage,
-        limit: ITEMS_PER_PAGE,
-        search,
-        fakultas: selectedFakultas,
-        tahun: selectedYear,
+        page: currentPage, limit: ITEMS_PER_PAGE, search, fakultas: selectedFakultas, tahun: selectedYear,
       });
 
       const rows = Array.isArray(result.data) ? result.data : [];
 
       const mappedRows = rows.map((item) => {
-        const batchCode =
-          item.batch_code ||
-          item.batchCode ||
-          item.uuid ||
-          item.batch_uuid ||
-          item.raw?.batch_code ||
-          item.raw?.uuid ||
-          null;
-
+        const batchCode = item.batch_code || item.batchCode || item.uuid || item.batch_uuid || item.raw?.batch_code || item.raw?.uuid || null;
         return {
           ...item,
           id: batchCode || item.id || item.id_batch_upload,
           batch_code: batchCode,
           batchCode,
-          status_email: formatStatusEmail(
-          item.status_kirim ||
-            item.statusKirim ||
-            item.status_email ||
-            item.raw?.status_kirim ||
-            item.raw?.statusKirim,
-          ),
+          status_email: formatStatusEmail(item.status_kirim || item.statusKirim || item.status_email || item.raw?.status_kirim || item.raw?.statusKirim),
         };
       });
 
       setBatches(mappedRows);
-      setPagination(
-        result.pagination || {
-          page: currentPage,
-          limit: ITEMS_PER_PAGE,
-          total_data: 0,
-          total_page: 1,
-        },
-      );
+      setPagination(result.pagination || { page: currentPage, limit: ITEMS_PER_PAGE, total_data: 0, total_page: 1 });
     } catch (error) {
       console.error("Gagal mengambil dokumen valid:", error);
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Gagal mengambil dokumen valid.",
-      );
+      setErrorMessage(error instanceof Error ? error.message : "Gagal mengambil dokumen valid.");
       setBatches([]);
-      setPagination({
-        page: 1,
-        limit: ITEMS_PER_PAGE,
-        total_data: 0,
-        total_page: 1,
-      });
+      setPagination({ page: 1, limit: ITEMS_PER_PAGE, total_data: 0, total_page: 1 });
     } finally {
       setIsLoading(false);
     }
@@ -162,163 +111,84 @@ const OperatorDokumenValid = () => {
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (filterBarRef.current && !filterBarRef.current.contains(e.target)) {
-        setShowSuggestions(false);
-      }
+      if (filterBarRef.current && !filterBarRef.current.contains(e.target)) setShowSuggestions(false);
     };
-
-
-
     document.addEventListener("mousedown", handleClickOutside);
-
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-
-      useEffect(() => {
-  setCurrentPage(1);
-}, [statusEmail]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusEmail]);
 
   const handlePage = (p) => {
-    if (p >= 1 && p <= totalPages) {
-      setCurrentPage(p);
-    }
-  };
-
-  const handleSearchChange = (e) => {
-    setSearch(e.target.value);
-    setCurrentPage(1);
-    setShowSuggestions(true);
-  };
-
-  const handleFakultasChange = (e) => {
-    setSelectedFakultas(e.target.value);
-    setCurrentPage(1);
-  };
-
-  const handleYearChange = (e) => {
-    setSelectedYear(e.target.value);
-    setCurrentPage(1);
+    if (p >= 1 && p <= totalPages) setCurrentPage(p);
   };
 
   const handleGoDetail = (item) => {
-    const batchCode =
-      item.batch_code ||
-      item.batchCode ||
-      item.uuid ||
-      item.batch_uuid ||
-      item.raw?.batch_code ||
-      item.raw?.uuid ||
-      item.id;
-
+    const batchCode = item.batch_code || item.batchCode || item.uuid || item.batch_uuid || item.raw?.batch_code || item.raw?.uuid || item.id;
     if (!batchCode) {
-      console.error("Batch code tidak ditemukan:", item);
       alert("Kode batch tidak ditemukan.");
       return;
     }
-
-    navigate(`/operator/detail-dokumen-valid/${encodeURIComponent(batchCode)}`, {
-      state: {
-        batch: item,
-      },
-    });
+    navigate(`/operator/detail-dokumen-valid/${encodeURIComponent(batchCode)}`, { state: { batch: item } });
   };
 
-const handleKirimBatch = async (item) => {
-  const batchCode =
-    item.batch_code ||
-    item.batchCode ||
-    item.uuid ||
-    item.batch_uuid ||
-    item.raw?.batch_code ||
-    item.raw?.uuid ||
-    item.id;
+  const handleKirimBatch = (item) => {
+    setEmailModal({ show: true, type: "confirm", data: item, message: "" });
+  };
 
-  const batchName =
-    item.batch || item.nomor_batch_upload || item.nama_batch || "batch ini";
+  const confirmKirimEmail = async () => {
+    const item = emailModal.data;
+    const batchCode = item.batch_code || item.batchCode || item.uuid || item.batch_uuid || item.raw?.batch_code || item.raw?.uuid || item.id;
+    if (!batchCode) return;
 
-  if (!batchCode) {
-    alert("Kode batch tidak ditemukan.");
-    return;
-  }
+    setEmailModal({ show: true, type: "loading", data: item, message: "" });
 
-  const confirmKirim = window.confirm(
-    `Apakah Anda yakin ingin mengirimkan email dokumen untuk ${batchName}?`,
-  );
+    try {
+      const result = await sendBatchDocumentEmail(batchCode);
+      const data = result.data || {};
 
-  if (!confirmKirim) return;
+      setBatches((prev) =>
+        prev.map((batch) => {
+          const currentBatchCode = batch.batch_code || batch.batchCode || batch.uuid || batch.batch_uuid || batch.raw?.batch_code || batch.raw?.uuid || batch.id;
+          return currentBatchCode === batchCode
+            ? { ...batch, status_email: Number(data.gagal || 0) > 0 ? "Terkirim" : "Terkirim" }
+            : batch;
+        })
+      );
 
-  try {
-    const result = await sendBatchDocumentEmail(batchCode);
-    const data = result.data || {};
-
-    alert(
-      `Proses kirim email selesai.\n\nBerhasil: ${data.berhasil || 0}\nGagal: ${data.gagal || 0}`,
-    );
-
-    setBatches((prev) =>
-      prev.map((batch) => {
-        const currentBatchCode =
-          batch.batch_code ||
-          batch.batchCode ||
-          batch.uuid ||
-          batch.batch_uuid ||
-          batch.raw?.batch_code ||
-          batch.raw?.uuid ||
-          batch.id;
-
-        return currentBatchCode === batchCode
-          ? {
-              ...batch,
-              status_email:
-                Number(data.gagal || 0) > 0
-                  ? "Email Terkirim Sebagian"
-                  : "Email Terkirim",
-            }
-          : batch;
-      }),
-    );
-
-    fetchValidBatches();
-  } catch (error) {
-    console.error("Gagal mengirim email batch:", error);
-
-    alert(
-      error instanceof Error
-        ? error.message
-        : "Gagal mengirim email batch.",
-    );
-  }
-};
+      setEmailModal({
+        show: true, type: "success", data: item,
+        message: `Berhasil terkirim: ${data.berhasil || 0} Mahasiswa\nGagal terkirim: ${data.gagal || 0} Mahasiswa`,
+      });
+      fetchValidBatches();
+    } catch (error) {
+      console.error("Gagal mengirim email batch:", error);
+      setEmailModal({
+        show: true, type: "error", data: item,
+        message: error instanceof Error ? error.message : "Gagal mengirim email batch.",
+      });
+    }
+  };
 
   const renderPages = () => {
     let pages = [];
-
-    if (totalPages <= 4) {
-      pages = Array.from({ length: totalPages }, (_, i) => i + 1);
-    } else if (currentPage <= 2) {
-      pages = [1, 2, "...", totalPages];
-    } else if (currentPage >= totalPages - 1) {
-      pages = [1, "...", totalPages - 1, totalPages];
-    } else {
-      pages = [1, "...", currentPage, "...", totalPages];
-    }
+    if (totalPages <= 4) pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+    else if (currentPage <= 2) pages = [1, 2, "...", totalPages];
+    else if (currentPage >= totalPages - 1) pages = [1, "...", totalPages - 1, totalPages];
+    else pages = [1, "...", currentPage, "...", totalPages];
 
     return pages.map((p, idx) => {
       const isActive = p === currentPage;
       const isEllipsis = p === "...";
-
       return (
         <button
           key={idx}
           onClick={() => !isEllipsis && handlePage(p)}
           disabled={isEllipsis}
           className={`w-9 h-9 flex items-center justify-center rounded-md text-sm font-bold transition-all
-            ${
-              isActive
-                ? "bg-[#117065] text-white shadow-md"
-                : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"
-            }
+            ${isActive ? "bg-[#117065] text-white shadow-md" : "bg-[#E5E7EB] text-gray-500 hover:bg-gray-300"}
             ${isEllipsis ? "cursor-default" : "cursor-pointer"}`}
         >
           {p}
@@ -327,36 +197,27 @@ const handleKirimBatch = async (item) => {
     });
   };
 
-  const DetailIcon = () => (
-    <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500" />
-  );
+  const DetailIcon = () => <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500" />;
 
   return (
     <DashboardLayout title="Dokumen Valid">
       <div className="w-full pb-10">
         <div className="mb-6">
-          <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">
-            Daftar Dokumen Valid
-          </h1>
+          <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">Daftar Dokumen Valid</h1>
           <p className="text-[#9CA3AF] text-[14px] font-medium mt-1">
-            Arsip digital ijazah dan transkrip mahasiswa yang telah melewati
-            proses verifikasi institusi.
+            Arsip digital ijazah dan transkrip mahasiswa yang telah melewati proses verifikasi institusi.
           </p>
         </div>
-        {/* 🔥 WRAPPER UTAMA: Membungkus Filter & Suggestions agar Click Outside tidak error */}
+        
         <div ref={filterBarRef} className="relative z-20">
-          {/* ✅ FILTER BAR */}
-          <div
-            className={`bg-white p-4 shadow-sm border border-gray-100 ${showSuggestions && searchSuggestions.length > 0 ? "rounded-t-xl" : "rounded-xl mb-6"}`}
-          >
+          <div className={`bg-white p-4 shadow-sm border border-gray-100 ${showSuggestions && searchSuggestions.length > 0 ? "rounded-t-xl" : "rounded-xl mb-6"}`}>
             <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-              {/* Search */}
               <div className="w-full lg:max-w-md">
                 <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
                   <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
                   <input
                     type="text"
-                    placeholder="Cari: Nama, NIM, Prodi..."
+                    placeholder="Cari: Nama, NIM..."
                     value={search}
                     onChange={(e) => {
                       setSearch(e.target.value);
@@ -369,74 +230,35 @@ const handleKirimBatch = async (item) => {
                 </div>
               </div>
 
-              {/* Dropdowns */}
               <div className="flex items-center gap-3 w-full lg:w-auto">
                 <div className="relative w-full lg:w-72">
-                  <select
-                    value={selectedFakultas}
-                    onChange={(e) => {
-                      setSelectedFakultas(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
-                  >
+                  <select value={selectedFakultas} onChange={(e) => { setSelectedFakultas(e.target.value); setCurrentPage(1); }} className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left">
                     <option value="">Semua Fakultas</option>
-                    {fakultasList.map((f) => (
-                      <option key={f.kode} value={f.nama}>
-                        {f.nama}
-                      </option>
-                    ))}
+                    {fakultasList.map((f) => <option key={f.kode} value={f.nama}>{f.nama}</option>)}
                   </select>
                   <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
                 </div>
-
-               <div className="relative w-full lg:w-44">
-  <select
-    value={selectedYear}
-    onChange={(e) => {
-      setSelectedYear(e.target.value);
-      setCurrentPage(1);
-    }}
-    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
-  >
-    <option value="">Semua Tahun</option>
-    {years.map((y) => (
-      <option key={y} value={y}>
-        {y}
-      </option>
-    ))}
-  </select>
-
-  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
-</div>
-
-<div className="relative w-full lg:w-48">
-  <select
-    value={statusEmail}
-    onChange={(e) => {
-      setStatusEmail(e.target.value);
-      setCurrentPage(1);
-    }}
-    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-[#117065] px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
-  >
-    <option value="">Semua Status Email</option>
-    <option value="Belum Diemail">Belum Diemail</option>
-    <option value="Email Terkirim">Email Terkirim</option>
-  </select>
-
-  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-[#117065] text-lg pointer-events-none" />
-</div>
-                   
+                <div className="relative w-full lg:w-44">
+                  <select value={selectedYear} onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(1); }} className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left">
+                    <option value="">Semua Tahun</option>
+                    {years.map((y) => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+                </div>
+                <div className="relative w-full lg:w-48">
+                  <select value={statusEmail} onChange={(e) => { setStatusEmail(e.target.value); setCurrentPage(1); }} className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left">
+                    <option value="Terkirim">Terkirim</option>
+                    <option value="Belum Terkirim">Belum Terkirim</option>
+                  </select>
+                  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* ✅ SUGGESTIONS LIST */}
+          {/* 🔥 Dropdown MURNI MAHASISWA & NAVIGASI KE DETAIL MAHASISWA */}
           {showSuggestions && (
-            <div
-              className="absolute left-0 right-0 top-full bg-white border-x border-b border-gray-100 shadow-lg rounded-b-xl mb-6 overflow-y-auto"
-              style={{ maxHeight: "260px", marginTop: "-1px" }}
-            >
+            <div className="absolute left-0 right-0 top-full bg-white border-x border-b border-gray-100 shadow-lg rounded-b-xl mb-6 overflow-y-auto" style={{ maxHeight: "260px", marginTop: "-1px" }}>
               {searchSuggestions.length > 0 ? (
                 searchSuggestions.map((student, idx) => (
                   <div
@@ -444,14 +266,6 @@ const handleKirimBatch = async (item) => {
                     onClick={() => {
                       setShowSuggestions(false);
                       setSearch("");
-
-                      const mahasiswaWrapper = {
-                        nama_mahasiswa: student.nama,
-                        nim: student.nim,
-                        program_studi: student.prodi,
-                        fakultas: student.fakultas,
-                        status: "terbit",
-                      };
 
                       const mahasiswaCode =
                         student.mahasiswa_code ||
@@ -462,11 +276,7 @@ const handleKirimBatch = async (item) => {
                         student.raw?.uuid;
 
                       if (!mahasiswaCode) {
-                        console.error(
-                          "Mahasiswa code tidak ditemukan:",
-                          student,
-                        );
-                        alert("Kode mahasiswa tidak ditemukan.");
+                        alert("Kode mahasiswa tidak ditemukan pada data pencarian ini.");
                         return;
                       }
 
@@ -474,7 +284,7 @@ const handleKirimBatch = async (item) => {
                         `/operator/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`,
                         {
                           state: {
-                            mahasiswa: mahasiswaWrapper,
+                            mahasiswa: student,
                             source: "dokumen_valid",
                           },
                         },
@@ -483,41 +293,36 @@ const handleKirimBatch = async (item) => {
                     className="px-6 py-4 border-b border-gray-50 hover:bg-teal-50 cursor-pointer flex justify-between items-center transition-colors last:border-b-0"
                   >
                     <div className="flex flex-col gap-0.5">
+                      {/* Hanya panggil nama, jika tidak ada biarkan strip (-) */}
                       <div className="font-bold text-[#1F2937] text-[14px] mb-0.5">
-                        {student.nama}
+                        {student.nama || student.nama_mahasiswa || "-"}
                       </div>
                       <div className="text-[12px] font-normal text-gray-500">
-                        {student.nim} • {student.prodi}
+                        {student.nim || "-"} • {student.prodi || student.program_studi || "Program Studi"}
                       </div>
                       <div className="text-[12px] font-normal text-gray-400">
-                        {student.fakultas}
+                        {student.fakultas || "-"}
                       </div>
                     </div>
+                    {/* Badge nama batch diletakkan di sebelah kanan (seperti screenshotmu) */}
                     <div className="text-[11px] font-semibold bg-[#F3F4F6] text-gray-500 px-3 py-1.5 rounded-md h-fit whitespace-nowrap ml-4">
-                      {student.batch}
+                      {student.batch || student.nomor_batch_upload || "-"}
                     </div>
                   </div>
                 ))
               ) : (
                 <div className="p-6 text-center text-sm text-gray-400 border-t border-gray-100">
-                  Mahasiswa tidak ditemukan
+                  Data tidak ditemukan
                 </div>
               )}
             </div>
           )}
         </div>
-        {/* AKHIR WRAPPER */}
 
-        {/* Jarak penyeimbang jika dropdown tidak tampil */}
         {!showSuggestions && <div className="mb-0" />}
-
         {(!showSuggestions || !search.trim()) && <div className="mb-6" />}
 
-        {errorMessage && (
-          <div className="mb-5 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm font-semibold text-red-600">
-            {errorMessage}
-          </div>
-        )}
+        {errorMessage && <div className="mb-5 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm font-semibold text-red-600">{errorMessage}</div>}
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
@@ -531,101 +336,47 @@ const handleKirimBatch = async (item) => {
                   <th className="py-4 px-6 text-center">Periode</th>
                   <th className="py-4 px-6 text-center">Total Data</th>
                   <th className="py-4 px-6 text-center">Status Email</th>
-                  <th className="py-4 px-6 text-center w-24">Aksi</th>
+                  <th className="py-4 px-6 text-center w-28">Detail / Kirim</th>
                 </tr>
               </thead>
 
               <tbody>
                 {isLoading ? (
-                  <tr>
-                    <td
-                      colSpan="8"
-                      className="py-12 text-center text-gray-400 font-medium"
-                    >
-                      Memuat data dokumen valid...
-                    </td>
-                  </tr>
+                  <tr><td colSpan="8" className="py-12 text-center text-gray-400 font-medium">Memuat data dokumen valid...</td></tr>
                 ) : currentData.length > 0 ? (
                   currentData.map((item, i) => (
                     <tr
-                      key={
-                        item.batch_code ||
-                        item.batchCode ||
-                        item.uuid ||
-                        item.batch_uuid ||
-                        item.raw?.batch_code ||
-                        item.raw?.uuid ||
-                        item.id ||
-                        i
-                      }
+                      key={item.batch_code || item.batchCode || item.id || i}
                       className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                     >
-                      <td className="py-4 px-6 text-center font-semibold text-gray-800">
-                        {(currentPage - 1) * ITEMS_PER_PAGE + i + 1}.
+                      <td className="py-4 px-6 text-center font-semibold text-gray-800">{(currentPage - 1) * ITEMS_PER_PAGE + i + 1}.</td>
+                      <td className="py-4 px-6 font-semibold text-gray-900">{item.batch || item.nomor_batch_upload || "-"}</td>
+                      <td className="py-4 px-6 font-normal text-gray-700">{item.fakultas || "-"}</td>
+                      <td className="py-4 px-6 text-center font-normal text-gray-700">{item.tahun || "-"}</td>
+                      <td className="py-4 px-6 text-center font-normal text-gray-700">{item.periode || "-"}</td>
+                      <td className="py-4 px-6 text-center font-normal text-gray-700">{item.total || 0}</td>
+                      <td className="py-4 px-6 text-center align-middle">
+                        <span className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${item.status_email === "Terkirim" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
+                          {item.status_email || "Belum Terkirim"}
+                        </span>
                       </td>
-
-                      <td className="py-4 px-6 font-semibold text-gray-900">
-                        {item.batch || item.nomor_batch_upload || "-"}
+                      <td className="py-4 px-6 align-middle">
+                        <div className="flex items-center justify-center gap-2">
+                          <button onClick={() => handleGoDetail(item)} className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center cursor-pointer hover:bg-gray-200 transition flex-shrink-0" title="Lihat Detail Batch">
+                            <DetailIcon />
+                          </button>
+                          {(item.status_email || "Belum Terkirim") === "Belum Terkirim" && (
+                            <button type="button" onClick={() => handleKirimBatch(item)} className="w-7 h-7 bg-[#117065] text-white rounded-md flex items-center justify-center cursor-pointer hover:bg-[#0c5249] transition-all shadow-sm" title="Kirim Email">
+                              <FiSend size={12} />
+                            </button>
+                          )}
+                        </div>
                       </td>
-
-                      <td className="py-4 px-6 font-normal text-gray-700">
-                        {item.fakultas || "-"}
-                      </td>
-
-                      <td className="py-4 px-6 text-center font-normal text-gray-700">
-  {item.tahun || "-"}
-</td>
-
-<td className="py-4 px-6 text-center font-normal text-gray-700">
-  {item.periode || "-"}
-</td>
-
-<td className="py-4 px-6 text-center font-normal text-gray-700">
-  {item.total || 0}
-</td>
-
-<td className="py-4 px-6 text-center align-middle">
-  <span
-    className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${
-      item.status_email === "Email Terkirim"
-        ? "bg-green-100 text-green-700"
-        : "bg-orange-100 text-orange-700"
-    }`}
-  >
-    {item.status_email || "Belum Diemail"}
-  </span>
-</td>
-
-<td className="py-4 px-6 align-middle">
-  <div className="flex items-center justify-center gap-2">
-    <button
-      onClick={() => handleGoDetail(item)}
-      className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
-      title="Lihat Detail Batch"
-    >
-      <DetailIcon />
-    </button>
-
-    {(item.status_email || "Belum Diemail") === "Belum Diemail" && (
-      <button
-        type="button"
-        onClick={() => handleKirimBatch(item)}
-        className="w-7 h-7 bg-[#117065] text-white rounded-md flex items-center justify-center cursor-pointer hover:bg-[#0c5249] transition-all shadow-sm"
-        title="Kirim Email Massal"
-      >
-        <FiSend size={12} />
-      </button>
-    )}
-  </div>
-</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td
-                      colSpan="8"
-                      className="py-12 text-center text-gray-400 font-medium"
-                    >
+                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
                       <div className="flex flex-col items-center justify-center">
                         <FiSearch className="text-4xl mb-3 text-gray-300" />
                         <p>Data dokumen tidak ditemukan.</p>
@@ -638,33 +389,69 @@ const handleKirimBatch = async (item) => {
           </div>
 
           <div className="px-6 py-5 border-t border-gray-100 bg-white flex justify-between items-center">
-            <p className="text-sm text-gray-400 font-medium">
-              Menampilkan {currentData.length} dari {pagination.total_data || 0}{" "}
-              data
-            </p>
-
+            <p className="text-sm text-gray-400 font-medium">Menampilkan {currentData.length} dari {pagination.total_data || 0} data</p>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => handlePage(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="flex items-center justify-center px-2 text-[18px] font-bold text-gray-400 hover:text-gray-800 disabled:opacity-30 transition-colors cursor-pointer"
-              >
-                &lt;
-              </button>
-
+              <button onClick={() => handlePage(currentPage - 1)} disabled={currentPage === 1} className="flex items-center justify-center px-2 text-[18px] font-bold text-gray-400 hover:text-gray-800 disabled:opacity-30 transition-colors cursor-pointer">&lt;</button>
               {renderPages()}
-
-              <button
-                onClick={() => handlePage(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="flex items-center justify-center px-2 text-[18px] font-bold text-[#117065] hover:text-teal-900 disabled:opacity-30 transition-colors cursor-pointer"
-              >
-                &gt;
-              </button>
+              <button onClick={() => handlePage(currentPage + 1)} disabled={currentPage === totalPages} className="flex items-center justify-center px-2 text-[18px] font-bold text-[#117065] hover:text-teal-900 disabled:opacity-30 transition-colors cursor-pointer">&gt;</button>
             </div>
           </div>
         </div>
       </div>
+
+      {emailModal.show && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl p-7 w-full max-w-sm mx-4">
+            {emailModal.type === "confirm" && (
+              <>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center">
+                    <FiSend className="text-[#117065]" size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 text-[16px]">Kirim Email </h3>
+                    <p className="text-gray-500 text-[13px]">Konfirmasi pengiriman</p>
+                  </div>
+                </div>
+                <p className="text-[13px] text-gray-700 mb-6 leading-relaxed">
+                  Apakah Anda yakin ingin mengirimkan email dokumen untuk <span className="font-bold text-gray-900">{emailModal.data?.batch || emailModal.data?.nomor_batch_upload || "batch ini"}</span>? Tindakan ini tidak dapat dibatalkan.
+                </p>
+                <div className="flex gap-3">
+                  <button onClick={() => setEmailModal({ show: false, type: "", data: null, message: "" })} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-colors">Batal</button>
+                  <button onClick={confirmKirimEmail} className="flex-1 py-2.5 rounded-xl bg-[#117065] text-white font-bold text-sm hover:bg-teal-800 transition-colors flex items-center justify-center gap-2">Ya, Kirim</button>
+                </div>
+              </>
+            )}
+            {emailModal.type === "loading" && (
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-t-2 border-[#117065] mb-4"></div>
+                <h3 className="font-bold text-gray-900 text-[16px] mb-1">Mengirim Email...</h3>
+                <p className="text-gray-500 text-[13px]">Mohon tunggu sebentar, proses ini memakan waktu dan jangan tutup halaman ini.</p>
+              </div>
+            )}
+            {emailModal.type === "success" && (
+              <div className="text-center py-2">
+                <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                  <FiCheckCircle className="text-green-500" size={28} />
+                </div>
+                <h3 className="font-bold text-gray-900 text-[17px] mb-2">Proses Selesai</h3>
+                <p className="text-gray-500 text-[13px] mb-6 whitespace-pre-line leading-relaxed">{emailModal.message}</p>
+                <button onClick={() => setEmailModal({ show: false, type: "", data: null, message: "" })} className="w-full py-2.5 rounded-xl bg-[#117065] text-white font-bold text-sm hover:bg-teal-800 transition-colors">Tutup</button>
+              </div>
+            )}
+            {emailModal.type === "error" && (
+              <div className="text-center py-2">
+                <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                  <FiAlertTriangle className="text-red-500" size={28} />
+                </div>
+                <h3 className="font-bold text-gray-900 text-[17px] mb-2">Pengiriman Gagal</h3>
+                <p className="text-gray-500 text-[13px] mb-6 whitespace-pre-line leading-relaxed">{emailModal.message}</p>
+                <button onClick={() => setEmailModal({ show: false, type: "", data: null, message: "" })} className="w-full py-2.5 rounded-xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 transition-colors">Kembali</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 };

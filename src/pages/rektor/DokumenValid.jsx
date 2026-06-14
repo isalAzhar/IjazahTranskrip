@@ -15,6 +15,14 @@ const fakultasList = [
 
 const ITEMS_PER_PAGE = 10;
 
+const formatStatusEmail = (statusKirimRaw) => {
+  const raw = String(statusKirimRaw || "").toLowerCase();
+  if (raw.includes("sudah") || (raw.includes("terkirim") && !raw.includes("belum"))) {
+    return "Terkirim";
+  }
+  return "Belum Terkirim";
+};
+
 const RektorDokumenValid = () => {
   const navigate = useNavigate();
 
@@ -26,13 +34,16 @@ const RektorDokumenValid = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const filterBarRef = useRef(null);
 
-  const [batches, setBatches] = useState([]);
+  const [allBatches, setAllBatches] = useState([]);
+  const [filteredBatches, setFilteredBatches] = useState([]);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: ITEMS_PER_PAGE,
     total_data: 0,
     total_page: 1,
   });
+
+  const [statusEmail, setStatusEmail] = useState("Terkirim");
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -43,10 +54,14 @@ const RektorDokumenValid = () => {
     (_, i) => currentYear - i,
   );
 
-  const totalPages = pagination.total_page || 1;
-  const currentData = batches;
+  const currentData = filteredBatches.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
-  const searchSuggestions = batches.filter((item) => {
+  const totalPages = Math.ceil(filteredBatches.length / ITEMS_PER_PAGE);
+
+  const searchSuggestions = allBatches.filter((item) => {
     if (!search.trim()) return true;
 
     const keyword = search.toLowerCase();
@@ -59,14 +74,24 @@ const RektorDokumenValid = () => {
     );
   });
 
+  const applyFilters = (data, status) => {
+    if (!status) return data;
+    return data.filter((item) => {
+      const itemStatus = item.status_email || formatStatusEmail(
+        item.status_kirim || item.statusKirim || item.raw?.status_kirim || item.raw?.statusKirim
+      );
+      return itemStatus === status;
+    });
+  };
+
   const fetchValidBatches = async () => {
     setIsLoading(true);
     setErrorMessage("");
 
     try {
       const result = await getValidDocumentBatches({
-        page: currentPage,
-        limit: ITEMS_PER_PAGE,
+        page: 1,
+        limit: 1000,
         search,
         fakultas: selectedFakultas,
         tahun: selectedYear,
@@ -83,21 +108,35 @@ const RektorDokumenValid = () => {
           item.raw?.uuid ||
           null;
 
+        const resolvedStatus =
+          item.status_email ||
+          item.status_kirim ||
+          item.statusKirim ||
+          item.raw?.status_email ||
+          item.raw?.status_kirim ||
+          item.raw?.statusKirim ||
+          "";
+
         return {
           ...item,
           id: batchCode || item.id || item.id_batch_upload,
           batch_code: batchCode,
           batchCode,
+          status_email: formatStatusEmail(resolvedStatus),
         };
       });
 
-      setBatches(mappedRows);
+      setAllBatches(mappedRows);
+      
+      const filtered = applyFilters(mappedRows, statusEmail);
+      setFilteredBatches(filtered);
+      
       setPagination(
         result.pagination || {
-          page: currentPage,
+          page: 1,
           limit: ITEMS_PER_PAGE,
-          total_data: 0,
-          total_page: 1,
+          total_data: filtered.length,
+          total_page: Math.ceil(filtered.length / ITEMS_PER_PAGE),
         },
       );
     } catch (error) {
@@ -107,7 +146,8 @@ const RektorDokumenValid = () => {
           ? error.message
           : "Gagal mengambil dokumen valid.",
       );
-      setBatches([]);
+      setAllBatches([]);
+      setFilteredBatches([]);
       setPagination({
         page: 1,
         limit: ITEMS_PER_PAGE,
@@ -120,8 +160,23 @@ const RektorDokumenValid = () => {
   };
 
   useEffect(() => {
+    const filtered = applyFilters(allBatches, statusEmail);
+    setFilteredBatches(filtered);
+    setCurrentPage(1);
+    setPagination(prev => ({
+      ...prev,
+      total_data: filtered.length,
+      total_page: Math.ceil(filtered.length / ITEMS_PER_PAGE),
+    }));
+  }, [statusEmail, allBatches]);
+
+  useEffect(() => {
     fetchValidBatches();
-  }, [currentPage, search, selectedFakultas, selectedYear]);
+  }, [search, selectedFakultas, selectedYear]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedFakultas, selectedYear, statusEmail]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -131,7 +186,6 @@ const RektorDokumenValid = () => {
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
@@ -139,22 +193,6 @@ const RektorDokumenValid = () => {
     if (p >= 1 && p <= totalPages) {
       setCurrentPage(p);
     }
-  };
-
-  const handleSearchChange = (e) => {
-    setSearch(e.target.value);
-    setCurrentPage(1);
-    setShowSuggestions(true);
-  };
-
-  const handleFakultasChange = (e) => {
-    setSelectedFakultas(e.target.value);
-    setCurrentPage(1);
-  };
-
-  const handleYearChange = (e) => {
-    setSelectedYear(e.target.value);
-    setCurrentPage(1);
   };
 
   const handleGoDetail = (item) => {
@@ -245,7 +283,6 @@ const RektorDokumenValid = () => {
               <div className="w-full lg:max-w-md">
                 <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
                   <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
-
                   <input
                     type="text"
                     placeholder="Cari: Nama, NIM, Prodi..."
@@ -272,14 +309,12 @@ const RektorDokumenValid = () => {
                     className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
                   >
                     <option value="">Semua Fakultas</option>
-
                     {fakultasList.map((f) => (
                       <option key={f.kode} value={f.nama}>
                         {f.nama}
                       </option>
                     ))}
                   </select>
-
                   <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
                 </div>
 
@@ -293,14 +328,27 @@ const RektorDokumenValid = () => {
                     className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
                   >
                     <option value="">Semua Tahun</option>
-
                     {years.map((y) => (
                       <option key={y} value={y}>
                         {y}
                       </option>
                     ))}
                   </select>
+                  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+                </div>
 
+                <div className="relative w-full lg:w-48">
+                  <select
+                    value={statusEmail}
+                    onChange={(e) => { 
+                      setStatusEmail(e.target.value); 
+                      setCurrentPage(1); 
+                    }}
+                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
+                  >
+                    <option value="Terkirim">Terkirim</option>
+                    <option value="Belum Terkirim">Belum Terkirim</option>
+                  </select>
                   <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
                 </div>
               </div>
@@ -320,14 +368,6 @@ const RektorDokumenValid = () => {
                       setShowSuggestions(false);
                       setSearch("");
 
-                      const mahasiswaWrapper = {
-                        nama_mahasiswa: student.nama,
-                        nim: student.nim,
-                        program_studi: student.prodi,
-                        fakultas: student.fakultas,
-                        status: "terbit",
-                      };
-
                       const mahasiswaCode =
                         student.mahasiswa_code ||
                         student.mahasiswaCode ||
@@ -337,21 +377,16 @@ const RektorDokumenValid = () => {
                         student.raw?.uuid;
 
                       if (!mahasiswaCode) {
-                        console.error(
-                          "Mahasiswa code tidak ditemukan:",
-                          student,
-                        );
+                        console.error("Mahasiswa code tidak ditemukan:", student);
                         alert("Kode mahasiswa tidak ditemukan.");
                         return;
                       }
 
                       navigate(
-                        `/rektor/detail-mahasiswa/${encodeURIComponent(
-                          mahasiswaCode,
-                        )}`,
+                        `/rektor/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`,
                         {
                           state: {
-                            mahasiswa: mahasiswaWrapper,
+                            mahasiswa: student,
                             source: "dokumen_valid",
                           },
                         },
@@ -363,16 +398,13 @@ const RektorDokumenValid = () => {
                       <div className="font-bold text-[#1F2937] text-[14px] mb-0.5">
                         {student.nama}
                       </div>
-
                       <div className="text-[12px] font-normal text-gray-500">
                         {student.nim} • {student.prodi}
                       </div>
-
                       <div className="text-[12px] font-normal text-gray-400">
                         {student.fakultas}
                       </div>
                     </div>
-
                     <div className="text-[11px] font-semibold bg-[#F3F4F6] text-gray-500 px-3 py-1.5 rounded-md h-fit whitespace-nowrap ml-4">
                       {student.batch}
                     </div>
@@ -388,7 +420,6 @@ const RektorDokumenValid = () => {
         </div>
 
         {!showSuggestions && <div className="mb-0" />}
-
         {(!showSuggestions || !search.trim()) && <div className="mb-6" />}
 
         {errorMessage && (
@@ -408,59 +439,52 @@ const RektorDokumenValid = () => {
                   <th className="py-4 px-6 text-center">Tahun Lulus</th>
                   <th className="py-4 px-6 text-center">Periode</th>
                   <th className="py-4 px-6 text-center">Total Data</th>
+                  <th className="py-4 px-6 text-center">Status Email</th>
                   <th className="py-4 px-6 text-center w-20">Detail</th>
                 </tr>
               </thead>
-
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td
-                      colSpan="7"
-                      className="py-12 text-center text-gray-400 font-medium"
-                    >
+                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
                       Memuat data dokumen valid...
                     </td>
                   </tr>
                 ) : currentData.length > 0 ? (
                   currentData.map((item, i) => (
                     <tr
-                      key={
-                        item.batch_code ||
-                        item.batchCode ||
-                        item.uuid ||
-                        item.batch_uuid ||
-                        item.raw?.batch_code ||
-                        item.raw?.uuid ||
-                        item.id ||
-                        i
-                      }
+                      key={item.batch_code || item.batchCode || item.uuid || item.batch_uuid || item.raw?.batch_code || item.raw?.uuid || item.id || i}
                       className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                     >
                       <td className="py-4 px-6 text-center font-semibold text-gray-800">
                         {(currentPage - 1) * ITEMS_PER_PAGE + i + 1}.
                       </td>
-
                       <td className="py-4 px-6 font-semibold text-gray-900">
                         {item.batch || item.nomor_batch_upload || "-"}
                       </td>
-
                       <td className="py-4 px-6 font-normal text-gray-700">
                         {item.fakultas || "-"}
                       </td>
-
                       <td className="py-4 px-6 text-center font-normal text-gray-700">
                         {item.tahun || "-"}
                       </td>
-
                       <td className="py-4 px-6 text-center font-normal text-gray-700">
                         {item.periode || "-"}
                       </td>
-
                       <td className="py-4 px-6 text-center font-normal text-gray-700">
                         {item.total || 0}
                       </td>
-
+                      <td className="py-4 px-6 text-center align-middle">
+                        <span
+                          className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${
+                            item.status_email === "Terkirim"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-orange-100 text-orange-700"
+                          }`}
+                        >
+                          {item.status_email || "Belum Terkirim"}
+                        </span>
+                      </td>
                       <td className="py-4 px-6 text-center">
                         <button
                           onClick={() => handleGoDetail(item)}
@@ -473,10 +497,7 @@ const RektorDokumenValid = () => {
                   ))
                 ) : (
                   <tr>
-                    <td
-                      colSpan="7"
-                      className="py-12 text-center text-gray-400 font-medium"
-                    >
+                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
                       <div className="flex flex-col items-center justify-center">
                         <FiSearch className="text-4xl mb-3 text-gray-300" />
                         <p>Data dokumen tidak ditemukan.</p>
@@ -490,10 +511,8 @@ const RektorDokumenValid = () => {
 
           <div className="px-6 py-5 border-t border-gray-100 bg-white flex justify-between items-center">
             <p className="text-sm text-gray-400 font-medium">
-              Menampilkan {currentData.length} dari {pagination.total_data || 0}{" "}
-              data
+              Menampilkan {currentData.length} dari {filteredBatches.length} data
             </p>
-
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handlePage(currentPage - 1)}
@@ -502,9 +521,7 @@ const RektorDokumenValid = () => {
               >
                 &lt;
               </button>
-
               {renderPages()}
-
               <button
                 onClick={() => handlePage(currentPage + 1)}
                 disabled={currentPage === totalPages}
