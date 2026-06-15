@@ -183,24 +183,32 @@ const DetailDokumenValidRektor = () => {
     });
   }, [searchSuggestions, batch, batchFromState]);
 
-  const handleGoDetailMahasiswa = (student) => {
+ const handleGoDetailMahasiswa = (student) => {
+    // 1. Ambil kode mahasiswa dari berbagai kemungkinan field API
     const mahasiswaCode =
       student.mahasiswa_code ||
       student.mahasiswaCode ||
       student.uuid ||
       student.mahasiswa_uuid ||
+      student.id ||
       student.raw?.mahasiswa_code ||
       student.raw?.uuid;
 
+    // 2. Validasi pencegahan error jika kode kosong
     if (!mahasiswaCode) {
-      console.error("Mahasiswa code tidak ditemukan:", student);
-      alert("Kode mahasiswa tidak ditemukan.");
+      console.error("Mahasiswa code tidak ditemukan pada objek:", student);
+      alert("Kode mahasiswa tidak ditemukan, gagal membuka detail.");
       return;
     }
 
-    navigate(`/rektor/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`, {
+    // 3. Pastikan kode di-encode agar URL aman dari karakter khusus
+    const safeCode = encodeURIComponent(mahasiswaCode);
+
+    // 4. Lakukan navigasi dengan menyertakan state lengkap (termasuk source)
+    navigate(`/rektor/detail-mahasiswa/${safeCode}`, {
       state: {
         mahasiswa: student,
+        source: "dokumen_valid", // 🔥 Penting: agar tombol dokumen valid muncul di halaman tujuan
       },
     });
   };

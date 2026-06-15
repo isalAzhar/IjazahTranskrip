@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { FiSearch, FiChevronDown } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom"; // 🔥 Gunakan useLocation
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { getApprovalLaporan } from "@/services/api";
 
@@ -82,6 +82,7 @@ const formatWaktu = (value) => {
 
 const PelaporanVerivikator = () => {
   const navigate = useNavigate();
+  const location = useLocation(); // 🔥 Ambil lokasi URL dari React Router
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -174,6 +175,7 @@ const PelaporanVerivikator = () => {
       item.mahasiswaUuid ||
       item.uuid ||
       item.id_mahasiswa ||
+      item.id ||
       item.mahasiswa?.mahasiswa_code ||
       item.mahasiswa?.mahasiswaCode ||
       item.mahasiswa?.uuid ||
@@ -184,13 +186,18 @@ const PelaporanVerivikator = () => {
 
     if (!mahasiswaCode) {
       console.error("Mahasiswa code tidak ditemukan:", item);
-      alert("Kode mahasiswa tidak ditemukan.");
+      alert("Kode mahasiswa tidak ditemukan pada data pelaporan ini.");
       return;
     }
 
-    navigate(`/verifikator/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`, {
+    // 🔥 Gunakan location.pathname dari React Router yang kebal terhadap HashRouter
+    // Contoh location.pathname: "/operator/pelaporan" -> split('/')[1] hasilnya "operator"
+    const currentRolePath = location.pathname.split('/')[1] || "verifikator";
+
+    navigate(`/${currentRolePath}/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`, {
       state: {
         mahasiswa: item,
+        // Dibiarkan tanpa source "dokumen_valid" agar tombol "Lihat Dokumen Valid" tetap tersembunyi di Pelaporan
       },
     });
   };

@@ -1,5 +1,3 @@
-// src/pages/operator/DetailPelaporan.jsx
-
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
@@ -12,6 +10,7 @@ import {
 } from "react-icons/fi";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { getAkademikProfile } from "@/services/api";
+import { useAuth } from "../context/AuthContext";
 
 const badgeClass = (status) => {
   const map = {
@@ -99,12 +98,24 @@ const formatTanggal = (value) => {
 };
 
 const DetailMahasiswa = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { mahasiswaCode, id } = useParams();
 
   const mahasiswaFromState = location.state?.mahasiswa || {};
   const currentMahasiswaCode = decodeURIComponent(mahasiswaCode || id || "");
+
+  // 🔥 1. Ambil source dari navigasi
+  const source = location.state?.source || "";
+  
+  // 🔥 2. Cek Role
+  const role = user?.role?.toLowerCase() || "";
+  
+  // 🔥 3. KUNCI GANDA: Harus Operator/Rektor DAN harus datang dari menu Dokumen Valid
+  const canViewDocuments = 
+    ["operator", "operator_data", "rektor"].includes(role) && 
+    source === "dokumen_valid";
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -113,6 +124,11 @@ const DetailMahasiswa = () => {
   const [showPdfModal, setShowPdfModal] = useState(false);
 
   const fetchProfile = async () => {
+    if (!currentMahasiswaCode || currentMahasiswaCode === "undefined") {
+      setError("ID Mahasiswa tidak valid.");
+      return;
+    }
+
     try {
       setLoading(true);
       setError("");
@@ -122,12 +138,15 @@ const DetailMahasiswa = () => {
       setProfile(result.data);
     } catch (err) {
       console.error("Gagal mengambil detail mahasiswa:", err);
-
-      setError(
-        err?.message ||
-          err?.response?.data?.message ||
-          "Gagal mengambil detail mahasiswa."
-      );
+      if (err?.status === 404) {
+        setError("Profil mahasiswa tidak ditemukan di database server.");
+      } else {
+        setError(
+          err?.message ||
+            err?.response?.data?.message ||
+            "Gagal mengambil detail mahasiswa."
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -384,7 +403,8 @@ const DetailMahasiswa = () => {
               {detailDeskripsi}
             </p>
 
-            {statusLabel === "Terbit" && (
+            {/* 🔥 Tombol ini sekarang HANYA muncul jika dipenuhi dua syarat di atas */}
+            {statusLabel === "Terbit" && canViewDocuments && (
               <button
                 onClick={handleLinkDokumenValid}
                 className="flex items-center gap-1.5 text-xs font-semibold text-[#0B4B48] hover:underline mt-2"
