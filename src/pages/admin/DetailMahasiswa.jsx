@@ -1,8 +1,15 @@
 // src/pages/operator/DetailPelaporan.jsx
 
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { FiUser, FiBook, FiFileText } from "react-icons/fi"; // FiArrowLeft sudah dihapus
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import {
+  FiUser,
+  FiBook,
+  FiFileText,
+  FiExternalLink,
+  FiFile,
+  FiDownload,
+} from "react-icons/fi";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { getAkademikProfile } from "@/services/api";
 
@@ -12,9 +19,35 @@ const badgeClass = (status) => {
     Terbit: "bg-[#16A36B] text-white",
     Revoke: "bg-[#F59E0B] text-white",
     Reject: "bg-[#EF4444] text-white",
+    approved: "bg-[#16A36B] text-white",
+    pending: "bg-[#3B82F6] text-white",
+    rejected: "bg-[#EF4444] text-white",
+    revoked: "bg-[#F59E0B] text-white",
   };
 
   return map[status] || "bg-gray-400 text-white";
+};
+
+const formatStatusLabel = (status) => {
+  const normalizedStatus = status?.toLowerCase().trim() || "";
+
+  if (normalizedStatus === "approved" || normalizedStatus === "terbit") {
+    return "Terbit";
+  }
+
+  if (normalizedStatus === "pending" || normalizedStatus === "proses") {
+    return "Proses";
+  }
+
+  if (normalizedStatus === "rejected" || normalizedStatus === "reject") {
+    return "Reject";
+  }
+
+  if (normalizedStatus === "revoked" || normalizedStatus === "revoke") {
+    return "Revoke";
+  }
+
+  return status || "-";
 };
 
 const getImageUrl = (imagePath) => {
@@ -34,6 +67,23 @@ const getImageUrl = (imagePath) => {
   return `${baseUrl}/${imagePath}`;
 };
 
+const getFileUrl = (filePath) => {
+  if (!filePath) return null;
+
+  if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
+    return filePath;
+  }
+
+  const baseUrl =
+    import.meta.env.VITE_API_PUBLIC_URL || "http://localhost:3000";
+
+  if (filePath.startsWith("/")) {
+    return `${baseUrl}${filePath}`;
+  }
+
+  return `${baseUrl}/${filePath}`;
+};
+
 const formatTanggal = (value) => {
   if (!value) return "-";
 
@@ -50,14 +100,17 @@ const formatTanggal = (value) => {
 
 const DetailMahasiswa = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { mahasiswaCode, id } = useParams();
 
+  const mahasiswaFromState = location.state?.mahasiswa || {};
   const currentMahasiswaCode = decodeURIComponent(mahasiswaCode || id || "");
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [imageError, setImageError] = useState(false);
+  const [showPdfModal, setShowPdfModal] = useState(false);
 
   const fetchProfile = async () => {
     try {
@@ -66,7 +119,6 @@ const DetailMahasiswa = () => {
       setImageError(false);
 
       const result = await getAkademikProfile(currentMahasiswaCode);
-
       setProfile(result.data);
     } catch (err) {
       console.error("Gagal mengambil detail mahasiswa:", err);
@@ -74,7 +126,7 @@ const DetailMahasiswa = () => {
       setError(
         err?.message ||
           err?.response?.data?.message ||
-          "Gagal mengambil detail mahasiswa.",
+          "Gagal mengambil detail mahasiswa."
       );
     } finally {
       setLoading(false);
@@ -97,16 +149,86 @@ const DetailMahasiswa = () => {
     batch?.nomor_batch_upload ||
     batch?.batch_code ||
     mahasiswa?.batch_code ||
+    mahasiswaFromState?.batch_code ||
+    mahasiswaFromState?.batchCode ||
     "-";
 
-  const detailStatus = approval?.status || "Proses";
+  const detailStatus =
+    approval?.status || mahasiswaFromState?.status || "Proses";
+
+  const statusLabel = formatStatusLabel(detailStatus);
 
   const detailKeterangan =
-    approval?.keterangan || "Di Proses Validasi oleh TU Fakultas";
+    approval?.keterangan ||
+    mahasiswaFromState?.keterangan ||
+    "Di Proses Validasi oleh TU Fakultas";
 
   const detailDeskripsi =
     approval?.deskripsi ||
+    mahasiswaFromState?.deskripsi ||
     "Data sedang dalam proses verifikasi. Mohon menunggu hingga proses validasi selesai.";
+
+  const ijazahUrl = getFileUrl(
+    mahasiswaFromState?.ijazah?.file_pdf_url ||
+      mahasiswaFromState?.ijazah?.file_url ||
+      mahasiswaFromState?.ijazah?.url ||
+      profile?.ijazah?.file_pdf_url ||
+      profile?.ijazah?.file_url ||
+      profile?.ijazah?.url ||
+      profile?.dokumen?.ijazah?.file_pdf_url ||
+      profile?.dokumen?.ijazah?.file_url ||
+      profile?.dokumen?.ijazah?.url ||
+      mahasiswa?.ijazah?.file_pdf_url ||
+      mahasiswa?.ijazah?.file_url ||
+      mahasiswa?.ijazah?.url
+  );
+
+  const transkripUrl = getFileUrl(
+    mahasiswaFromState?.transkrip?.file_pdf_url ||
+      mahasiswaFromState?.transkrip?.file_url ||
+      mahasiswaFromState?.transkrip?.url ||
+      profile?.transkrip_dokumen?.file_pdf_url ||
+      profile?.transkrip_dokumen?.file_url ||
+      profile?.transkrip_dokumen?.url ||
+      profile?.dokumen?.transkrip?.file_pdf_url ||
+      profile?.dokumen?.transkrip?.file_url ||
+      profile?.dokumen?.transkrip?.url ||
+      mahasiswa?.transkrip?.file_pdf_url ||
+      mahasiswa?.transkrip?.file_url ||
+      mahasiswa?.transkrip?.url
+  );
+
+  const openPdf = (url, title) => {
+    if (!url) {
+      alert(`Dokumen ${title} belum tersedia.`);
+      return;
+    }
+
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleLinkDokumenValid = () => {
+    if (ijazahUrl && transkripUrl) {
+      setShowPdfModal(true);
+      return;
+    }
+
+    if (ijazahUrl) {
+      openPdf(ijazahUrl, "Ijazah");
+      return;
+    }
+
+    if (transkripUrl) {
+      openPdf(transkripUrl, "Transkrip Nilai");
+      return;
+    }
+
+    alert("Dokumen belum tersedia.");
+  };
+
+  const closePdfModal = () => {
+    setShowPdfModal(false);
+  };
 
   if (loading) {
     return (
@@ -147,9 +269,67 @@ const DetailMahasiswa = () => {
   return (
     <DashboardLayout title="Detail Mahasiswa">
       <div className="w-full">
-        {/* TOMBOL KEMBALI SUDAH DIHAPUS */}
+        {showPdfModal && (
+          <div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl max-w-sm w-full p-5 shadow-xl">
+              <div className="text-center mb-4">
+                <FiFile className="text-[#0B6B63] text-4xl mx-auto mb-2" />
+                <h3 className="text-lg font-bold text-gray-800">
+                  Pilih Dokumen
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Pilih dokumen yang ingin Anda lihat
+                </p>
+              </div>
 
-        {/* Header Mahasiswa */}
+              <div className="space-y-3">
+                {ijazahUrl && (
+                  <button
+                    onClick={() => {
+                      closePdfModal();
+                      openPdf(ijazahUrl, "Ijazah");
+                    }}
+                    className="w-full flex items-center justify-between gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FiFile className="text-green-600" />
+                      <span className="text-sm font-semibold text-gray-700">
+                        Ijazah
+                      </span>
+                    </div>
+                    <FiDownload className="text-gray-400 text-sm" />
+                  </button>
+                )}
+
+                {transkripUrl && (
+                  <button
+                    onClick={() => {
+                      closePdfModal();
+                      openPdf(transkripUrl, "Transkrip Nilai");
+                    }}
+                    className="w-full flex items-center justify-between gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FiFile className="text-blue-600" />
+                      <span className="text-sm font-semibold text-gray-700">
+                        Transkrip Nilai
+                      </span>
+                    </div>
+                    <FiDownload className="text-gray-400 text-sm" />
+                  </button>
+                )}
+              </div>
+
+              <button
+                onClick={closePdfModal}
+                className="w-full mt-4 h-11 rounded-xl bg-gradient-to-r from-[#117065] to-[#16A36B] text-white font-semibold text-sm shadow-md hover:shadow-xl hover:brightness-110 active:scale-[0.98] transition-all duration-300"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="bg-white rounded-xl px-8 py-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 shadow-sm border border-gray-200">
           <div className="flex items-center gap-6">
             <div className="w-[88px] h-[88px] rounded-full bg-[#E5F3EB] overflow-hidden flex items-center justify-center border-4 border-[#E5F3EB]">
@@ -169,16 +349,19 @@ const DetailMahasiswa = () => {
 
             <div className="flex flex-col gap-1.5">
               <h2 className="font-bold text-[20px] text-gray-900">
-                {mahasiswa?.nama_mahasiswa || "-"}
+                {mahasiswa?.nama_mahasiswa ||
+                  mahasiswaFromState?.nama ||
+                  mahasiswaFromState?.nama_mahasiswa ||
+                  "-"}
               </h2>
 
               <p className="text-[14px] text-gray-600">
-                NIM: {mahasiswa?.nim || "-"}
+                NIM: {mahasiswa?.nim || mahasiswaFromState?.nim || "-"}
               </p>
 
               <div>
                 <span className="inline-block bg-[#115E59] text-white text-[12px] px-4 py-1.5 rounded-full font-bold shadow-sm">
-                {batchLabel}
+                  {batchLabel}
                 </span>
               </div>
             </div>
@@ -187,10 +370,10 @@ const DetailMahasiswa = () => {
           <div className="text-right flex flex-col items-end gap-1 max-w-[320px]">
             <span
               className={`${badgeClass(
-                detailStatus,
+                detailStatus
               )} text-white text-[13px] px-6 py-1.5 rounded-full font-bold shadow-sm inline-block`}
             >
-              {detailStatus}
+              {statusLabel}
             </span>
 
             <p className="text-[11px] text-gray-500 font-medium">
@@ -200,10 +383,19 @@ const DetailMahasiswa = () => {
             <p className="text-[10px] text-gray-400 italic leading-relaxed text-right">
               {detailDeskripsi}
             </p>
+
+            {statusLabel === "Terbit" && (
+              <button
+                onClick={handleLinkDokumenValid}
+                className="flex items-center gap-1.5 text-xs font-semibold text-[#0B4B48] hover:underline mt-2"
+              >
+                <FiExternalLink size={12} />
+                Lihat Dokumen Valid
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Informasi Pribadi dan Akademik */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
             <div className="bg-[#F3F4F6] px-6 py-4 flex items-center gap-2 border-b border-gray-200">
@@ -221,7 +413,7 @@ const DetailMahasiswa = () => {
               <InfoItem
                 label="Tempat, Tanggal Lahir"
                 value={`${mahasiswa?.tempat_lahir || "-"}, ${formatTanggal(
-                  mahasiswa?.tanggal_lahir,
+                  mahasiswa?.tanggal_lahir
                 )}`}
               />
 
@@ -286,7 +478,6 @@ const DetailMahasiswa = () => {
           </div>
         </div>
 
-        {/* Transkrip Nilai */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
           <div className="bg-[#F3F4F6] px-6 py-4 flex items-center gap-2 border-b border-gray-200">
             <FiFileText size={16} className="text-gray-800" />

@@ -3,8 +3,6 @@ import { FiSearch, FiChevronDown } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { getApprovalLaporan } from "@/services/api";
-// 1. IMPORT USEAUTH DI SINI
-import { useAuth } from "../../pages/context/AuthContext";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -22,6 +20,7 @@ const badgeClass = (status) => {
 
   return "bg-gray-400 text-white";
 };
+
 const formatStatusLabel = (status) => {
   const normalizedStatus = status?.toLowerCase().trim() || "";
 
@@ -53,10 +52,14 @@ const getStatusFilterValue = (value) => {
 
   return value;
 };
+
 const formatTanggal = (value) => {
   if (!value) return "-";
+
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return "-";
+
   return date.toLocaleDateString("id-ID", {
     day: "2-digit",
     month: "2-digit",
@@ -66,17 +69,19 @@ const formatTanggal = (value) => {
 
 const formatWaktu = (value) => {
   if (!value) return "-";
+
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return "-";
-  return `${date.getHours().toString().padStart(2, "0")}.${date.getMinutes().toString().padStart(2, "0")} WIB`;
+
+  return `${date.getHours().toString().padStart(2, "0")}.${date
+    .getMinutes()
+    .toString()
+    .padStart(2, "0")} WIB`;
 };
 
 const PelaporanVerivikator = () => {
   const navigate = useNavigate();
-
-  // 2. DEKLARASI ROLE USER DI SINI (Di dalam fungsi komponen, di bawah navigate)
-  const { user } = useAuth();
-  const userRole = user?.role?.toLowerCase() || "";
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -114,22 +119,26 @@ const PelaporanVerivikator = () => {
       });
 
       setLaporanList(result.data || []);
+
       setPagination(
         result.pagination || {
           page: currentPage,
           limit: ITEMS_PER_PAGE,
           total_data: 0,
           total_page: 1,
-        },
+        }
       );
     } catch (err) {
       console.error("Gagal mengambil data laporan:", err);
+
       setError(
         err?.message ||
           err?.response?.data?.message ||
-          "Gagal mengambil data laporan approval.",
+          "Gagal mengambil data laporan approval."
       );
+
       setLaporanList([]);
+
       setPagination({
         page: currentPage,
         limit: ITEMS_PER_PAGE,
@@ -157,6 +166,35 @@ const PelaporanVerivikator = () => {
     }
   };
 
+  const handleGoDetailMahasiswa = (item) => {
+    const mahasiswaCode =
+      item.mahasiswa_code ||
+      item.mahasiswaCode ||
+      item.mahasiswa_uuid ||
+      item.mahasiswaUuid ||
+      item.uuid ||
+      item.id_mahasiswa ||
+      item.mahasiswa?.mahasiswa_code ||
+      item.mahasiswa?.mahasiswaCode ||
+      item.mahasiswa?.uuid ||
+      item.raw?.mahasiswa_code ||
+      item.raw?.mahasiswaCode ||
+      item.raw?.mahasiswa_uuid ||
+      item.raw?.uuid;
+
+    if (!mahasiswaCode) {
+      console.error("Mahasiswa code tidak ditemukan:", item);
+      alert("Kode mahasiswa tidak ditemukan.");
+      return;
+    }
+
+    navigate(`/verifikator/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`, {
+      state: {
+        mahasiswa: item,
+      },
+    });
+  };
+
   const renderPaginationButtons = () => {
     let pages = [];
 
@@ -165,11 +203,13 @@ const PelaporanVerivikator = () => {
     } else {
       if (currentPage === 1) pages = [1, 2, "...", totalPages];
       else if (currentPage === 2) pages = [1, 2, 3, "...", totalPages];
-      else if (currentPage === totalPages)
+      else if (currentPage === totalPages) {
         pages = [1, "...", totalPages - 1, totalPages];
-      else if (currentPage === totalPages - 1)
+      } else if (currentPage === totalPages - 1) {
         pages = [1, "...", totalPages - 2, totalPages - 1, totalPages];
-      else pages = [1, "...", currentPage, "...", totalPages];
+      } else {
+        pages = [1, "...", currentPage, "...", totalPages];
+      }
     }
 
     return pages.map((page, index) => {
@@ -205,11 +245,11 @@ const PelaporanVerivikator = () => {
           </p>
         </div>
 
-        {/* Filter Bar */}
         <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-4 border border-gray-100">
           <div className="w-full lg:max-w-md">
             <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
               <FiSearch className="text-gray-400 text-lg mr-3" />
+
               <input
                 type="text"
                 placeholder="Cari: Nama, NIM"
@@ -236,6 +276,7 @@ const PelaporanVerivikator = () => {
                   </option>
                 ))}
               </select>
+
               <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
             </div>
           </div>
@@ -271,7 +312,14 @@ const PelaporanVerivikator = () => {
 
                     return (
                       <tr
-                      key={item.mahasiswa_code || item.mahasiswaCode || item.nim || idx}
+                        key={
+                          item.mahasiswa_code ||
+                          item.mahasiswaCode ||
+                          item.mahasiswa_uuid ||
+                          item.uuid ||
+                          item.nim ||
+                          idx
+                        }
                         className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                       >
                         <td className="py-4 px-6 text-center font-medium text-gray-800 truncate">
@@ -280,10 +328,10 @@ const PelaporanVerivikator = () => {
 
                         <td className="py-4 px-6">
                           <div className="font-medium text-gray-900 truncate">
-                            {item.nama || "-"}
+                            {item.nama || item.nama_mahasiswa || "-"}
                           </div>
                           <div className="text-[11px] text-gray-400 mt-0.5 truncate">
-                            {item.program_studi || "-"}
+                            {item.program_studi || item.prodi || "-"}
                           </div>
                         </td>
 
@@ -302,10 +350,10 @@ const PelaporanVerivikator = () => {
                         <td className="py-4 px-6 text-center">
                           <span
                             className={`inline-block px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${badgeClass(
-                              item.status,
+                              item.status
                             )}`}
                           >
-                            {item.status || "-"}
+                            {formatStatusLabel(item.status)}
                           </span>
                         </td>
 
@@ -313,53 +361,9 @@ const PelaporanVerivikator = () => {
                           {item.keterangan || "-"}
                         </td>
 
-                        {/* 3. TOMBOL NAVIGASI DINAMIS ADA DI SINI */}
                         <td className="py-4 px-6 text-center">
                           <button
-                            onClick={() => {
-                              const mahasiswaCode =
-                                item.mahasiswa_code ||
-                                item.mahasiswaCode ||
-                                item.uuid ||
-                                item.mahasiswa_uuid ||
-                                item.raw?.mahasiswa_code ||
-                                item.raw?.uuid;
-
-                              if (!mahasiswaCode) {
-                                console.error(
-                                  "Mahasiswa code tidak ditemukan:",
-                                  item,
-                                );
-                                alert("Kode mahasiswa tidak ditemukan.");
-                                return;
-                              }
-
-                              const safeMahasiswaCode =
-                                encodeURIComponent(mahasiswaCode);
-
-                              if (userRole === "operator") {
-                                navigate(
-                                  `/operator/detail-mahasiswa/${safeMahasiswaCode}`,
-                                  {
-                                    state: { mahasiswa: item },
-                                  },
-                                );
-                              } else if (userRole.includes("rektor")) {
-                                navigate(
-                                  `/rektor/detail-mahasiswa/${safeMahasiswaCode}`,
-                                  {
-                                    state: { mahasiswa: item },
-                                  },
-                                );
-                              } else {
-                                navigate(
-                                  `/verifikator/detail-mahasiswa/${safeMahasiswaCode}`,
-                                  {
-                                    state: { mahasiswa: item },
-                                  },
-                                );
-                              }
-                            }}
+                            onClick={() => handleGoDetailMahasiswa(item)}
                             className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
                           >
                             <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>
