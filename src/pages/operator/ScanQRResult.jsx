@@ -283,11 +283,11 @@ const ScanQRResult = () => {
           }}
         >
           <div style={{ display: "flex", gap: "20px" }}>
-            {/* FOTO KTP */}
+            {/* FOTO KTP - tanpa tulisan jenis kelamin */}
             <div
               style={{
                 width: "100px",
-                height: "130px",
+                height: "120px",
                 background: bgColor,
                 borderRadius: "8px",
                 display: "flex",
@@ -300,32 +300,13 @@ const ScanQRResult = () => {
             >
               <span
                 style={{
-                  fontSize: "38px",
+                  fontSize: "42px",
                   fontWeight: "700",
                   color: "white",
-                  marginBottom: "4px",
                 }}
               >
                 {inisial}
               </span>
-              <div
-                style={{
-                  width: "35px",
-                  height: "2px",
-                  background: "rgba(255,255,255,0.3)",
-                  margin: "6px 0",
-                }}
-              />
-              <p
-                style={{
-                  fontSize: "8px",
-                  color: "rgba(255,255,255,0.8)",
-                  margin: 0,
-                  textAlign: "center",
-                }}
-              >
-                {data.jenisKelamin}
-              </p>
             </div>
 
             {/* INFORMASI DOKUMEN & MAHASISWA */}

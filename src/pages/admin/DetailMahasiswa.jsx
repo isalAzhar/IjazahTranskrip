@@ -1,8 +1,15 @@
 // src/pages/operator/DetailPelaporan.jsx
 
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams, Navigate } from "react-router-dom";
-import { FiUser, FiBook, FiFileText } from "react-icons/fi";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import {
+  FiUser,
+  FiBook,
+  FiFileText,
+  FiExternalLink,
+  FiFile,
+  FiDownload,
+} from "react-icons/fi";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { getAkademikProfile } from "@/services/api";
 
@@ -13,23 +20,45 @@ const badgeClass = (status) => {
     Revoke: "bg-[#F59E0B] text-white",
     Reject: "bg-[#EF4444] text-white",
   };
+
   return map[status] || "bg-gray-400 text-white";
 };
 
 const getImageUrl = (imagePath) => {
   if (!imagePath) return null;
-  if (imagePath.startsWith("http://") || imagePath.startsWith("https://"))
+
+  if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
     return imagePath;
-  const baseUrl =
-    import.meta.env.VITE_API_PUBLIC_URL || "http://localhost:3000";
+  }
+
+  const baseUrl = import.meta.env.VITE_API_PUBLIC_URL || "http://localhost:3000";
+
   if (imagePath.startsWith("/")) return `${baseUrl}${imagePath}`;
+
   return `${baseUrl}/${imagePath}`;
+};
+
+const getFileUrl = (filePath) => {
+  if (!filePath) return null;
+
+  if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
+    return filePath;
+  }
+
+  const baseUrl = import.meta.env.VITE_API_PUBLIC_URL || "http://localhost:3000";
+
+  if (filePath.startsWith("/")) return `${baseUrl}${filePath}`;
+
+  return `${baseUrl}/${filePath}`;
 };
 
 const formatTanggal = (value) => {
   if (!value) return "-";
+
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return "-";
+
   return date.toLocaleDateString("id-ID", {
     day: "2-digit",
     month: "long",
@@ -38,25 +67,26 @@ const formatTanggal = (value) => {
 };
 
 const DetailMahasiswa = () => {
-  // ✅ Ganti nama komponen
   const navigate = useNavigate();
+  const location = useLocation();
   const { mahasiswaCode, id } = useParams();
 
+  const mahasiswaFromState = location.state?.mahasiswa || {};
+
   const currentMahasiswaCode = decodeURIComponent(mahasiswaCode || id || "");
+
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [imageError, setImageError] = useState(false);
-
-  if (!currentMahasiswaCode) {
-    return <Navigate to="/login" replace />;
-  }
+  const [showPdfModal, setShowPdfModal] = useState(false);
 
   const fetchProfile = async () => {
     try {
       setLoading(true);
       setError("");
       setImageError(false);
+
       const result = await getAkademikProfile(currentMahasiswaCode);
       setProfile(result.data);
     } catch (err) {
@@ -64,7 +94,7 @@ const DetailMahasiswa = () => {
       setError(
         err?.message ||
           err?.response?.data?.message ||
-          "Gagal mengambil detail mahasiswa.",
+          "Gagal mengambil detail mahasiswa."
       );
     } finally {
       setLoading(false);
@@ -72,7 +102,9 @@ const DetailMahasiswa = () => {
   };
 
   useEffect(() => {
-    if (currentMahasiswaCode) fetchProfile();
+    if (currentMahasiswaCode) {
+      fetchProfile();
+    }
   }, [currentMahasiswaCode]);
 
   const mahasiswa = profile?.mahasiswa;
@@ -82,18 +114,86 @@ const DetailMahasiswa = () => {
   const transkrip = profile?.transkrip || [];
 
   const fotoMahasiswa = getImageUrl(mahasiswa?.foto);
-  const batchLabel =
-  batch?.nomor_batch_upload ||
-  batch?.batch_code ||
-  mahasiswa?.batch_code ||
-  "-";
 
-  const detailStatus = approval?.status || "Proses";
+  const batchLabel =
+    batch?.nomor_batch_upload ||
+    batch?.batch_code ||
+    mahasiswa?.batch_code ||
+    mahasiswaFromState?.batch_code ||
+    mahasiswaFromState?.batchCode ||
+    "-";
+
+  const detailStatus =
+    approval?.status || mahasiswaFromState?.status || "Proses";
+
   const detailKeterangan =
     approval?.keterangan || "Di Proses Validasi oleh TU Fakultas";
+
   const detailDeskripsi =
     approval?.deskripsi ||
     "Data sedang dalam proses verifikasi. Mohon menunggu hingga proses validasi selesai.";
+
+  const ijazahUrl = getFileUrl(
+    mahasiswaFromState?.ijazah?.file_pdf_url ||
+      mahasiswaFromState?.ijazah?.file_url ||
+      mahasiswaFromState?.ijazah?.url ||
+      profile?.ijazah?.file_pdf_url ||
+      profile?.ijazah?.file_url ||
+      profile?.ijazah?.url ||
+      profile?.dokumen?.ijazah?.file_pdf_url ||
+      profile?.dokumen?.ijazah?.file_url ||
+      profile?.dokumen?.ijazah?.url ||
+      mahasiswa?.ijazah?.file_pdf_url ||
+      mahasiswa?.ijazah?.file_url ||
+      mahasiswa?.ijazah?.url
+  );
+
+  const transkripUrl = getFileUrl(
+    mahasiswaFromState?.transkrip?.file_pdf_url ||
+      mahasiswaFromState?.transkrip?.file_url ||
+      mahasiswaFromState?.transkrip?.url ||
+      profile?.transkrip_dokumen?.file_pdf_url ||
+      profile?.transkrip_dokumen?.file_url ||
+      profile?.transkrip_dokumen?.url ||
+      profile?.dokumen?.transkrip?.file_pdf_url ||
+      profile?.dokumen?.transkrip?.file_url ||
+      profile?.dokumen?.transkrip?.url ||
+      mahasiswa?.transkrip?.file_pdf_url ||
+      mahasiswa?.transkrip?.file_url ||
+      mahasiswa?.transkrip?.url
+  );
+
+  const openPdf = (url, title) => {
+    if (!url) {
+      alert(`Dokumen ${title} belum tersedia.`);
+      return;
+    }
+
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleLinkDokumenValid = () => {
+    if (ijazahUrl && transkripUrl) {
+      setShowPdfModal(true);
+      return;
+    }
+
+    if (ijazahUrl) {
+      openPdf(ijazahUrl, "Ijazah");
+      return;
+    }
+
+    if (transkripUrl) {
+      openPdf(transkripUrl, "Transkrip Nilai");
+      return;
+    }
+
+    alert("Dokumen belum tersedia.");
+  };
+
+  const closePdfModal = () => {
+    setShowPdfModal(false);
+  };
 
   if (loading) {
     return (
@@ -120,6 +220,7 @@ const DetailMahasiswa = () => {
       <DashboardLayout title="Detail Mahasiswa">
         <div className="w-full text-center py-10">
           <p className="text-gray-500 mb-3">Data tidak ditemukan</p>
+
           <button
             onClick={() => navigate(-1)}
             className="text-[#115E59] font-bold hover:underline"
@@ -134,6 +235,82 @@ const DetailMahasiswa = () => {
   return (
     <DashboardLayout title="Detail Mahasiswa">
       <div className="w-full">
+        {showPdfModal && (
+          <div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl max-w-sm w-full p-5 shadow-xl">
+              <div className="text-center mb-4">
+                <FiFile className="text-[#0B6B63] text-4xl mx-auto mb-2" />
+                <h3 className="text-lg font-bold text-gray-800">
+                  Pilih Dokumen
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Pilih dokumen yang ingin Anda lihat
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {ijazahUrl && (
+                  <button
+                    onClick={() => {
+                      closePdfModal();
+                      openPdf(ijazahUrl, "Ijazah");
+                    }}
+                    className="w-full flex items-center justify-between gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FiFile className="text-green-600" />
+                      <span className="text-sm font-semibold text-gray-700">
+                        Ijazah
+                      </span>
+                    </div>
+                    <FiDownload className="text-gray-400 text-sm" />
+                  </button>
+                )}
+
+                {transkripUrl && (
+                  <button
+                    onClick={() => {
+                      closePdfModal();
+                      openPdf(transkripUrl, "Transkrip Nilai");
+                    }}
+                    className="w-full flex items-center justify-between gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FiFile className="text-blue-600" />
+                      <span className="text-sm font-semibold text-gray-700">
+                        Transkrip Nilai
+                      </span>
+                    </div>
+                    <FiDownload className="text-gray-400 text-sm" />
+                  </button>
+                )}
+              </div>
+
+              <button
+  onClick={closePdfModal}
+  className="
+    w-full
+    mt-4
+    h-11
+    rounded-lg
+    bg-[#117065]
+    text-white
+    font-semibold
+    text-sm
+    shadow-md
+    hover:bg-[#0D5A51]
+    hover:shadow-lg
+    active:scale-[0.98]
+    transition-all
+    duration-200
+  "
+>
+  Batal
+</button>
+            </div>
+          </div>
+        )}
+
         <div className="bg-white rounded-xl px-8 py-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 shadow-sm border border-gray-200">
           <div className="flex items-center gap-6">
             <div className="w-[88px] h-[88px] rounded-full bg-[#E5F3EB] overflow-hidden flex items-center justify-center border-4 border-[#E5F3EB]">
@@ -153,11 +330,16 @@ const DetailMahasiswa = () => {
 
             <div className="flex flex-col gap-1.5">
               <h2 className="font-bold text-[20px] text-gray-900">
-                {mahasiswa?.nama_mahasiswa || "-"}
+                {mahasiswa?.nama_mahasiswa ||
+                  mahasiswaFromState?.nama ||
+                  mahasiswaFromState?.nama_mahasiswa ||
+                  "-"}
               </h2>
+
               <p className="text-[14px] text-gray-600">
-                NIM: {mahasiswa?.nim || "-"}
+                NIM: {mahasiswa?.nim || mahasiswaFromState?.nim || "-"}
               </p>
+
               <div>
                 <span className="inline-block bg-[#115E59] text-white text-[12px] px-4 py-1.5 rounded-full font-bold shadow-sm">
                   Batch ID: {batchLabel}
@@ -168,16 +350,30 @@ const DetailMahasiswa = () => {
 
           <div className="text-right flex flex-col items-end gap-1 max-w-[320px]">
             <span
-              className={`${badgeClass(detailStatus)} text-white text-[13px] px-6 py-1.5 rounded-full font-bold shadow-sm inline-block`}
+              className={`${badgeClass(
+                detailStatus
+              )} text-white text-[13px] px-6 py-1.5 rounded-full font-bold shadow-sm inline-block`}
             >
               {detailStatus}
             </span>
+
             <p className="text-[11px] text-gray-500 font-medium">
               {detailKeterangan}
             </p>
+
             <p className="text-[10px] text-gray-400 italic leading-relaxed text-right">
               {detailDeskripsi}
             </p>
+
+            {detailStatus === "Terbit" && (
+              <button
+                onClick={handleLinkDokumenValid}
+                className="flex items-center gap-1.5 text-xs font-semibold text-[#0B4B48] hover:underline mt-2"
+              >
+                <FiExternalLink size={12} />
+                Lihat Dokumen Valid
+              </button>
+            )}
           </div>
         </div>
 
@@ -189,18 +385,18 @@ const DetailMahasiswa = () => {
                 Informasi Pribadi
               </h3>
             </div>
+
             <div className="p-6 grid grid-cols-2 gap-y-6 gap-x-8 text-[14px]">
               <InfoItem label="Nama" value={mahasiswa?.nama_mahasiswa} />
               <InfoItem label="NIM" value={mahasiswa?.nim} />
               <InfoItem label="NIK" value={mahasiswa?.nik} />
               <InfoItem
                 label="Tempat, Tanggal Lahir"
-                value={`${mahasiswa?.tempat_lahir || "-"}, ${formatTanggal(mahasiswa?.tanggal_lahir)}`}
+                value={`${mahasiswa?.tempat_lahir || "-"}, ${formatTanggal(
+                  mahasiswa?.tanggal_lahir
+                )}`}
               />
-              <InfoItem
-                label="Jenis Kelamin"
-                value={mahasiswa?.jenis_kelamin}
-              />
+              <InfoItem label="Jenis Kelamin" value={mahasiswa?.jenis_kelamin} />
               <InfoItem label="Email" value={mahasiswa?.email} />
               <InfoItem label="No Telepon" value={mahasiswa?.telepon} />
               <InfoItem
@@ -218,6 +414,7 @@ const DetailMahasiswa = () => {
                 Informasi Akademik
               </h3>
             </div>
+
             <div className="p-6 grid grid-cols-2 gap-y-6 gap-x-8 text-[14px]">
               <InfoItem label="Fakultas" value={akademik?.fakultas} />
               <InfoItem label="Program Studi" value={akademik?.program_studi} />
@@ -261,6 +458,7 @@ const DetailMahasiswa = () => {
               Transkrip Nilai
             </h3>
           </div>
+
           <div className="max-h-[500px] overflow-y-auto">
             <table className="w-full text-[14px] text-gray-800">
               <thead className="sticky top-0 bg-[#F9FAFB] border-b border-gray-200 text-gray-500">
@@ -277,11 +475,12 @@ const DetailMahasiswa = () => {
                   <th className="px-6 py-4 font-bold text-center">Nilai</th>
                 </tr>
               </thead>
+
               <tbody>
                 {transkrip.length > 0 ? (
                   transkrip.map((n, index) => (
                     <tr
-                      key={`${n.kode || "matkul"}-${index}`}
+                      key={index}
                       className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-6 py-4 font-semibold text-center">
@@ -332,4 +531,4 @@ const InfoItem = ({ label, value }) => (
   </div>
 );
 
-export default DetailMahasiswa; // ✅ Ganti export
+export default DetailMahasiswa;
