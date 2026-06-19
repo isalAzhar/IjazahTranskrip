@@ -259,7 +259,7 @@ const PelaporanVerivikator = () => {
 
               <input
                 type="text"
-                placeholder="Cari: Nama, NIM"
+                placeholder="Cari: Nama, NIM, Prodi..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
@@ -422,7 +422,7 @@ const PelaporanVerivikator = () => {
               >
                 {">"}
               </button>
-            </div>
+            </div>  
           </div>
         </div>
       </div>

@@ -206,7 +206,7 @@ const Pelaporan = () => {
               <FiSearch className="text-gray-400 text-lg mr-3" />
               <input
                 type="text"
-                placeholder="Cari: Nama, NIM"
+                placeholder="Cari: Nama, NIM, Prodi..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"

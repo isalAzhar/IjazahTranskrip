@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { FiSearch, FiChevronDown } from "react-icons/fi";
-import { useNavigate, useParams } from "react-router-dom";
-// 🔥 IMPORT DARI DASHBOARD API, BUKAN API BIASA
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { getDashboardBatches, getDetailBatch } from "../../services/dashboard.api";
 
 const normalizeStatus = (status) => {
@@ -33,6 +33,16 @@ const getBadgeLabel = (status) => {
   }
 };
 
+const formatPeriode = (periode) => {
+  if (!periode || periode === "-") return "-";
+  
+  const raw = periode.toString().replace(/_/g, " ").toLowerCase();
+  return raw
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
 const formatStatusEmail = (statusKirimRaw) => {
   const raw = String(statusKirimRaw || "").toLowerCase();
   if (
@@ -47,7 +57,7 @@ const formatStatusEmail = (statusKirimRaw) => {
 const buildFakultasOptions = (rows = []) => {
   return [
     ...new Set(
-      rows.map((item) => item.fakultas).filter((item) => item && item !== "-"),
+      rows.map((item) => item.fakultas || item.raw?.fakultas).filter((item) => item && item !== "-"),
     ),
   ];
 };
@@ -56,7 +66,7 @@ const buildYearOptions = (rows = []) => {
   return [
     ...new Set(
       rows
-        .map((item) => (item.tahun_lulus || item.tahun)?.toString())
+        .map((item) => (item.tahun_lulus || item.tahun || item.raw?.tahun_lulus || item.raw?.tahun)?.toString())
         .filter((item) => item && item !== "-"),
     ),
   ].sort((a, b) => Number(b) - Number(a));
@@ -64,6 +74,10 @@ const buildYearOptions = (rows = []) => {
 
 const StatusIjazah = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+  const userRole = user?.role?.toLowerCase() || "";
+
   const { status } = useParams();
   const currentStatus = normalizeStatus(status);
   const displayLabel = getBadgeLabel(currentStatus);
@@ -74,7 +88,8 @@ const StatusIjazah = () => {
   const hasLoadedRef = useRef(false);
   const [fakultas, setFakultas] = useState("");
   const [tahun, setTahun] = useState("");
-  const [statusEmail, setStatusEmail] = useState("Terkirim"); // 🔥 Default langsung ke Terkirim
+  
+  const [statusEmail, setStatusEmail] = useState(""); 
 
   const [currentPage, setCurrentPage] = useState(1);
   const [batchData, setBatchData] = useState([]);
@@ -95,24 +110,46 @@ const StatusIjazah = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
+  // 🔥 1. EFFECT BARU: Khusus mengambil opsi Dropdown secara global (tanpa filter tahun/search)
+  useEffect(() => {
+    const fetchGlobalOptions = async () => {
+      try {
+        const result = await getDashboardBatches({
+          limit: 5000,
+          status: currentStatus,
+        });
+        const rows = Array.isArray(result?.data) ? result.data : [];
+        
+        // Daftarkan ke state agar dropdown tidak berubah-ubah nilainya
+        setFakultasList(buildFakultasOptions(rows));
+        setYears(buildYearOptions(rows));
+      } catch (error) {
+        console.error("Gagal memuat opsi filter awal:", error);
+      }
+    };
+
+    if (currentStatus) {
+      fetchGlobalOptions();
+    }
+  }, [currentStatus]);
+
   const isMatchMahasiswaSearch = (mhs, keyword) => {
-  const text = [
-    mhs.nama,
-    mhs.nama_mahasiswa,
-    mhs.nim,
-    mhs.prodi,
-    mhs.program_studi,
-    mhs.nama_prodi,
-    mhs.fakultas,
-    mhs.tahun_lulus,
-    mhs.tahun,
-  ]
-    .join(" ")
-    .toLowerCase();
+    const text = [
+      mhs.nama,
+      mhs.nama_mahasiswa,
+      mhs.nim,
+      mhs.prodi,
+      mhs.program_studi,
+      mhs.nama_prodi,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
 
-  return text.includes(keyword);
-};
+    return text.includes(keyword);
+  };
 
+  // 2. EFFECT UTAMA: Tetap digunakan untuk fetch data tabel yang dinamis
   useEffect(() => {
     const fetchIjazahData = async () => {
       try {
@@ -124,16 +161,13 @@ const StatusIjazah = () => {
 
         setApiError("");
 
-        // 🔥 BIARKAN BACKEND YANG MENGELOMPOKKAN & FILTER STATUS
         const result = await getDashboardBatches({
           limit: 10000,
           status: currentStatus,
           search: debouncedSearch.trim(),
-
           tahun_lulus: tahun,
         });
 
-        // Tambahkan properti UI (status email & label) ke data murni dari backend
         const rows = Array.isArray(result?.data) ? result.data : [];
 
         const finalData = rows.map((item) => {
@@ -153,7 +187,9 @@ const StatusIjazah = () => {
             fakultas: item.fakultas || raw.fakultas || "-",
             tahun: item.tahun?.toString() || raw.tahun_lulus?.toString() || "-",
             tahun_lulus: item.tahun_lulus || raw.tahun_lulus || "-",
-            periode: item.periode || raw.periode || "-",
+            
+            periode: formatPeriode(item.periode || raw.periode), 
+
             total: item.total ?? raw.total_mahasiswa ?? raw.total_record ?? 0,
             status: displayLabel,
             status_email: formatStatusEmail(
@@ -169,59 +205,69 @@ const StatusIjazah = () => {
         });
 
         setBatchData(finalData);
-        setFakultasList(buildFakultasOptions(finalData));
-        setYears(buildYearOptions(finalData));
+        // 🔥 BARIS setFakultasList DAN setYears SUDAH DIHAPUS DARI SINI AGAR TIDAK OVERWRITE DROPDOWN
 
         if (debouncedSearch.trim()) {
-  const keyword = debouncedSearch.toLowerCase().trim();
+          const keyword = debouncedSearch.toLowerCase().trim();
 
-  const detailResults = await Promise.all(
-    finalData.map(async (batch) => {
-      const batchCode =
-        batch.batch_code ||
-        batch.batchCode ||
-        batch.uuid ||
-        batch.batch_uuid ||
-        batch.raw?.batch_code ||
-        batch.raw?.uuid ||
-        batch.id;
+          const detailResults = await Promise.all(
+            finalData.map(async (batch) => {
+              if (!batch.batch_code) return [];
 
-      if (!batchCode) return [];
+              try {
+                const detail = await getDetailBatch(batch.batch_code, currentStatus);
+                
+                let mahasiswaList = [];
+                if (Array.isArray(detail)) {
+                  mahasiswaList = detail;
+                } else if (detail?.mahasiswa && Array.isArray(detail.mahasiswa)) {
+                  mahasiswaList = detail.mahasiswa;
+                } else if (detail?.data && Array.isArray(detail.data)) {
+                  mahasiswaList = detail.data;
+                } else if (detail?.data?.mahasiswa && Array.isArray(detail.data.mahasiswa)) {
+                  mahasiswaList = detail.data.mahasiswa;
+                }
 
-      try {
-        const detail = await getDetailBatch(batchCode, currentStatus);
-        const detailData = detail?.data || detail || {};
+                return mahasiswaList
+                  .filter((mhs) => isMatchMahasiswaSearch(mhs, keyword))
+                  .map((mhs) => ({
+                    ...mhs,
+                    batch: batch.batch,
+                    batch_code: batch.batch_code,
+                    fakultas: mhs.fakultas || batch.fakultas,
+                    tahun_lulus: mhs.tahun_lulus || batch.tahun_lulus,
+                    prodi:
+                      mhs.prodi ||
+                      mhs.program_studi ||
+                      mhs.nama_prodi ||
+                      "-",
+                  }));
+              } catch (error) {
+                console.error("Gagal ambil detail batch:", batch.batch_code, error);
+                return [];
+              }
+            }),
+          );
 
-        const mahasiswaList = Array.isArray(detailData.mahasiswa)
-          ? detailData.mahasiswa
-          : [];
+          let allMatchedStudents = detailResults.flat();
 
-        return mahasiswaList
-          .filter((mhs) => isMatchMahasiswaSearch(mhs, keyword))
-          .map((mhs) => ({
-            ...mhs,
-            batch: batch.batch,
-            batch_code: batchCode,
-            fakultas: mhs.fakultas || batch.fakultas,
-            tahun_lulus: mhs.tahun_lulus || batch.tahun_lulus,
-            prodi:
-              mhs.prodi ||
-              mhs.program_studi ||
-              mhs.nama_prodi ||
-              "-",
-          }));
-      } catch (error) {
-        console.error("Gagal ambil detail batch:", batchCode, error);
-        return [];
-      }
-    }),
-  );
+          allMatchedStudents.sort((a, b) => {
+            const namaA = (a.nama || a.nama_mahasiswa || "").toLowerCase();
+            const namaB = (b.nama || b.nama_mahasiswa || "").toLowerCase();
 
-  setMahasiswaSearchResults(detailResults.flat());
-} else {
-  setMahasiswaSearchResults([]);
-}
+            const aStarts = namaA.startsWith(keyword);
+            const bStarts = namaB.startsWith(keyword);
 
+            if (aStarts && !bStarts) return -1;
+            if (!aStarts && bStarts) return 1;
+
+            return namaA.localeCompare(namaB);
+          });
+
+          setMahasiswaSearchResults(allMatchedStudents);
+        } else {
+          setMahasiswaSearchResults([]);
+        }
       } catch (error) {
         console.error(`Gagal mengambil data via getDashboardBatches:`, error);
         setApiError(error.message || "Gagal mengambil data dari server.");
@@ -236,18 +282,15 @@ const StatusIjazah = () => {
   }, [currentStatus, debouncedSearch, tahun]);
 
   const filtered = batchData
-  .filter((item) => {
-    // Search sudah diproses backend.
-    const matchSearch = true;
-
-    const matchesFakultas = fakultas ? item.fakultas === fakultas : true;
-
-    const matchesTahun = tahun ? String(item.tahun) === String(tahun) : true;
-
-    const matchesStatusEmail =
-      currentStatus === "terbit" && statusEmail
-        ? item.status_email === statusEmail
-        : true;
+    .filter((item) => {
+      const matchSearch = true;
+      const matchesFakultas = fakultas ? item.fakultas === fakultas : true;
+      const matchesTahun = tahun ? String(item.tahun) === String(tahun) : true;
+      
+      const matchesStatusEmail =
+        currentStatus === "terbit" && statusEmail !== ""
+          ? item.status_email === statusEmail
+          : true;
 
     return (
       matchSearch && matchesFakultas && matchesTahun && matchesStatusEmail
@@ -311,6 +354,32 @@ const StatusIjazah = () => {
     });
   };
 
+  const handleGoDetailMahasiswa = (student) => {
+    const mahasiswaCode =
+      student.mahasiswa_code ||
+      student.mahasiswaCode ||
+      student.uuid ||
+      student.mahasiswa_uuid ||
+      student.id ||
+      student.raw?.mahasiswa_code ||
+      student.raw?.uuid;
+
+    if (!mahasiswaCode) {
+      alert("Kode mahasiswa tidak ditemukan pada data ini.");
+      return;
+    }
+
+    const safeCode = encodeURIComponent(mahasiswaCode);
+    const currentRolePath = location.pathname.split('/')[1] || "operator";
+
+    navigate(`/${currentRolePath}/detail-mahasiswa/${safeCode}`, {
+      state: {
+        mahasiswa: student,
+        source: currentStatus === "terbit" ? "dokumen_valid" : "", 
+      },
+    });
+  };
+
   const renderPaginationButtons = () => {
     const pages = [];
     if (totalPages <= 0) return pages;
@@ -343,7 +412,7 @@ const StatusIjazah = () => {
     ));
   };
 
-    if (isLoading && !hasLoadedRef.current) { 
+  if (isLoading && !hasLoadedRef.current) { 
     return (
       <DashboardLayout>
         <div className="flex justify-center items-center h-[70vh]">
@@ -378,13 +447,12 @@ const StatusIjazah = () => {
                 <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
                 <input
                   type="text"
-                  placeholder="Cari: Nama Batch, Fakultas, Periode, Prodi"
+                  placeholder="Cari: Nama, NIM, Prodi..."
                   value={search}
                   onChange={(e) => {
-  setSearch(e.target.value);
-  setCurrentPage(1);
-}}
-              
+                    setSearch(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
                 />
               </div>
@@ -424,17 +492,16 @@ const StatusIjazah = () => {
               </div>
 
               {currentStatus === "terbit" && (
-                <div className="relative w-full sm:w-48">
-                  {/* 🔥 Update class dropdown jadi text-gray-700 dan options */}
+                <div className="relative w-full sm:w-52">
                   <select
                     value={statusEmail}
                     onChange={(e) => setStatusEmail(e.target.value)}
                     className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
                   >
+                    <option value="">Semua Status Email</option>
                     <option value="Terkirim">Terkirim</option>
                     <option value="Belum Terkirim">Belum Terkirim</option>
                   </select>
-                  {/* 🔥 Update chevron color jadi text-gray-500 */}
                   <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
                 </div>
               )}
@@ -442,13 +509,13 @@ const StatusIjazah = () => {
           </div>
         </div>
 
-                {isSearching && (
+        {isSearching && (
           <p className="text-xs text-gray-400 font-medium mb-3">
             Mencari data...
           </p>
         )}
 
-                {/* HASIL MAHASISWA SEARCH */}
+        {/* HASIL MAHASISWA SEARCH */}
         {debouncedSearch.trim() && mahasiswaSearchResults.length > 0 && (
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm mb-6">
             {mahasiswaSearchResults.map((mhs, index) => {
@@ -461,29 +528,23 @@ const StatusIjazah = () => {
               return (
                 <div
                   key={mahasiswaCode || mhs.nim || index}
-                  className={`px-6 py-4 flex justify-between items-center hover:bg-gray-50 transition-colors ${
+                  onClick={() => {
+                    setSearch("");
+                    setDebouncedSearch("");
+                    handleGoDetailMahasiswa(mhs);
+                  }}
+                  className={`px-6 py-4 flex flex-col gap-1 hover:bg-gray-50 cursor-pointer transition-colors ${
                     index !== mahasiswaSearchResults.length - 1
                       ? "border-b border-gray-100"
                       : ""
                   }`}
                 >
-                  <div>
-                    <div className="font-bold text-gray-900">
-                      {mhs.nama || mhs.nama_mahasiswa || "-"}
-                    </div>
-
-                    <div className="text-sm text-gray-400 mt-1">
-                      {mhs.nim || "-"} •{" "}
-                      {mhs.prodi || mhs.program_studi || mhs.nama_prodi || "-"}
-                    </div>
-
-                    <div className="text-sm text-gray-400 mt-1">
-                      {mhs.fakultas || "-"}
-                    </div>
+                  <div className="font-bold text-gray-900 text-[15px]">
+                    {mhs.nama || mhs.nama_mahasiswa || "-"}
                   </div>
-
-                  <div className="bg-[#F3F4F6] text-gray-500 text-sm font-bold px-4 py-2 rounded-lg">
-                    {mhs.batch || "-"}
+                  
+                  <div className="text-sm text-gray-500 font-medium">
+                    {mhs.nim || "-"} • {mhs.prodi || mhs.program_studi || mhs.nama_prodi || "-"}
                   </div>
                 </div>
               );
@@ -497,11 +558,11 @@ const StatusIjazah = () => {
             <colgroup>
               <col className="w-[5%]" />
               <col className="w-[20%]" />
-              <col className="w-[22%]" />
+              <col className="w-[20%]" />
               <col className="w-[10%]" />
               <col className="w-[15%]" />
               <col className="w-[8%]" />
-              {currentStatus === "terbit" && <col className="w-[10%]" />}
+              {currentStatus === "terbit" && <col className="w-[12%]" />}
               <col className="w-[10%]" />
             </colgroup>
             <thead className="bg-[#F7F7F7] text-gray-500 border-b border-gray-200">
@@ -550,9 +611,8 @@ const StatusIjazah = () => {
 
                       {currentStatus === "terbit" && (
                         <td className="px-4 py-4 text-center align-middle">
-                          {/* 🔥 Update kondisi badge mencocokkan kata Terkirim */}
                           <span
-                            className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${
+                            className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-md text-xs font-bold ${
                               item.status_email === "Terkirim"
                                 ? "bg-green-100 text-green-700"
                                 : "bg-orange-100 text-orange-700"

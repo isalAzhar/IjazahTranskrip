@@ -31,15 +31,11 @@ const OperatorDokumenValid = () => {
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [mahasiswaSearchResults, setMahasiswaSearchResults] = useState([]);
-  const [isSearchingMahasiswa, setIsSearchingMahasiswa] = useState(false);
   const [selectedFakultas, setSelectedFakultas] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
   const [statusEmail, setStatusEmail] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const filterBarRef = useRef(null);
 
   const [batches, setBatches] = useState([]);
   const [filterOptions, setFilterOptions] = useState({
@@ -63,39 +59,7 @@ const OperatorDokumenValid = () => {
   });
 
   const totalPages = pagination.total_page || 1;
-
   const currentData = batches;
-
-  // 🔥 Filter khusus mencari Mahasiswa
-  const currentSuggestions = mahasiswaSearchResults
-    .map((mhs) => ({
-      id:
-        mhs.mahasiswa_code ||
-        mhs.mahasiswaCode ||
-        mhs.uuid ||
-        mhs.mahasiswa_uuid ||
-        mhs.nim,
-
-      nama: mhs.nama || mhs.nama_mahasiswa || "-",
-      nim: mhs.nim || "-",
-      prodi:
-        mhs.prodi || mhs.program_studi || mhs.nama_prodi || "Program Studi",
-      fakultas: mhs.fakultas || "-",
-      batchName: mhs.batch || mhs.nomor_batch_upload || "-",
-
-      batchData: {
-        batch: mhs.batch,
-        batch_code: mhs.batch_code,
-        batchCode: mhs.batchCode,
-        fakultas: mhs.fakultas,
-        tahun_lulus: mhs.tahun_lulus,
-      },
-
-      mahasiswaData: mhs,
-    }))
-    .filter((value, index, array) => {
-      return array.findIndex((item) => item.id === value.id) === index;
-    });
 
   const fetchValidBatches = async () => {
     setIsLoading(true);
@@ -136,30 +100,7 @@ const OperatorDokumenValid = () => {
           ),
         };
       });
-      if (debouncedSearch) {
-        setIsSearchingMahasiswa(true);
 
-        const mahasiswaMatches = mappedRows.flatMap((batch) => {
-          const matches = Array.isArray(batch.mahasiswa_match)
-            ? batch.mahasiswa_match
-            : [];
-
-          return matches.map((mhs) => ({
-            ...mhs,
-            batch: batch.batch || batch.nomor_batch_upload || "-",
-            batch_code: batch.batch_code || batch.batchCode || batch.uuid,
-            batchCode: batch.batchCode || batch.batch_code || batch.uuid,
-            fakultas: mhs.fakultas || batch.fakultas || "-",
-            tahun_lulus: mhs.tahun_lulus || batch.tahun || "-",
-            prodi: mhs.prodi || mhs.program_studi || mhs.nama_prodi || "-",
-          }));
-        });
-
-        setMahasiswaSearchResults(mahasiswaMatches);
-        setIsSearchingMahasiswa(false);
-      } else {
-        setMahasiswaSearchResults([]);
-      }
       setBatches(mappedRows);
       setPagination(
         result.pagination || {
@@ -191,10 +132,7 @@ const OperatorDokumenValid = () => {
         total_data: 0,
         total_page: 1,
       });
-      setFilterOptions({
-        fakultas: [],
-        tahun: [],
-      });
+      setFilterOptions({ fakultas: [], tahun: [] });
     } finally {
       setIsLoading(false);
     }
@@ -202,60 +140,22 @@ const OperatorDokumenValid = () => {
 
   useEffect(() => {
     fetchValidBatches();
-  }, [
-    currentPage,
-    debouncedSearch,
-    selectedFakultas,
-    selectedYear,
-    statusEmail,
-  ]);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (filterBarRef.current && !filterBarRef.current.contains(e.target))
-        setShowSuggestions(false);
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [currentPage, debouncedSearch, selectedFakultas, selectedYear, statusEmail]);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [statusEmail]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search.trim());
       setCurrentPage(1);
     }, 500);
-
     return () => clearTimeout(timer);
   }, [search]);
+
   const handlePage = (p) => {
     if (p >= 1 && p <= totalPages) setCurrentPage(p);
-  };
-
-  const handleNavigateMahasiswa = (item) => {
-    const mahasiswaCode =
-      item.mahasiswaData?.mahasiswa_code ||
-      item.mahasiswaData?.mahasiswaCode ||
-      item.mahasiswaData?.uuid ||
-      item.mahasiswaData?.mahasiswa_uuid;
-
-    if (!mahasiswaCode) {
-      alert("Kode mahasiswa tidak ditemukan.");
-      return;
-    }
-
-    navigate(
-      `/operator/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`,
-      {
-        state: {
-          mahasiswa: item.mahasiswaData,
-          batch: item.batchData,
-          source: "dokumen_valid",
-        },
-      },
-    );
   };
 
   const handleGoDetail = (item) => {
@@ -310,11 +210,7 @@ const OperatorDokumenValid = () => {
             batch.raw?.uuid ||
             batch.id;
           return currentBatchCode === batchCode
-            ? {
-                ...batch,
-                status_email:
-                  Number(data.gagal || 0) > 0 ? "Terkirim" : "Terkirim",
-              }
+            ? { ...batch, status_email: "Terkirim" }
             : batch;
         }),
       );
@@ -384,148 +280,82 @@ const OperatorDokumenValid = () => {
           </p>
         </div>
 
-        <div ref={filterBarRef} className="relative z-20">
-          <div
-            className={`bg-white p-4 shadow-sm border border-gray-100 $ { showSuggestions && currentSuggestions.length > 0? "rounded-t-xl": "rounded-xl mb-6"}`}
-          >
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-              <div className="w-full lg:max-w-md">
-                <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
-                  <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
-                  <input
-                    type="text"
-                    placeholder="Cari: Nama, NIM, Prodi.."
-                    value={search}
-                    onChange={(e) => {
-                      setSearch(e.target.value);
-                      setShowSuggestions(true);
-                      setCurrentPage(1);
-                    }}
-                    onFocus={() => setShowSuggestions(true)}
-                    className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
-                  />
-                </div>
+        {/* FILTER BAR — tanpa dropdown suggestions */}
+        <div className="bg-white p-4 shadow-sm border border-gray-100 rounded-xl mb-6">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+            <div className="w-full lg:max-w-md">
+              <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
+                <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Cari: Nama, NIM, Batch..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 w-full lg:w-auto">
+              <div className="relative w-full lg:w-72">
+                <select
+                  value={selectedFakultas}
+                  onChange={(e) => {
+                    setSelectedFakultas(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
+                >
+                  <option value="">Semua Fakultas</option>
+                  {filterOptions.fakultas.map((namaFakultas) => (
+                    <option key={namaFakultas} value={namaFakultas}>
+                      {namaFakultas}
+                    </option>
+                  ))}
+                </select>
+                <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
               </div>
 
-              <div className="flex items-center gap-3 w-full lg:w-auto">
-                <div className="relative w-full lg:w-72">
-                  <select
-                    value={selectedFakultas}
-                    onChange={(e) => {
-                      setSelectedFakultas(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
-                  >
-                    <option value="">Semua Fakultas</option>
-                    {filterOptions.fakultas.map((namaFakultas) => (
-                      <option key={namaFakultas} value={namaFakultas}>
-                        {namaFakultas}
-                      </option>
-                    ))}
-                  </select>
-                  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
-                </div>
-                <div className="relative w-full lg:w-44">
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => {
-                      setSelectedYear(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
-                  >
-                    <option value="">Semua Tahun</option>
-                    {filterOptions.tahun.map((tahun) => (
-                      <option key={tahun} value={tahun}>
-                        {tahun}
-                      </option>
-                    ))}
-                  </select>
-                  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
-                </div>
-                <div className="relative w-full lg:w-48">
-                  <select
-                    value={statusEmail}
-                    onChange={(e) => {
-                      setStatusEmail(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
-                  >
-                    <option value="">Semua Status</option>
-                    <option value="Terkirim">Terkirim</option>
-                    <option value="Belum Terkirim">Belum Terkirim</option>
-                  </select>
-                  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
-                </div>
+              <div className="relative w-full lg:w-44">
+                <select
+                  value={selectedYear}
+                  onChange={(e) => {
+                    setSelectedYear(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
+                >
+                  <option value="">Semua Tahun</option>
+                  {filterOptions.tahun.map((tahun) => (
+                    <option key={tahun} value={tahun}>
+                      {tahun}
+                    </option>
+                  ))}
+                </select>
+                <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+              </div>
+
+              <div className="relative w-full lg:w-48">
+                <select
+                  value={statusEmail}
+                  onChange={(e) => {
+                    setStatusEmail(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
+                >
+                  <option value="">Semua Status</option>
+                  <option value="Terkirim">Terkirim</option>
+                  <option value="Belum Terkirim">Belum Terkirim</option>
+                </select>
+                <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
               </div>
             </div>
           </div>
-
-          {/* 🔥 Dropdown MURNI MAHASISWA & NAVIGASI KE DETAIL MAHASISWA */}
-          {(isLoading || isSearchingMahasiswa) && search.trim() && (
-            <p className="text-xs text-[#117065] mt-3 font-semibold">
-              Memuat data mahasiswa...
-            </p>
-          )}
-
-          {showSuggestions &&
-            search.trim() &&
-            currentSuggestions.length > 0 && (
-              <div
-                className="absolute left-0 right-0 top-full bg-white border-x border-b border-gray-100 shadow-lg rounded-b-xl mb-6 overflow-y-auto"
-                style={{ maxHeight: "400px", marginTop: "-1px" }}
-              >
-                {currentSuggestions.map((item, index) => (
-                  <div
-                    key={item.id || index}
-                    onClick={() => {
-                      setShowSuggestions(false);
-                      handleNavigateMahasiswa(item);
-                    }}
-                    className="px-6 py-4 border-b border-gray-50 hover:bg-teal-50 cursor-pointer flex justify-between items-center transition-colors last:border-b-0"
-                  >
-                    <div className="flex flex-col gap-0.5">
-                      <div className="font-bold text-[#1F2937] text-[14px] mb-0.5">
-                        {item.nama}
-                      </div>
-
-                      <div className="text-[12px] font-normal text-gray-500">
-                        {item.nim} • {item.prodi}
-                      </div>
-
-                      <div className="text-[12px] font-normal text-gray-400">
-                        {item.fakultas}
-                      </div>
-                    </div>
-
-                    <div className="text-[11px] font-semibold bg-[#F3F4F6] text-gray-500 px-3 py-1.5 rounded-md h-fit whitespace-nowrap ml-4">
-                      {item.batchName}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-          {showSuggestions &&
-            search.trim() &&
-            !isLoading &&
-            !isSearchingMahasiswa &&
-            currentSuggestions.length === 0 && (
-              <div
-                className="absolute left-0 right-0 top-full bg-white border-x border-b border-gray-100 shadow-lg rounded-b-xl mb-6 overflow-y-auto"
-                style={{ maxHeight: "260px", marginTop: "-1px" }}
-              >
-                <div className="p-6 text-center text-sm text-gray-400 border-t border-gray-100">
-                  Mahasiswa tidak ditemukan
-                </div>
-              </div>
-            )}
         </div>
-
-        {!showSuggestions && <div className="mb-0" />}
-        {(!showSuggestions || !search.trim()) && <div className="mb-6" />}
 
         {errorMessage && (
           <div className="mb-5 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm font-semibold text-red-600">
@@ -533,14 +363,15 @@ const OperatorDokumenValid = () => {
           </div>
         )}
 
+        {/* TABLE */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left whitespace-nowrap">
+            <table className="w-full text-sm text-center whitespace-nowrap">
               <thead className="bg-[#F9FAFB] text-gray-500 font-bold border-b border-gray-200">
                 <tr>
                   <th className="py-4 px-6 text-center w-16">No.</th>
-                  <th className="py-4 px-6 w-[200px]">List Batch</th>
-                  <th className="py-4 px-6">Fakultas</th>
+                  <th className="py-4 px-6 text-center">List Batch</th>
+                  <th className="py-4 px-6 text-center">Fakultas</th>
                   <th className="py-4 px-6 text-center">Tahun Lulus</th>
                   <th className="py-4 px-6 text-center">Periode</th>
                   <th className="py-4 px-6 text-center">Total Data</th>
@@ -552,74 +383,79 @@ const OperatorDokumenValid = () => {
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td
-                      colSpan="8"
-                      className="py-12 text-center text-gray-400 font-medium"
-                    >
+                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
                       Memuat data dokumen valid...
                     </td>
                   </tr>
                 ) : currentData.length > 0 ? (
-                  currentData.map((item, i) => (
-                    <tr
-                      key={item.batch_code || item.batchCode || item.id || i}
-                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="py-4 px-6 text-center font-semibold text-gray-800">
-                        {(currentPage - 1) * ITEMS_PER_PAGE + i + 1}.
-                      </td>
-                      <td className="py-4 px-6 font-semibold text-gray-900">
-                        {item.batch || item.nomor_batch_upload || "-"}
-                      </td>
-                      <td className="py-4 px-6 font-normal text-gray-700">
-                        {item.fakultas || "-"}
-                      </td>
-                      <td className="py-4 px-6 text-center font-normal text-gray-700">
-                        {item.tahun || "-"}
-                      </td>
-                      <td className="py-4 px-6 text-center font-normal text-gray-700">
-                        {item.periode || "-"}
-                      </td>
-                      <td className="py-4 px-6 text-center font-normal text-gray-700">
-                        {item.total || 0}
-                      </td>
-                      <td className="py-4 px-6 text-center align-middle">
-                        <span
-                          className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${item.status_email === "Terkirim" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}
-                        >
-                          {item.status_email || "Belum Terkirim"}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6 align-middle">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => handleGoDetail(item)}
-                            className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
-                            title="Lihat Detail Batch"
-                          >
-                            <DetailIcon />
-                          </button>
-                          {(item.status_email || "Belum Terkirim") ===
-                            "Belum Terkirim" && (
+                  currentData.map((item, i) => {
+                    const isTerkirim = item.status_email === "Terkirim";
+                    return (
+                      <tr
+                        key={item.batch_code || item.batchCode || item.id || i}
+                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="py-4 px-6 text-center font-semibold text-gray-800">
+                          {(currentPage - 1) * ITEMS_PER_PAGE + i + 1}.
+                        </td>
+                        <td className="py-4 px-6 text-center font-semibold text-gray-900">
+                          {item.batch || item.nomor_batch_upload || "-"}
+                        </td>
+                        <td className="py-4 px-6 text-center font-normal text-gray-700">
+                          {item.fakultas || "-"}
+                        </td>
+                        <td className="py-4 px-6 text-center font-normal text-gray-700">
+                          {item.tahun || "-"}
+                        </td>
+                        <td className="py-4 px-6 text-center font-normal text-gray-700">
+                          {item.periode || "-"}
+                        </td>
+                        <td className="py-4 px-6 text-center font-normal text-gray-700">
+                          {item.total || 0}
+                        </td>
+                        <td className="py-4 px-6 text-center align-middle">
+                          <div className="flex justify-center">
+                            <span
+                              className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${
+                                isTerkirim
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-orange-100 text-orange-700"
+                              }`}
+                            >
+                              {item.status_email || "Belum Terkirim"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 align-middle">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleGoDetail(item)}
+                              className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
+                              title="Lihat Detail Batch"
+                            >
+                              <DetailIcon />
+                            </button>
                             <button
                               type="button"
-                              onClick={() => handleKirimBatch(item)}
-                              className="w-7 h-7 bg-[#117065] text-white rounded-md flex items-center justify-center cursor-pointer hover:bg-[#0c5249] transition-all shadow-sm"
-                              title="Kirim Email"
+                              onClick={() => !isTerkirim && handleKirimBatch(item)}
+                              disabled={isTerkirim}
+                              className={`w-7 h-7 rounded-md flex items-center justify-center transition-all shadow-sm ${
+                                isTerkirim
+                                  ? "bg-gray-300 text-gray-100 cursor-not-allowed"
+                                  : "bg-[#117065] text-white hover:bg-[#0c5249] cursor-pointer"
+                              }`}
+                              title={isTerkirim ? "Email Sudah Terkirim" : "Kirim Email"}
                             >
                               <FiSend size={12} />
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
-                    <td
-                      colSpan="8"
-                      className="py-12 text-center text-gray-400 font-medium"
-                    >
+                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
                       <div className="flex flex-col items-center justify-center">
                         <FiSearch className="text-4xl mb-3 text-gray-300" />
                         <p>Data dokumen tidak ditemukan.</p>
@@ -633,8 +469,7 @@ const OperatorDokumenValid = () => {
 
           <div className="px-6 py-5 border-t border-gray-100 bg-white flex justify-between items-center">
             <p className="text-sm text-gray-400 font-medium">
-              Menampilkan {currentData.length} dari {pagination.total_data || 0}{" "}
-              data
+              Menampilkan {currentData.length} dari {pagination.total_data || 0} data
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -657,6 +492,7 @@ const OperatorDokumenValid = () => {
         </div>
       </div>
 
+      {/* EMAIL MODAL */}
       {emailModal.show && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl p-7 w-full max-w-sm mx-4">
@@ -667,33 +503,20 @@ const OperatorDokumenValid = () => {
                     <FiSend className="text-[#117065]" size={20} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900 text-[16px]">
-                      Kirim Email{" "}
-                    </h3>
-                    <p className="text-gray-500 text-[13px]">
-                      Konfirmasi pengiriman
-                    </p>
+                    <h3 className="font-bold text-gray-900 text-[16px]">Kirim Email</h3>
+                    <p className="text-gray-500 text-[13px]">Konfirmasi pengiriman</p>
                   </div>
                 </div>
                 <p className="text-[13px] text-gray-700 mb-6 leading-relaxed">
                   Apakah Anda yakin ingin mengirimkan email dokumen untuk{" "}
                   <span className="font-bold text-gray-900">
-                    {emailModal.data?.batch ||
-                      emailModal.data?.nomor_batch_upload ||
-                      "batch ini"}
+                    {emailModal.data?.batch || emailModal.data?.nomor_batch_upload || "batch ini"}
                   </span>
                   ? Tindakan ini tidak dapat dibatalkan.
                 </p>
                 <div className="flex gap-3">
                   <button
-                    onClick={() =>
-                      setEmailModal({
-                        show: false,
-                        type: "",
-                        data: null,
-                        message: "",
-                      })
-                    }
+                    onClick={() => setEmailModal({ show: false, type: "", data: null, message: "" })}
                     className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-colors"
                   >
                     Batal
@@ -710,12 +533,9 @@ const OperatorDokumenValid = () => {
             {emailModal.type === "loading" && (
               <div className="flex flex-col items-center justify-center py-6 text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-t-2 border-[#117065] mb-4"></div>
-                <h3 className="font-bold text-gray-900 text-[16px] mb-1">
-                  Mengirim Email...
-                </h3>
+                <h3 className="font-bold text-gray-900 text-[16px] mb-1">Mengirim Email...</h3>
                 <p className="text-gray-500 text-[13px]">
-                  Mohon tunggu sebentar, proses ini memakan waktu dan jangan
-                  tutup halaman ini.
+                  Mohon tunggu sebentar, proses ini memakan waktu dan jangan tutup halaman ini.
                 </p>
               </div>
             )}
@@ -724,21 +544,12 @@ const OperatorDokumenValid = () => {
                 <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
                   <FiCheckCircle className="text-green-500" size={28} />
                 </div>
-                <h3 className="font-bold text-gray-900 text-[17px] mb-2">
-                  Proses Selesai
-                </h3>
+                <h3 className="font-bold text-gray-900 text-[17px] mb-2">Proses Selesai</h3>
                 <p className="text-gray-500 text-[13px] mb-6 whitespace-pre-line leading-relaxed">
                   {emailModal.message}
                 </p>
                 <button
-                  onClick={() =>
-                    setEmailModal({
-                      show: false,
-                      type: "",
-                      data: null,
-                      message: "",
-                    })
-                  }
+                  onClick={() => setEmailModal({ show: false, type: "", data: null, message: "" })}
                   className="w-full py-2.5 rounded-xl bg-[#117065] text-white font-bold text-sm hover:bg-teal-800 transition-colors"
                 >
                   Tutup
@@ -750,21 +561,12 @@ const OperatorDokumenValid = () => {
                 <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
                   <FiAlertTriangle className="text-red-500" size={28} />
                 </div>
-                <h3 className="font-bold text-gray-900 text-[17px] mb-2">
-                  Pengiriman Gagal
-                </h3>
+                <h3 className="font-bold text-gray-900 text-[17px] mb-2">Pengiriman Gagal</h3>
                 <p className="text-gray-500 text-[13px] mb-6 whitespace-pre-line leading-relaxed">
                   {emailModal.message}
                 </p>
                 <button
-                  onClick={() =>
-                    setEmailModal({
-                      show: false,
-                      type: "",
-                      data: null,
-                      message: "",
-                    })
-                  }
+                  onClick={() => setEmailModal({ show: false, type: "", data: null, message: "" })}
                   className="w-full py-2.5 rounded-xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 transition-colors"
                 >
                   Kembali
