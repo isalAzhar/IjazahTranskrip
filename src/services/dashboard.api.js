@@ -556,6 +556,17 @@ export const getDashboardBatches = async (params = {}) => {
   }
 };
 
+// ==================== NOTIFIKASI TERBARU: REJECT / REVOKE ====================
+export const getLatestRejectRevokeNotification = async () => {
+  try {
+    const result = await fetchJSON(`${DASHBOARD_API}/notifications/latest`);
+    return result.data || null;
+  } catch (error) {
+    if (isAuthError(error)) throw error;
+    return null;
+  }
+};
+
 // ==================== ALIAS EXPORT & DEFAULT ====================
 
 export const getDashboardSummary = getStatistics;
@@ -580,4 +591,19 @@ export default {
   getLatestValidations,
   getFacultiesData,
   getYearsData,
+};
+
+export const getRejectRevokeNotifications = async (limit = 5) => {
+  try {
+    const queryParams = buildQueryParams({ limit });
+
+    const result = await fetchJSON(
+      `${DASHBOARD_API}/notifications/latest?${queryParams}`,
+    );
+
+    return Array.isArray(result.data) ? result.data : [];
+  } catch (error) {
+    if (isAuthError(error)) throw error;
+    return [];
+  }
 };

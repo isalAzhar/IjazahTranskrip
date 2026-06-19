@@ -3,8 +3,21 @@ import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { FiBell, FiUser, FiMenu, FiX } from "react-icons/fi";
 import { useAuth } from "../../pages/context/AuthContext";
 import logo from "../../assets/img/Logo.jpg";
+import { getLatestRejectRevokeNotification } from "../../services/dashboard.api";
+import { getRejectRevokeNotifications } from "../../services/dashboard.api";
 
-const ROLES_WITHOUT_NOTIF = ["admin", "admin_sistem"];
+const ROLES_WITH_NOTIF = [
+  "operator",
+  "operator_data",
+  "tu_fakultas",
+  "wakil_dekan_1",
+  "wakil_dekan",
+  "dekan",
+  "tu_rektorat",
+  "wakil_rektor_1",
+  "wakil_rektor",
+  "rektor",
+];
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -13,6 +26,7 @@ const Navbar = () => {
 
   const [openMenu, setOpenMenu] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
+  const [notifications, setNotifications] = useState([]);
   const [scrolled, setScrolled] = useState(false);
 
   const notifRef = useRef(null);
@@ -30,7 +44,7 @@ const Navbar = () => {
     displayTitle = "Admin";
   }
 
-  const showNotifIcon = !ROLES_WITHOUT_NOTIF.includes(userRole);
+  const showNotifIcon = ROLES_WITH_NOTIF.includes(userRole);
 
   // 🔥 TEKS BAWAH (SUB-BAB)
   let displaySubtitle = null;
@@ -126,6 +140,35 @@ const Navbar = () => {
     }
   };
 
+  const getNotificationTargetPath = () => {
+    if (["operator", "operator_data"].includes(userRole)) {
+      return "/operator/pelaporan";
+    }
+
+    if (["rektor"].includes(userRole)) {
+      return "/rektor/pelaporan";
+    }
+
+    if ([
+      "tu_fakultas",
+      "wakil_dekan_1",
+      "wakil_dekan",
+      "dekan",
+      "tu_rektorat",
+      "wakil_rektor_1",
+      "wakil_rektor",
+    ].includes(userRole)) {
+      return "/verifikator/pelaporan";
+    }
+
+    return getDashboardPath();
+  };
+
+  const handleNotificationClick = () => {
+    setShowNotif(false);
+    navigate(getNotificationTargetPath());
+  };
+
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
@@ -140,6 +183,38 @@ const Navbar = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+ useEffect(() => {
+  if (!showNotifIcon) {
+    setNotifications([]);
+    return;
+  }
+
+  let isMounted = true;
+
+  const loadNotifications = async () => {
+    try {
+      const data = await getRejectRevokeNotifications(5);
+
+      if (isMounted) {
+        setNotifications(data);
+      }
+    } catch (error) {
+      if (isMounted) {
+        setNotifications([]);
+      }
+    }
+  };
+
+  loadNotifications();
+
+  const interval = setInterval(loadNotifications, 15000);
+
+  return () => {
+    isMounted = false;
+    clearInterval(interval);
+  };
+}, [showNotifIcon, userRole, user?.id_user]);
 
   const linkClass = (path) => {
     const isActive = isRouteActive(path);
@@ -190,19 +265,75 @@ const Navbar = () => {
         {/* Right Side */}
         <div className="flex items-center gap-3 md:gap-5">
           {showNotifIcon && (
-            <div className="relative" ref={notifRef}>
-              <button onClick={() => setShowNotif(!showNotif)} className="relative p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-400 hover:text-[#27AE60]">
-                <FiBell size={20} />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              </button>
-              {showNotif && (
-                <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-100 shadow-2xl rounded-2xl p-4 z-50">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Notifikasi</h3>
-                  <p className="text-xs text-gray-500 italic text-center py-2">Tidak ada notifikasi baru.</p>
+  <div className="relative" ref={notifRef}>
+    <button
+      onClick={() => setShowNotif(!showNotif)}
+      className="relative p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-400 hover:text-[#27AE60]"
+    >
+      <FiBell size={20} />
+
+      {/* BADGE MERAH DI SINI */}
+      {notifications.length > 0 && (
+        <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
+          {notifications.length > 9 ? "9+" : notifications.length}
+        </span>
+      )}
+    </button>
+
+    {showNotif && (
+      <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-100 shadow-2xl rounded-2xl p-4 z-50">
+        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
+          Notifikasi
+        </h3>
+
+        {notifications.length > 0 ? (
+          <div className="space-y-2 max-h-80 overflow-y-auto">
+            {notifications.map((notif) => (
+              <button
+                key={notif.id_log}
+                type="button"
+                onClick={handleNotificationClick}
+                className="w-full text-left border border-gray-100 rounded-xl p-3 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-start gap-3">
+                  <span
+                    className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                      notif.type === "reject"
+                        ? "bg-red-50 text-red-600"
+                        : "bg-orange-50 text-orange-600"
+                    }`}
+                  >
+                    {notif.type === "reject" ? "R" : "V"}
+                  </span>
+
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-gray-800">
+                      {notif.title || "Aktivitas terbaru"}
+                    </p>
+
+                    <p className="text-xs text-gray-500 mt-1">
+                      {notif.message || "Ada aktivitas reject/revoke terbaru."}
+                    </p>
+
+                    {notif.time_label && (
+                      <p className="text-[11px] text-gray-400 mt-2">
+                        {notif.time_label} WIB
+                      </p>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          )}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-gray-500 italic text-center py-2">
+            Tidak ada notifikasi reject/revoke.
+          </p>
+        )}
+      </div>
+    )}
+  </div>
+)}
 
           {/* Profile */}
           <div className="flex items-center gap-3 border-l pl-3 md:pl-4 cursor-pointer group" onClick={handleProfileClick}>

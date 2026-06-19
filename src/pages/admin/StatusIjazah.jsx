@@ -236,29 +236,44 @@ const StatusIjazah = () => {
   }, [currentStatus, debouncedSearch, tahun]);
 
   const filtered = batchData
-    .filter((item) => {
-      // Search sudah diproses backend.
-      // Jangan filter lagi di frontend, karena kalau search "Teknik Sipil"
-      // row batch tidak punya field prodi langsung, nanti malah hilang.
-      const matchSearch = true;
+  .filter((item) => {
+    // Search sudah diproses backend.
+    const matchSearch = true;
 
-      const matchesFakultas = fakultas ? item.fakultas === fakultas : true;
+    const matchesFakultas = fakultas ? item.fakultas === fakultas : true;
 
-      const matchesTahun = tahun ? String(item.tahun) === String(tahun) : true;
+    const matchesTahun = tahun ? String(item.tahun) === String(tahun) : true;
 
-      const matchesStatusEmail =
-        currentStatus === "terbit" && statusEmail
-          ? item.status_email === statusEmail
-          : true;
+    const matchesStatusEmail =
+      currentStatus === "terbit" && statusEmail
+        ? item.status_email === statusEmail
+        : true;
 
-      return (
-        matchSearch && matchesFakultas && matchesTahun && matchesStatusEmail
-      );
-    })
-    .sort(
-      (a, b) =>
-        a.fakultas.localeCompare(b.fakultas) || a.tahun.localeCompare(b.tahun),
+    return (
+      matchSearch && matchesFakultas && matchesTahun && matchesStatusEmail
     );
+  })
+  .sort((a, b) => {
+    const batchA = String(
+      a.batch ||
+        a.nomor_batch_upload ||
+        a.raw?.nomor_batch_upload ||
+        "",
+    ).trim();
+
+    const batchB = String(
+      b.batch ||
+        b.nomor_batch_upload ||
+        b.raw?.nomor_batch_upload ||
+        "",
+    ).trim();
+
+    return batchA.localeCompare(batchB, "id", {
+      numeric: true,
+      sensitivity: "base",
+    });
+  });
+
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginatedData = filtered.slice(
