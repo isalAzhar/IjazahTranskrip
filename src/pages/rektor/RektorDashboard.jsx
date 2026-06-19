@@ -386,6 +386,15 @@ const Dashboard = () => {
           icon={Icons.Badge}
           onClick={() => navigate("/ijazah/terbit")}
         />
+  <StatCard
+          title="Jumlah Ijazah di Proses"
+          value={summaryStats.permintaanVerifikasi}
+          sub={`${summaryStats.prosesMingguIni} di Proses Minggu ini`}
+          subColor="text-[#3B82F6]"
+          icon={Icons.Check}
+          onClick={() => navigate("/ijazah/proses")}
+        />
+
         <StatCard
           title="Jumlah Ijazah di Reject"
           value={summaryStats.dataReject}
@@ -407,14 +416,7 @@ const Dashboard = () => {
           icon={Icons.List}
           onClick={() => navigate("/ijazah/revoke")}
         />
-        <StatCard
-          title="Jumlah Ijazah di Proses"
-          value={summaryStats.permintaanVerifikasi}
-          sub={`${summaryStats.prosesMingguIni} di Proses Minggu ini`}
-          subColor="text-[#3B82F6]"
-          icon={Icons.Check}
-          onClick={() => navigate("/ijazah/proses")}
-        />
+      
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
