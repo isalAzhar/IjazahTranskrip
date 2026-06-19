@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { FiSearch, FiChevronDown } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
 // 🔥 IMPORT DARI DASHBOARD API, BUKAN API BIASA
-import { getDashboardBatches } from "../../services/dashboard.api";
+import { getDashboardBatches, getDetailBatch } from "../../services/dashboard.api";
 
 const normalizeStatus = (status) => {
   const value = status?.toString().toLowerCase();
@@ -56,13 +56,11 @@ const buildYearOptions = (rows = []) => {
   return [
     ...new Set(
       rows
-        .map((item) =>
-          (item.tahun_lulus || item.tahun)?.toString()
-        )
-        .filter((item) => item && item !== "-")
+        .map((item) => (item.tahun_lulus || item.tahun)?.toString())
+        .filter((item) => item && item !== "-"),
     ),
   ].sort((a, b) => Number(b) - Number(a));
-};  
+};
 
 const StatusIjazah = () => {
   const navigate = useNavigate();
@@ -71,12 +69,16 @@ const StatusIjazah = () => {
   const displayLabel = getBadgeLabel(currentStatus);
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const hasLoadedRef = useRef(false);
   const [fakultas, setFakultas] = useState("");
   const [tahun, setTahun] = useState("");
   const [statusEmail, setStatusEmail] = useState("Terkirim"); // 🔥 Default langsung ke Terkirim
 
   const [currentPage, setCurrentPage] = useState(1);
   const [batchData, setBatchData] = useState([]);
+  const [mahasiswaSearchResults, setMahasiswaSearchResults] = useState([]);
   const [fakultasList, setFakultasList] = useState([]);
   const [years, setYears] = useState([]);
 
@@ -86,15 +88,49 @@ const StatusIjazah = () => {
   const itemsPerPage = 10;
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const isMatchMahasiswaSearch = (mhs, keyword) => {
+  const text = [
+    mhs.nama,
+    mhs.nama_mahasiswa,
+    mhs.nim,
+    mhs.prodi,
+    mhs.program_studi,
+    mhs.nama_prodi,
+    mhs.fakultas,
+    mhs.tahun_lulus,
+    mhs.tahun,
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return text.includes(keyword);
+};
+
+  useEffect(() => {
     const fetchIjazahData = async () => {
       try {
-        setIsLoading(true);
+        if (!hasLoadedRef.current) {
+          setIsLoading(true);
+        } else {
+          setIsSearching(true);
+        }
+
         setApiError("");
 
         // 🔥 BIARKAN BACKEND YANG MENGELOMPOKKAN & FILTER STATUS
         const result = await getDashboardBatches({
           limit: 10000,
           status: currentStatus,
+          search: debouncedSearch.trim(),
+
+          tahun_lulus: tahun,
         });
 
         // Tambahkan properti UI (status email & label) ke data murni dari backend
@@ -122,11 +158,11 @@ const StatusIjazah = () => {
             status: displayLabel,
             status_email: formatStatusEmail(
               item.status_email ||
-              item.status_kirim ||
-              item.statusKirim ||
-              raw.status_email ||
-              raw.status_kirim ||
-              raw.statusKirim
+                item.status_kirim ||
+                item.statusKirim ||
+                raw.status_email ||
+                raw.status_kirim ||
+                raw.statusKirim,
             ),
             raw,
           };
@@ -135,44 +171,99 @@ const StatusIjazah = () => {
         setBatchData(finalData);
         setFakultasList(buildFakultasOptions(finalData));
         setYears(buildYearOptions(finalData));
+
+        if (debouncedSearch.trim()) {
+  const keyword = debouncedSearch.toLowerCase().trim();
+
+  const detailResults = await Promise.all(
+    finalData.map(async (batch) => {
+      const batchCode =
+        batch.batch_code ||
+        batch.batchCode ||
+        batch.uuid ||
+        batch.batch_uuid ||
+        batch.raw?.batch_code ||
+        batch.raw?.uuid ||
+        batch.id;
+
+      if (!batchCode) return [];
+
+      try {
+        const detail = await getDetailBatch(batchCode, currentStatus);
+        const detailData = detail?.data || detail || {};
+
+        const mahasiswaList = Array.isArray(detailData.mahasiswa)
+          ? detailData.mahasiswa
+          : [];
+
+        return mahasiswaList
+          .filter((mhs) => isMatchMahasiswaSearch(mhs, keyword))
+          .map((mhs) => ({
+            ...mhs,
+            batch: batch.batch,
+            batch_code: batchCode,
+            fakultas: mhs.fakultas || batch.fakultas,
+            tahun_lulus: mhs.tahun_lulus || batch.tahun_lulus,
+            prodi:
+              mhs.prodi ||
+              mhs.program_studi ||
+              mhs.nama_prodi ||
+              "-",
+          }));
+      } catch (error) {
+        console.error("Gagal ambil detail batch:", batchCode, error);
+        return [];
+      }
+    }),
+  );
+
+  setMahasiswaSearchResults(detailResults.flat());
+} else {
+  setMahasiswaSearchResults([]);
+}
+
       } catch (error) {
         console.error(`Gagal mengambil data via getDashboardBatches:`, error);
         setApiError(error.message || "Gagal mengambil data dari server.");
       } finally {
         setIsLoading(false);
+        setIsSearching(false);
+        hasLoadedRef.current = true;
       }
     };
 
     fetchIjazahData();
-  }, [currentStatus]);
+  }, [currentStatus, debouncedSearch, tahun]);
 
   const filtered = batchData
     .filter((item) => {
-      const keyword = search.toLowerCase();
-      const matchSearch =
-        String(item.batch || "").toLowerCase().includes(keyword) ||
-        String(item.fakultas || "").toLowerCase().includes(keyword) ||
-        String(item.periode || "").toLowerCase().includes(keyword) ||
-        String(item.tahun || "").toLowerCase().includes(keyword);
+      // Search sudah diproses backend.
+      // Jangan filter lagi di frontend, karena kalau search "Teknik Sipil"
+      // row batch tidak punya field prodi langsung, nanti malah hilang.
+      const matchSearch = true;
 
       const matchesFakultas = fakultas ? item.fakultas === fakultas : true;
-      const matchesTahun = tahun ? item.tahun === tahun : true;
+
+      const matchesTahun = tahun ? String(item.tahun) === String(tahun) : true;
+
       const matchesStatusEmail =
         currentStatus === "terbit" && statusEmail
           ? item.status_email === statusEmail
           : true;
 
-      return matchSearch && matchesFakultas && matchesTahun && matchesStatusEmail;
+      return (
+        matchSearch && matchesFakultas && matchesTahun && matchesStatusEmail
+      );
     })
     .sort(
       (a, b) =>
-        a.fakultas.localeCompare(b.fakultas) || a.tahun.localeCompare(b.tahun)
+        a.fakultas.localeCompare(b.fakultas) || a.tahun.localeCompare(b.tahun),
     );
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginatedData = filtered.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   useEffect(() => {
@@ -185,7 +276,13 @@ const StatusIjazah = () => {
 
   const handleDetailBatch = (item) => {
     const batchCode =
-      item.batch_code || item.batchCode || item.uuid || item.batch_uuid || item.raw?.batch_code || item.raw?.uuid || item.id;
+      item.batch_code ||
+      item.batchCode ||
+      item.uuid ||
+      item.batch_uuid ||
+      item.raw?.batch_code ||
+      item.raw?.uuid ||
+      item.id;
 
     if (!batchCode) {
       console.error("Batch code tidak ditemukan:", item);
@@ -231,7 +328,7 @@ const StatusIjazah = () => {
     ));
   };
 
-  if (isLoading) {
+    if (isLoading && !hasLoadedRef.current) { 
     return (
       <DashboardLayout>
         <div className="flex justify-center items-center h-[70vh]">
@@ -266,9 +363,13 @@ const StatusIjazah = () => {
                 <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
                 <input
                   type="text"
-                  placeholder="Cari: Nama Batch, Fakultas, Periode..."
+                  placeholder="Cari: Nama Batch, Fakultas, Periode, Prodi"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+  setSearch(e.target.value);
+  setCurrentPage(1);
+}}
+              
                   className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
                 />
               </div>
@@ -325,6 +426,55 @@ const StatusIjazah = () => {
             </div>
           </div>
         </div>
+
+                {isSearching && (
+          <p className="text-xs text-gray-400 font-medium mb-3">
+            Mencari data...
+          </p>
+        )}
+
+                {/* HASIL MAHASISWA SEARCH */}
+        {debouncedSearch.trim() && mahasiswaSearchResults.length > 0 && (
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm mb-6">
+            {mahasiswaSearchResults.map((mhs, index) => {
+              const mahasiswaCode =
+                mhs.mahasiswa_code ||
+                mhs.mahasiswaCode ||
+                mhs.uuid ||
+                mhs.mahasiswa_uuid;
+
+              return (
+                <div
+                  key={mahasiswaCode || mhs.nim || index}
+                  className={`px-6 py-4 flex justify-between items-center hover:bg-gray-50 transition-colors ${
+                    index !== mahasiswaSearchResults.length - 1
+                      ? "border-b border-gray-100"
+                      : ""
+                  }`}
+                >
+                  <div>
+                    <div className="font-bold text-gray-900">
+                      {mhs.nama || mhs.nama_mahasiswa || "-"}
+                    </div>
+
+                    <div className="text-sm text-gray-400 mt-1">
+                      {mhs.nim || "-"} •{" "}
+                      {mhs.prodi || mhs.program_studi || mhs.nama_prodi || "-"}
+                    </div>
+
+                    <div className="text-sm text-gray-400 mt-1">
+                      {mhs.fakultas || "-"}
+                    </div>
+                  </div>
+
+                  <div className="bg-[#F3F4F6] text-gray-500 text-sm font-bold px-4 py-2 rounded-lg">
+                    {mhs.batch || "-"}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* TABLE SECTION */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">

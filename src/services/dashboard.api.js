@@ -133,15 +133,42 @@ export const getStatistics = async () => {
     const data = result.data || {};
 
     return {
-      totalIjazahTerbit: toNumber(data.terbit ?? data.total_terbit ?? 0),
-      permintaanVerifikasi: toNumber(data.proses ?? data.total_proses ?? 0),
-      dataReject: toNumber(data.rejected ?? data.total_rejected ?? 0),
-      dataRevoke: toNumber(data.revoked ?? data.total_revoked ?? 0),
-      totalMahasiswa: toNumber(data.total_mahasiswa ?? 0),
-      perubahanBulanTerakhir: toNumber(data.perubahan_bulan_terakhir ?? 0),
-      permintaanBaruHariIni: toNumber(data.permintaan_baru_hari_ini ?? 0),
-      rejectMingguIni: toNumber(data.reject_minggu_ini ?? 0),
-      perubahanHariIni: toNumber(data.perubahan_hari_ini ?? 0),
+      totalIjazahTerbit: toNumber(
+        data.totalIjazahTerbit ??
+        data.terbit ??
+        data.total_terbit ??
+        0
+      ),
+
+      permintaanVerifikasi: toNumber(
+        data.permintaanVerifikasi ??
+        data.proses ??
+        data.total_proses ??
+        0
+      ),
+
+      dataReject: toNumber(
+        data.dataReject ??
+        data.rejected ??
+        data.reject ??
+        data.total_rejected ??
+        0
+      ),
+
+      dataRevoke: toNumber(
+        data.dataRevoke ??
+        data.revoked ??
+        data.revoke ??
+        data.total_revoked ??
+        0
+      ),
+
+      totalMahasiswa: toNumber(data.totalMahasiswa ?? data.total_mahasiswa ?? 0),
+      perubahanBulanTerakhir: toNumber(data.perubahanBulanTerakhir ?? data.perubahan_bulan_terakhir ?? 0),
+      permintaanBaruHariIni: toNumber(data.permintaanBaruHariIni ?? data.permintaan_baru_hari_ini ?? 0),
+      rejectMingguIni: toNumber(data.rejectMingguIni ?? data.reject_minggu_ini ?? 0),
+      perubahanHariIni: toNumber(data.perubahanHariIni ?? data.perubahan_hari_ini ?? 0),
+
       raw: data,
     };
   } catch (error) {
@@ -402,13 +429,20 @@ export const getBatchList = async (params = {}) => {
 };
 
 // 🔥 FUNGSI DETAIL BATCH YANG SUDAH BERSIH DARI "batches/batch"
-export const getDetailBatch = async (batchCode) => {
+export const getDetailBatch = async (batchCode, status = "") => {
   try {
     if (!batchCode) throw new Error("Kode batch tidak ditemukan.");
 
+    const queryParams = buildQueryParams({
+      status,
+    });
+
     const response = await fetchJSON(
-      `${DASHBOARD_API}/batch/${encodeURIComponent(batchCode)}`,
+      `${DASHBOARD_API}/batch/${encodeURIComponent(batchCode)}${
+        queryParams ? `?${queryParams}` : ""
+      }`,
     );
+
     return response;
   } catch (error) {
     throw error;

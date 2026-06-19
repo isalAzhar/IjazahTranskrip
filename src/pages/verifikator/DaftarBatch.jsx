@@ -113,22 +113,39 @@ const DaftarBatch = () => {
       // Filter search di frontend
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
+
         data = data.filter((item) => {
-          const matchBatch = String(item.nomor_batch_upload || "")
-            .toLowerCase()
-            .includes(q);
-          const matchMahasiswa =
-            Array.isArray(item.mahasiswa) &&
-            item.mahasiswa.some(
-              (mhs) =>
-                String(mhs.nama_mahasiswa || "")
-                  .toLowerCase()
-                  .includes(q) ||
-                String(mhs.nim || "")
-                  .toLowerCase()
-                  .includes(q),
-            );
-          return matchBatch || matchMahasiswa;
+          const batchText = [
+            item.nomor_batch_upload,
+            renderFakultas(item.fakultas),
+            item.tahun_lulus,
+            item.periode,
+            item.pending_count,
+          ]
+            .join(" ")
+            .toLowerCase();
+
+          const mahasiswaText = Array.isArray(item.mahasiswa)
+            ? item.mahasiswa
+                .map((mhs) =>
+                  [
+                    mhs.nama_mahasiswa,
+                    mhs.nama,
+                    mhs.nim,
+                    mhs.prodi,
+                    mhs.nama_prodi,
+                    mhs.program_studi,
+                    mhs.programStudi,
+                    mhs.fakultas,
+                    mhs.tahun_lulus,
+                  ]
+                    .join(" ")
+                    .toLowerCase(),
+                )
+                .join(" ")
+            : "";
+
+          return `${batchText} ${mahasiswaText}`.includes(q);
         });
       }
 
@@ -194,14 +211,32 @@ const DaftarBatch = () => {
         batch.mahasiswa.forEach((mhs) => {
           const nama = String(mhs.nama_mahasiswa || "").toLowerCase();
           const nim = String(mhs.nim || "").toLowerCase();
+          const prodi = String(
+            mhs.program_studi ||
+              mhs.programStudi ||
+              mhs.prodi ||
+              mhs.nama_prodi ||
+              "",
+          ).toLowerCase();
+          const fakultas = String(mhs.fakultas || "").toLowerCase();
 
-          if (nama.includes(q) || nim.includes(q)) {
+          if (
+            nama.includes(q) ||
+            nim.includes(q) ||
+            prodi.includes(q) ||
+            fakultas.includes(q)
+          ) {
             suggestions.push({
               id: mhs.nim || Math.random().toString(),
               nama: mhs.nama_mahasiswa || "-",
               nim: mhs.nim || "-",
-              prodi: mhs.prodi || mhs.nama_prodi || "Program Studi",
-              fakultas: renderFakultas(batch.fakultas),
+              prodi:
+                mhs.program_studi ||
+                mhs.programStudi ||
+                mhs.prodi ||
+                mhs.nama_prodi ||
+                "Program Studi",
+              fakultas: mhs.fakultas || renderFakultas(batch.fakultas),
               batchName: batch.nomor_batch_upload || "-",
               batchData: batch,
               mahasiswaData: mhs,
@@ -295,12 +330,12 @@ const DaftarBatch = () => {
   );
 
   return (
-    <DashboardLayout title="Manajemen Data">
+    <DashboardLayout title="Daftar Batch">
       <div className="w-full pb-10">
         {/* HEADER */}
         <div className="mb-6">
           <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">
-            Manajemen Data
+            Daftar Batch
           </h1>
           <p className="text-[#9CA3AF] text-[14px] font-medium mt-1">
             Kelola validasi dan kirim data mahasiswa ke tahap berikutnya
@@ -317,7 +352,7 @@ const DaftarBatch = () => {
                   <FiSearch className="text-gray-400 text-lg mr-3" />
                   <input
                     type="text"
-                    placeholder="Cari: Nama Mahasiswa atau NIM..."
+                    placeholder="Cari: Batch, Nama, NIM, Prodi,"
                     value={searchQuery}
                     onFocus={() => setShowSuggestions(true)}
                     onChange={(e) => {

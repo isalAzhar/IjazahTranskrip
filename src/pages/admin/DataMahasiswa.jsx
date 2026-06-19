@@ -1,8 +1,11 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FiSearch, FiChevronDown } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/ui/DashboardLayout";
-import { getDashboardBatches } from "../../services/dashboard.api";
+import {
+  getDashboardBatches,
+  getDetailBatch,
+} from "../../services/dashboard.api";
 
 const normalizeBatch = (item = {}, index = 0) => {
   const batchCode =
@@ -39,11 +42,7 @@ const normalizeBatch = (item = {}, index = 0) => {
       `Batch ${id}`,
 
     fakultas:
-      item.fakultas ||
-      item.nama_fakultas ||
-      item.nama_unit ||
-      item.unit ||
-      "-",
+      item.fakultas || item.nama_fakultas || item.nama_unit || item.unit || "-",
 
     tahun:
       item.tahun?.toString() ||
@@ -51,24 +50,16 @@ const normalizeBatch = (item = {}, index = 0) => {
       item.tahunLulus?.toString() ||
       "-",
 
-    tahun_lulus:
-      item.tahun_lulus ||
-      item.tahun ||
-      item.tahunLulus ||
-      "-",
+    tahun_lulus: item.tahun_lulus || item.tahun || item.tahunLulus || "-",
 
-    periode:
-      item.periode ||
-      item.semester ||
-      item.periode_lulus ||
-      "-",
+    periode: item.periode || item.semester || item.periode_lulus || "-",
 
     total: Number(
       item.total ||
         item.total_record ||
         item.jumlah_mahasiswa ||
         item.total_mahasiswa ||
-        0
+        0,
     ),
 
     mahasiswa: Array.isArray(item.mahasiswa) ? item.mahasiswa : [],
@@ -82,6 +73,11 @@ const DataMahasiswa = () => {
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchContainerRef = useRef(null);
+
+  const [mahasiswaSearchResults, setMahasiswaSearchResults] = useState([]);
+  const [isSearchingMahasiswa, setIsSearchingMahasiswa] = useState(false);
 
   const [tahun, setTahun] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -110,6 +106,38 @@ const DataMahasiswa = () => {
   }, [search]);
 
   useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const isMatchMahasiswaSearch = (mhs, keyword) => {
+    const text = [
+      mhs.nama,
+      mhs.nama_mahasiswa,
+      mhs.nim,
+      mhs.prodi,
+      mhs.program_studi,
+      mhs.nama_prodi,
+      mhs.fakultas,
+      mhs.tahun_lulus,
+      mhs.tahun,
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    return text.includes(keyword);
+  };
+
+  useEffect(() => {
     const fetchBatchData = async () => {
       try {
         if (isInitialLoading) {
@@ -129,14 +157,73 @@ const DataMahasiswa = () => {
 
         const rows = Array.isArray(result.data) ? result.data : [];
 
-        setBatchData(rows.map((item, index) => normalizeBatch(item, index)));
+        const normalizedRows = rows.map((item, index) =>
+          normalizeBatch(item, index),
+        );
+
+        setBatchData(normalizedRows);
+
+        if (debouncedSearch.trim()) {
+          setIsSearchingMahasiswa(true);
+
+          const keyword = debouncedSearch.toLowerCase().trim();
+
+          try {
+            const detailResults = await Promise.all(
+              normalizedRows.map(async (batch) => {
+                const batchCode =
+                  batch.batch_code ||
+                  batch.batchCode ||
+                  batch.uuid ||
+                  batch.batch_uuid ||
+                  batch.raw?.batch_code ||
+                  batch.raw?.uuid ||
+                  batch.id;
+
+                if (!batchCode) return [];
+
+                try {
+                  const detail = await getDetailBatch(batchCode);
+                  const detailData = detail?.data || detail || {};
+
+                  const mahasiswaList = Array.isArray(detailData.mahasiswa)
+                    ? detailData.mahasiswa
+                    : [];
+
+                  return mahasiswaList
+                    .filter((mhs) => isMatchMahasiswaSearch(mhs, keyword))
+                    .map((mhs) => ({
+                      ...mhs,
+                      batch: batch.batch,
+                      batch_code: batchCode,
+                      fakultas: mhs.fakultas || batch.fakultas,
+                      tahun_lulus: mhs.tahun_lulus || batch.tahun_lulus,
+                      prodi:
+                        mhs.prodi || mhs.program_studi || mhs.nama_prodi || "-",
+                    }));
+                } catch (error) {
+                  console.error("Gagal ambil detail batch:", batchCode, error);
+                  return [];
+                }
+              }),
+            );
+
+            setMahasiswaSearchResults(detailResults.flat());
+          } finally {
+            setIsSearchingMahasiswa(false);
+          }
+        } else {
+          setMahasiswaSearchResults([]);
+        }
 
         setPagination({
           page: Number(result.pagination?.page || result.page || currentPage),
           limit: Number(result.pagination?.limit || itemsPerPage),
-          total_data: Number(result.pagination?.total_data || result.total || 0),
+          total_data: Number(
+            result.pagination?.total_data || result.total || 0,
+          ),
           total_page: Number(
-            result.pagination?.total_page || result.totalPages || 1
+            result.pagination?.total_page || result.totalPages || 1,
           ),
         });
       } catch (error) {
@@ -163,6 +250,35 @@ const DataMahasiswa = () => {
 
   const totalPages = Number(pagination.total_page || 1);
   const totalData = Number(pagination.total_data || 0);
+
+
+  const currentSuggestions = mahasiswaSearchResults
+  .map((mhs) => ({
+    id:
+      mhs.mahasiswa_code ||
+      mhs.mahasiswaCode ||
+      mhs.uuid ||
+      mhs.mahasiswa_uuid ||
+      mhs.nim,
+
+    nama: mhs.nama || mhs.nama_mahasiswa || "-",
+    nim: mhs.nim || "-",
+    prodi:
+      mhs.prodi ||
+      mhs.program_studi ||
+      mhs.nama_prodi ||
+      "Program Studi",
+    fakultas: mhs.fakultas || "-",
+    batchName: mhs.batch || "-",
+    batchData: {
+      batch: mhs.batch,
+      batch_code: mhs.batch_code,
+      fakultas: mhs.fakultas,
+      tahun_lulus: mhs.tahun_lulus,
+    },
+    mahasiswaData: mhs,
+  }))
+  .filter((v, i, a) => a.findIndex((t) => t.id === v.id) === i);
 
   const handlePageChange = (pageNumber) => {
     if (pageNumber >= 1 && pageNumber <= totalPages) {
@@ -207,14 +323,39 @@ const DataMahasiswa = () => {
           page === currentPage
             ? "bg-[#00897B] text-white"
             : page === "..."
-            ? "bg-transparent text-gray-400 cursor-default shadow-none"
-            : "bg-white border border-gray-300 text-gray-500 hover:bg-gray-100"
+              ? "bg-transparent text-gray-400 cursor-default shadow-none"
+              : "bg-white border border-gray-300 text-gray-500 hover:bg-gray-100"
         }`}
       >
         {page}
       </button>
     ));
   };
+
+
+  const handleNavigateMahasiswa = (item) => {
+  const mahasiswaCode =
+    item.mahasiswaData?.mahasiswa_code ||
+    item.mahasiswaData?.mahasiswaCode ||
+    item.mahasiswaData?.uuid ||
+    item.mahasiswaData?.mahasiswa_uuid;
+
+  if (!mahasiswaCode) {
+    console.error("Mahasiswa code tidak ditemukan:", item);
+    alert("Kode mahasiswa tidak ditemukan.");
+    return;
+  }
+
+  const safeMahasiswaCode = encodeURIComponent(mahasiswaCode);
+
+  navigate(`/admin/detail-mahasiswa/${safeMahasiswaCode}`, {
+    state: {
+      mahasiswa: item.mahasiswaData,
+      batch: item.batchData,
+    },
+  });
+};
+
 
   const handleDetailBatch = (item) => {
     const batchCode =
@@ -270,46 +411,103 @@ const DataMahasiswa = () => {
           )}
         </div>
 
-        <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm mb-6">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-            <div className="w-full lg:max-w-md">
-              <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
-                <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
+       {/* BAGIAN FILTER & SEARCH */}
+<div className="mb-6" ref={searchContainerRef}>
+  <div className="bg-white p-4 shadow-sm border border-gray-100 rounded-xl">
+    <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+      {/* Search */}
+      <div className="w-full lg:max-w-md">
+        <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
+          <FiSearch className="text-gray-400 text-lg mr-3" />
 
-                <input
-                  type="text"
-                  placeholder="Cari: Batch, Fakultas, Tahun..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
-                />
-              </div>
+          <input
+            type="text"
+            placeholder="Cari: Batch, Nama, NIM, Prodi,"
+            value={search}
+            onFocus={() => setShowSuggestions(true)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+              setShowSuggestions(true);
+            }}
+            className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 w-full lg:w-auto">
+        <div className="relative w-full lg:w-44">
+          <select
+            value={tahun}
+            onChange={(e) => {
+              setTahun(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
+          >
+            <option value="">Semua Tahun</option>
+
+            {years.map((item, i) => (
+              <option key={i} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+
+          <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {(isFetching || isSearchingMahasiswa) && (
+    <p className="text-xs text-[#117065] mt-3 font-semibold">
+      Memuat data terbaru...
+    </p>
+  )}
+
+  {/* AUTOCOMPLETE SUGGESTION LIST */}
+  {showSuggestions &&
+    search.trim() &&
+    currentSuggestions.length > 0 && (
+      <div className="mt-4 w-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden max-h-[400px] overflow-y-auto">
+        {currentSuggestions.map((item, index) => (
+          <div
+            key={item.id || index}
+            onClick={() => {
+              setShowSuggestions(false);
+              handleNavigateMahasiswa(item);
+            }}
+            className={`px-6 py-4 cursor-pointer hover:bg-gray-50 transition-colors flex justify-between items-center ${
+              index !== currentSuggestions.length - 1
+                ? "border-b border-gray-100"
+                : ""
+            }`}
+          >
+            <div className="flex flex-col">
+              <span className="text-[14px] font-bold text-gray-800">
+                {item.nama}
+              </span>
+
+              <span className="text-[13px] text-gray-400 mt-0.5">
+                {item.nim} • {item.prodi}
+              </span>
+
+              <span className="text-[13px] text-gray-400 mt-0.5">
+                {item.fakultas}
+              </span>
             </div>
 
-            <div className="flex items-center gap-3 w-full lg:w-auto">
-              <div className="relative w-full lg:w-44">
-                <select
-                  value={tahun}
-                  onChange={(e) => {
-                    setTahun(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
-                >
-                  <option value="">Semua Tahun</option>
-
-                  {years.map((item, i) => (
-                    <option key={i} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </select>
-
-                <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
-              </div>
+            <div className="flex-shrink-0 ml-4">
+              <span className="bg-[#F3F4F6] text-gray-500 text-[12px] font-bold px-3 py-1.5 rounded-lg border border-gray-100">
+                {item.batchName}
+              </span>
             </div>
           </div>
-        </div>
+        ))}
+      </div>
+    )}
+</div>
 
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <table className="w-full table-fixed text-sm">
@@ -338,8 +536,7 @@ const DataMahasiswa = () => {
             <tbody>
               {paginatedData.length > 0 ? (
                 paginatedData.map((item, i) => {
-                  const actualIndex =
-                    (currentPage - 1) * itemsPerPage + i + 1;
+                  const actualIndex = (currentPage - 1) * itemsPerPage + i + 1;
 
                   return (
                     <tr
@@ -355,7 +552,7 @@ const DataMahasiswa = () => {
                       </td>
 
                       <td className="py-4 px-4 text-center font-semibold align-middle">
-                      {item.fakultas}
+                        {item.fakultas}
                       </td>
 
                       <td className="px-4 py-4 text-center font-semibold align-middle">
