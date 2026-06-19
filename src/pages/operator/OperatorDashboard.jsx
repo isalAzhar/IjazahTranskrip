@@ -10,7 +10,7 @@ import VerificationStatusChart from "../../components/ui/VerificationStatusChart
 import { Icons } from "../../components/icon/DashboardIcons";
 import { useAuth } from "../context/AuthContext";
 
-import { getLatestValidations } from "../../services/dashboard.api";
+import { getLatestValidations, getStatistics } from "../../services/dashboard.api";
 
 const normalizeStatus = (status) => {
   const value = status?.toString().toLowerCase();
@@ -43,6 +43,98 @@ const getBadgeColor = (status) => {
   }
 };
 
+const toNumber = (value) => {
+  const numberValue = Number(value);
+  return Number.isNaN(numberValue) ? 0 : numberValue;
+};
+
+const mapSummaryStats = (summary) => {
+  const data =
+    summary?.data && typeof summary.data === "object"
+      ? summary.data
+      : summary || {};
+
+  const raw = data.raw || {};
+
+  return {
+    totalIjazahTerbit: toNumber(
+      data.totalIjazahTerbit ??
+        data.terbit ??
+        data.total_terbit ??
+        raw.totalIjazahTerbit ??
+        raw.terbit ??
+        raw.total_terbit ??
+        0
+    ),
+
+    permintaanVerifikasi: toNumber(
+      data.permintaanVerifikasi ??
+        data.proses ??
+        data.total_proses ??
+        raw.permintaanVerifikasi ??
+        raw.proses ??
+        raw.total_proses ??
+        0
+    ),
+
+    dataReject: toNumber(
+      data.dataReject ??
+        data.rejected ??
+        data.reject ??
+        data.total_rejected ??
+        raw.dataReject ??
+        raw.rejected ??
+        raw.reject ??
+        raw.total_rejected ??
+        0
+    ),
+
+    dataRevoke: toNumber(
+      data.dataRevoke ??
+        data.revoked ??
+        data.revoke ??
+        data.total_revoked ??
+        raw.dataRevoke ??
+        raw.revoked ??
+        raw.revoke ??
+        raw.total_revoked ??
+        0
+    ),
+
+    terbitMingguIni: toNumber(
+      data.terbitMingguIni ??
+        data.terbit_minggu_ini ??
+        raw.terbitMingguIni ??
+        raw.terbit_minggu_ini ??
+        0
+    ),
+
+    prosesMingguIni: toNumber(
+      data.prosesMingguIni ??
+        data.proses_minggu_ini ??
+        raw.prosesMingguIni ??
+        raw.proses_minggu_ini ??
+        0
+    ),
+
+    rejectMingguIni: toNumber(
+      data.rejectMingguIni ??
+        data.reject_minggu_ini ??
+        raw.rejectMingguIni ??
+        raw.reject_minggu_ini ??
+        0
+    ),
+
+    revokeMingguIni: toNumber(
+      data.revokeMingguIni ??
+        data.revoke_minggu_ini ??
+        raw.revokeMingguIni ??
+        raw.revoke_minggu_ini ??
+        0
+    ),
+  };
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { token, logout } = useAuth();
@@ -51,6 +143,18 @@ const Dashboard = () => {
   const [tableData, setTableData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState("");
+
+  const [summaryStats, setSummaryStats] = useState({
+  totalIjazahTerbit: 0,
+  permintaanVerifikasi: 0,
+  dataReject: 0,
+  dataRevoke: 0,
+
+  terbitMingguIni: 0,
+  prosesMingguIni: 0,
+  rejectMingguIni: 0,
+  revokeMingguIni: 0,
+});
 
   // ==================== STATE FILTER DINAMIS ====================
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,11 +176,32 @@ const Dashboard = () => {
         setIsLoading(true);
         setApiError("");
 
-        // Kita cuma butuh tarik data tabel mentah (sebanyak mungkin) untuk dihitung di FE
-        const latestValidations = await getLatestValidations({ page: 1, limit: 10000, search: "" }).catch(() => ({ data: [] }));
-        const rows = Array.isArray(latestValidations.data) ? latestValidations.data : [];
-        
-        setTableData(rows);
+      const [latestValidations, summary] = await Promise.all([
+  getLatestValidations({
+    page: 1,
+    limit: 10000,
+    search: "",
+  }).catch(() => ({ data: [] })),
+
+  getStatistics().catch(() => ({
+    totalIjazahTerbit: 0,
+    permintaanVerifikasi: 0,
+    dataReject: 0,
+    dataRevoke: 0,
+
+    terbitMingguIni: 0,
+    prosesMingguIni: 0,
+    rejectMingguIni: 0,
+    revokeMingguIni: 0,
+  })),
+]);
+
+const rows = Array.isArray(latestValidations.data)
+  ? latestValidations.data
+  : [];
+
+setTableData(rows);
+setSummaryStats(mapSummaryStats(summary));
 
         // 🔥 BUILD DROPDOWN DINAMIS BERDASARKAN DATA TABEL
         // Ekstrak Fakultas Unik
@@ -187,10 +312,45 @@ return (
 
       {/* 🔥 STAT CARD DINAMIS MENGIKUTI TABEL */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Jumlah Ijazah Terbit" value={dynamicStats.terbit} sub="Statistik Terkini" subColor="text-[#27AE60]" icon={Icons.Badge} onClick={() => navigate("/ijazah/terbit")} />
-        <StatCard title="Jumlah Ijazah di Proses" value={dynamicStats.proses} sub="Statistik Terkini" subColor="text-[#3B82F6]" icon={Icons.Check} onClick={() => navigate("/ijazah/proses")} />
-        <StatCard title="Jumlah Ijazah di Reject" value={dynamicStats.rejected} sub="Statistik Terkini" subColor="text-[#F97316]" icon={Icons.Close} onClick={() => navigate("/ijazah/reject")} />
-        <StatCard title="Jumlah Ijazah di Revoke" value={dynamicStats.revoked} sub="Statistik Terkini" subColor="text-[#F59E0B]" icon={Icons.List} onClick={() => navigate("/ijazah/revoke")} />
+       <StatCard
+  title="Jumlah Ijazah Terbit"
+  value={summaryStats.totalIjazahTerbit}
+  sub={`${summaryStats.terbitMingguIni} Ijazah Terbit Minggu ini`}
+  subColor="text-[#27AE60]"
+  icon={Icons.Badge}
+  onClick={() => navigate("/ijazah/terbit")}
+/>
+
+<StatCard
+  title="Jumlah Ijazah di Proses"
+  value={summaryStats.permintaanVerifikasi}
+  sub={`${summaryStats.prosesMingguIni} di Proses Minggu ini`}
+  subColor="text-[#3B82F6]"
+  icon={Icons.Check}
+  onClick={() => navigate("/ijazah/proses")}
+/>
+
+<StatCard
+  title="Jumlah Ijazah di Reject"
+  value={summaryStats.dataReject}
+  sub={`${summaryStats.rejectMingguIni} Data di Reject Minggu ini`}
+  subColor="text-[#F97316]"
+  icon={Icons.Close}
+  onClick={() => navigate("/ijazah/reject")}
+/>
+
+<StatCard
+  title="Jumlah Ijazah di Revoke"
+  value={summaryStats.dataRevoke}
+  sub={
+    summaryStats.revokeMingguIni > 0
+      ? `${summaryStats.revokeMingguIni} Data di Revoke Minggu ini`
+      : "Tidak ada perubahan Minggu ini"
+  }
+  subColor="text-[#F59E0B]"
+  icon={Icons.List}
+  onClick={() => navigate("/ijazah/revoke")}
+/>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">

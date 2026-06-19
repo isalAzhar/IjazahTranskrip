@@ -76,10 +76,13 @@ const getDefaultStatistics = () => ({
   permintaanVerifikasi: 0,
   dataReject: 0,
   dataRevoke: 0,
+  terbitMingguIni: 0,
+  prosesMingguIni: 0,
+  rejectMingguIni: 0,
+  revokeMingguIni: 0,
   totalMahasiswa: 0,
   perubahanBulanTerakhir: 0,
   permintaanBaruHariIni: 0,
-  rejectMingguIni: 0,
   perubahanHariIni: 0,
   raw: {},
 });
@@ -134,40 +137,56 @@ export const getStatistics = async () => {
 
     return {
       totalIjazahTerbit: toNumber(
-        data.totalIjazahTerbit ??
-        data.terbit ??
-        data.total_terbit ??
-        0
+        data.totalIjazahTerbit ?? data.terbit ?? data.total_terbit ?? 0,
       ),
 
       permintaanVerifikasi: toNumber(
-        data.permintaanVerifikasi ??
-        data.proses ??
-        data.total_proses ??
-        0
+        data.permintaanVerifikasi ?? data.proses ?? data.total_proses ?? 0,
       ),
 
       dataReject: toNumber(
         data.dataReject ??
-        data.rejected ??
-        data.reject ??
-        data.total_rejected ??
-        0
+          data.rejected ??
+          data.reject ??
+          data.total_rejected ??
+          0,
       ),
 
       dataRevoke: toNumber(
         data.dataRevoke ??
-        data.revoked ??
-        data.revoke ??
-        data.total_revoked ??
-        0
+          data.revoked ??
+          data.revoke ??
+          data.total_revoked ??
+          0,
+      ),
+      terbitMingguIni: toNumber(
+        data.terbitMingguIni ?? data.terbit_minggu_ini ?? 0,
       ),
 
-      totalMahasiswa: toNumber(data.totalMahasiswa ?? data.total_mahasiswa ?? 0),
-      perubahanBulanTerakhir: toNumber(data.perubahanBulanTerakhir ?? data.perubahan_bulan_terakhir ?? 0),
-      permintaanBaruHariIni: toNumber(data.permintaanBaruHariIni ?? data.permintaan_baru_hari_ini ?? 0),
-      rejectMingguIni: toNumber(data.rejectMingguIni ?? data.reject_minggu_ini ?? 0),
-      perubahanHariIni: toNumber(data.perubahanHariIni ?? data.perubahan_hari_ini ?? 0),
+      prosesMingguIni: toNumber(
+        data.prosesMingguIni ?? data.proses_minggu_ini ?? 0,
+      ),
+
+      rejectMingguIni: toNumber(
+        data.rejectMingguIni ?? data.reject_minggu_ini ?? 0,
+      ),
+
+      revokeMingguIni: toNumber(
+        data.revokeMingguIni ?? data.revoke_minggu_ini ?? 0,
+      ),
+
+      totalMahasiswa: toNumber(
+        data.totalMahasiswa ?? data.total_mahasiswa ?? 0,
+      ),
+      perubahanBulanTerakhir: toNumber(
+        data.perubahanBulanTerakhir ?? data.perubahan_bulan_terakhir ?? 0,
+      ),
+      permintaanBaruHariIni: toNumber(
+        data.permintaanBaruHariIni ?? data.permintaan_baru_hari_ini ?? 0,
+      ),
+      perubahanHariIni: toNumber(
+        data.perubahanHariIni ?? data.perubahan_hari_ini ?? 0,
+      ),
 
       raw: data,
     };
@@ -291,7 +310,12 @@ export const getIjazahList = async (params = {}) => {
 
     return {
       data: list.map((item) => ({
-        id: item.mahasiswa_code || item.mahasiswaCode || item.uuid || item.id || item.id_mahasiswa,
+        id:
+          item.mahasiswa_code ||
+          item.mahasiswaCode ||
+          item.uuid ||
+          item.id ||
+          item.id_mahasiswa,
         id_mahasiswa: item.id_mahasiswa,
         mahasiswa_code:
           item.mahasiswa_code ||
@@ -502,7 +526,8 @@ export const getDashboardBatches = async (params = {}) => {
           id_batch_upload: internalId,
           batch_code: batchCode,
           batchCode,
-          batch: item.nomor_batch_upload || item.batch || item.nama_batch || "-",
+          batch:
+            item.nomor_batch_upload || item.batch || item.nama_batch || "-",
           nomor_batch_upload:
             item.nomor_batch_upload || item.batch || item.nama_batch || "-",
           fakultas:
