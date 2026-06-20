@@ -5,15 +5,20 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { FiCheckCircle, FiAlertCircle } from "react-icons/fi";
 
-// Logo dari folder assets/img/
 import Logo from "../../assets/img/Logo.jpg";
 import { verifyDocumentByQr } from "../../services/document.api";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
-
-// ── Format tanggal Indonesia ──────────────────────────────────────────────────
 const formatTanggalIndonesia = (tanggal) => {
+  if (!tanggal) return "-";
+
   const date = new Date(tanggal);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
   return date.toLocaleDateString("id-ID", {
     day: "numeric",
     month: "long",
@@ -21,38 +26,38 @@ const formatTanggalIndonesia = (tanggal) => {
   });
 };
 
-// ── Komponen utama ────────────────────────────────────────────────────────────
 const ScanQRResult = () => {
-const { kodeQr } = useParams();
-const [data, setData] = useState(null);
-const [loading, setLoading] = useState(true);
-const [error, setError] = useState("");
+  const { kodeQr } = useParams();
 
-useEffect(() => {
-  const fetchVerification = async () => {
-    try {
-      setLoading(true);
-      setError("");
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-      const result = await verifyDocumentByQr(kodeQr);
+  useEffect(() => {
+    const fetchVerification = async () => {
+      try {
+        setLoading(true);
+        setError("");
 
-      if (!result?.success || result?.data?.is_valid !== true) {
+        const result = await verifyDocumentByQr(kodeQr);
+
+        if (!result?.success || result?.data?.is_valid !== true) {
+          setData(null);
+          setError(result?.message || "Dokumen tidak ditemukan atau QR tidak valid.");
+          return;
+        }
+
+        setData(result.data);
+      } catch (err) {
         setData(null);
-        setError(result.message || "Dokumen tidak ditemukan atau tidak valid.");
-        return;
+        setError(err.message || "Gagal memverifikasi dokumen.");
+      } finally {
+        setLoading(false);
       }
+    };
 
-      setData(result.data);
-    } catch (err) {
-      setData(null);
-      setError(err.message || "Gagal memverifikasi dokumen.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchVerification();
-}, [kodeQr]);
+    fetchVerification();
+  }, [kodeQr]);
 
   if (loading) {
     return (
@@ -77,17 +82,35 @@ useEffect(() => {
             animation: "spin 0.8s linear infinite",
           }}
         />
-        <p style={{ fontSize: "13px", color: "#6B7280", margin: 0 }}>Memverifikasi dokumen…</p>
-        <style>{`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
+
+        <p style={{ fontSize: "13px", color: "#6B7280", margin: 0 }}>
+          Memverifikasi dokumen…
+        </p>
+
+        <style>
+          {`
+            @keyframes spin {
+              to { transform: rotate(360deg); }
+            }
+          `}
+        </style>
       </div>
     );
   }
 
-  if (!data) {
+  const blockchain = data?.blockchain ?? {};
+
+  const isDocumentSafe =
+    data?.is_valid === true &&
+    blockchain?.is_recorded === true &&
+    blockchain?.is_chain_valid === true &&
+    blockchain?.is_file_hash_valid === true;
+
+  if (!data || !isDocumentSafe) {
+    const invalidMessage = !data
+      ? error || "Dokumen tidak ditemukan atau QR tidak valid"
+      : "Dokumen tidak valid";
+
     return (
       <div
         style={{
@@ -114,32 +137,54 @@ useEffect(() => {
         >
           <FiAlertCircle size={36} color="#EF4444" />
         </div>
-        <h2 style={{ fontSize: "18px", fontWeight: "700", color: "#1F2937", margin: 0 }}>
+
+        <h2
+          style={{
+            fontSize: "20px",
+            fontWeight: "800",
+            color: "#111827",
+            margin: 0,
+          }}
+        >
           Verifikasi Gagal
         </h2>
-        <p style={{ fontSize: "13px", color: "#6B7280", textAlign: "center", margin: 0 }}>
-          Dokumen tidak ditemukan atau tidak valid.
+
+        <p
+          style={{
+            fontSize: "14px",
+            color: "#6B7280",
+            textAlign: "center",
+            margin: 0,
+          }}
+        >
+          {invalidMessage}
         </p>
       </div>
     );
   }
 
-const mahasiswa = data.mahasiswa || {};
-const fotoUrl = mahasiswa.foto
-  ? mahasiswa.foto.startsWith("http")
-    ? mahasiswa.foto
-    : `${API_BASE_URL}${mahasiswa.foto.startsWith("/") ? mahasiswa.foto : `/${mahasiswa.foto}`}`
-  : null;
-const tanggalTerbit = formatTanggalIndonesia(data.tanggal_terbit);
-const namaMahasiswa = mahasiswa.nama_mahasiswa || "-";
-const inisial = namaMahasiswa
-  .split(" ")
-  .map((n) => n[0])
-  .join("")
-  .toUpperCase()
-  .slice(0, 2);
+  const mahasiswa = data.mahasiswa || {};
 
-const bgColor = mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
+  const fotoUrl = mahasiswa.foto
+    ? mahasiswa.foto.startsWith("http")
+      ? mahasiswa.foto
+      : `${API_BASE_URL}${
+          mahasiswa.foto.startsWith("/") ? mahasiswa.foto : `/${mahasiswa.foto}`
+        }`
+    : null;
+
+  const tanggalTerbit = formatTanggalIndonesia(data.tanggal_terbit);
+  const namaMahasiswa = mahasiswa.nama_mahasiswa || "-";
+
+  const inisial = namaMahasiswa
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+  const bgColor =
+    mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
 
   return (
     <div style={{ minHeight: "100vh", background: "#F9FAFB" }}>
@@ -160,17 +205,38 @@ const bgColor = mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
           <img
             src={Logo}
             alt="Logo UIKA"
-            style={{ width: "36px", height: "36px", objectFit: "contain" }}
+            style={{
+              width: "36px",
+              height: "36px",
+              objectFit: "contain",
+            }}
           />
+
           <div style={{ lineHeight: 1.3 }}>
-            <p style={{ fontSize: "12px", fontWeight: "700", color: "#0B4B48", margin: 0 }}>
+            <p
+              style={{
+                fontSize: "12px",
+                fontWeight: "700",
+                color: "#0B4B48",
+                margin: 0,
+              }}
+            >
               Universitas
             </p>
-            <p style={{ fontSize: "11px", fontWeight: "700", color: "#059669", margin: 0 }}>
+
+            <p
+              style={{
+                fontSize: "11px",
+                fontWeight: "700",
+                color: "#059669",
+                margin: 0,
+              }}
+            >
               Ibn Khaldun Bogor
             </p>
           </div>
         </div>
+
         <span
           style={{
             display: "flex",
@@ -222,6 +288,7 @@ const bgColor = mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
           >
             <FiCheckCircle size={32} color="#059669" />
           </div>
+
           <h2
             style={{
               fontSize: "18px",
@@ -232,7 +299,15 @@ const bgColor = mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
           >
             DOKUMEN VALID
           </h2>
-          <p style={{ fontSize: "12px", color: "#059669", fontWeight: "500", margin: 0 }}>
+
+          <p
+            style={{
+              fontSize: "12px",
+              color: "#059669",
+              fontWeight: "500",
+              margin: 0,
+            }}
+          >
             Verifikasi Berhasil Sistem Terpusat
           </p>
         </div>
@@ -247,7 +322,7 @@ const bgColor = mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
           }}
         >
           <div style={{ display: "flex", gap: "20px" }}>
-            {/* FOTO KTP - tanpa tulisan jenis kelamin */}
+            {/* FOTO */}
             <div
               style={{
                 width: "100px",
@@ -262,58 +337,55 @@ const bgColor = mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
                 flexShrink: 0,
               }}
             >
+              {fotoUrl ? (
+                <img
+                  src={fotoUrl}
+                  alt={namaMahasiswa}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    borderRadius: "8px",
+                  }}
+                />
+              ) : (
+                <>
+                  <span
+                    style={{
+                      fontSize: "38px",
+                      fontWeight: "700",
+                      color: "white",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    {inisial}
+                  </span>
 
-{fotoUrl ? (
-  <img
-    src={fotoUrl}
-    alt={namaMahasiswa}
-    style={{
-      width: "100%",
-      height: "100%",
-      objectFit: "cover",
-      borderRadius: "8px",
-    }}
-  />) :
-   (
-  <>
-    <span
-      style={{
-        fontSize: "38px",
-        fontWeight: "700",
-        color: "white",
-        marginBottom: "4px",
-      }}
-    >
-      {inisial}
-    </span>
+                  <div
+                    style={{
+                      width: "35px",
+                      height: "2px",
+                      background: "rgba(255,255,255,0.3)",
+                      margin: "6px 0",
+                    }}
+                  />
 
-    <div
-      style={{
-        width: "35px",
-        height: "2px",
-        background: "rgba(255,255,255,0.3)",
-        margin: "6px 0",
-      }}
-    />
-
-    <p
-      style={{
-        fontSize: "8px",
-        color: "rgba(255,255,255,0.8)",
-        margin: 0,
-        textAlign: "center",
-      }}
-    >
-      {mahasiswa.jenis_kelamin || "-kiki"}
-    </p>
-  </>
-)}
-
+                  <p
+                    style={{
+                      fontSize: "8px",
+                      color: "rgba(255,255,255,0.8)",
+                      margin: 0,
+                      textAlign: "center",
+                    }}
+                  >
+                    {mahasiswa.jenis_kelamin || "-"}
+                  </p>
+                </>
+              )}
             </div>
 
-            {/* INFORMASI DOKUMEN & MAHASISWA */}
+            {/* INFORMASI */}
             <div style={{ flex: 1 }}>
-              {/* Tanggal Terbit & Nomor Seri */}
               <div
                 style={{
                   marginBottom: "12px",
@@ -329,9 +401,16 @@ const bgColor = mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
                   }}
                 >
                   <div>
-                    <p style={{ fontSize: "9px", color: "#9CA3AF", margin: "0 0 2px" }}>
+                    <p
+                      style={{
+                        fontSize: "9px",
+                        color: "#9CA3AF",
+                        margin: "0 0 2px",
+                      }}
+                    >
                       Tanggal Terbit Ijazah
                     </p>
+
                     <p
                       style={{
                         fontSize: "11px",
@@ -343,10 +422,18 @@ const bgColor = mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
                       {tanggalTerbit}
                     </p>
                   </div>
+
                   <div style={{ textAlign: "right" }}>
-                    <p style={{ fontSize: "9px", color: "#9CA3AF", margin: "0 0 2px" }}>
+                    <p
+                      style={{
+                        fontSize: "9px",
+                        color: "#9CA3AF",
+                        margin: "0 0 2px",
+                      }}
+                    >
                       Nomor Seri Ijazah
                     </p>
+
                     <p
                       style={{
                         fontSize: "10px",
@@ -355,12 +442,11 @@ const bgColor = mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
                         margin: 0,
                       }}
                     >
-                     {data.nomor_dokumen || "-"}
+                      {data.nomor_dokumen || "-"}
                     </p>
                   </div>
                 </div>
 
-                {/* STATUS - dipindah di bawah Nomor Seri */}
                 <div style={{ textAlign: "right" }}>
                   <p
                     style={{
@@ -379,7 +465,6 @@ const bgColor = mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
                 </div>
               </div>
 
-              {/* Informasi Mahasiswa */}
               <div>
                 <p
                   style={{
@@ -392,7 +477,6 @@ const bgColor = mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
                   Informasi Mahasiswa
                 </p>
 
-                {/* Nama */}
                 <div
                   style={{
                     display: "flex",
@@ -400,7 +484,10 @@ const bgColor = mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
                     marginBottom: "10px",
                   }}
                 >
-                  <p style={{ fontSize: "11px", color: "#6B7280", margin: 0 }}>Nama Mahasiswa</p>
+                  <p style={{ fontSize: "11px", color: "#6B7280", margin: 0 }}>
+                    Nama Mahasiswa
+                  </p>
+
                   <p
                     style={{
                       fontSize: "12px",
@@ -411,11 +498,10 @@ const bgColor = mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
                       maxWidth: "55%",
                     }}
                   >
-                   {mahasiswa.nama_mahasiswa || "-"}
+                    {mahasiswa.nama_mahasiswa || "-"}
                   </p>
                 </div>
 
-                {/* NIM */}
                 <div
                   style={{
                     display: "flex",
@@ -423,7 +509,10 @@ const bgColor = mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
                     marginBottom: "10px",
                   }}
                 >
-                  <p style={{ fontSize: "11px", color: "#6B7280", margin: 0 }}>NIM</p>
+                  <p style={{ fontSize: "11px", color: "#6B7280", margin: 0 }}>
+                    NIM
+                  </p>
+
                   <p
                     style={{
                       fontSize: "12px",
@@ -432,11 +521,10 @@ const bgColor = mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
                       margin: 0,
                     }}
                   >
-                   {mahasiswa.nim || "-"}
+                    {mahasiswa.nim || "-"}
                   </p>
                 </div>
 
-                {/* Fakultas */}
                 <div
                   style={{
                     display: "flex",
@@ -444,7 +532,10 @@ const bgColor = mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
                     marginBottom: "10px",
                   }}
                 >
-                  <p style={{ fontSize: "11px", color: "#6B7280", margin: 0 }}>Fakultas</p>
+                  <p style={{ fontSize: "11px", color: "#6B7280", margin: 0 }}>
+                    Fakultas
+                  </p>
+
                   <p
                     style={{
                       fontSize: "12px",
@@ -459,14 +550,16 @@ const bgColor = mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
                   </p>
                 </div>
 
-                {/* Program Studi */}
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
                   }}
                 >
-                  <p style={{ fontSize: "11px", color: "#6B7280", margin: 0 }}>Program Studi</p>
+                  <p style={{ fontSize: "11px", color: "#6B7280", margin: 0 }}>
+                    Program Studi
+                  </p>
+
                   <p
                     style={{
                       fontSize: "12px",
@@ -496,8 +589,8 @@ const bgColor = mahasiswa.jenis_kelamin === "Perempuan" ? "#EC4899" : "#0B4B48";
           }}
         >
           Dokumen ini telah terverifikasi secara digital
-          <br />
-          © {new Date(data.tanggal_terbit).getFullYear() || new Date().getFullYear()} Universitas Ibn Khaldun Bogor
+          <br />© {new Date(data.tanggal_terbit).getFullYear() || new Date().getFullYear()}{" "}
+          Universitas Ibn Khaldun Bogor
         </p>
       </div>
     </div>

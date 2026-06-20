@@ -143,7 +143,7 @@ export const verifyDocumentByQr = async (kodeQr) => {
   }
 
   const response = await fetch(
-    `${API_BASE_URL}/api/document/verify/${encodeURIComponent(kodeQr)}`,
+    `/api/document/verify/${encodeURIComponent(kodeQr)}`,
     {
       method: "GET",
       headers: {
