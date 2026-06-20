@@ -59,18 +59,6 @@ const formatNamaBatch = (kode) => {
   return `Batch ${parseInt(day)} ${bulan[parseInt(month)] || ""} ${year}`;
 };
 
-// ✅ Format Status Email
-const formatStatusEmail = (statusKirimRaw) => {
-  const raw = String(statusKirimRaw || "").toLowerCase();
-  if (
-    raw.includes("sudah") ||
-    (raw.includes("terkirim") && !raw.includes("belum"))
-  ) {
-    return "Terkirim";
-  }
-  return "Belum Terkirim";
-};
-
 const DetailDokumenValidRektor = () => {
   const navigate = useNavigate();
   const { batchCode, batchId, id } = useParams();
@@ -157,33 +145,10 @@ const DetailDokumenValidRektor = () => {
     });
   }, [search, mahasiswa]);
 
-  // Sinkronisasi status_email per mahasiswa dengan fallback ke status batch
-  const filteredTable = useMemo(() => {
-    const parentEmailStatus =
-      batchFromState.status_email ||
-      formatStatusEmail(batch?.status_email || batch?.status_kirim);
+  // 🔥 Filtered table langsung mengambil data pencarian (Logika status email dihapus)
+  const filteredTable = searchSuggestions;
 
-    return searchSuggestions.map((item) => {
-      const coreMhs = item?.mahasiswa || item || {};
-      const rawStatusKirim =
-        item.status_email ||
-        item.status_kirim ||
-        item.statusKirim ||
-        coreMhs.status_email ||
-        coreMhs.status_kirim ||
-        item.raw?.status_email ||
-        item.raw?.status_kirim;
-
-      return {
-        ...item,
-        status_email: rawStatusKirim
-          ? formatStatusEmail(rawStatusKirim)
-          : parentEmailStatus,
-      };
-    });
-  }, [searchSuggestions, batch, batchFromState]);
-
- const handleGoDetailMahasiswa = (student) => {
+  const handleGoDetailMahasiswa = (student) => {
     // 1. Ambil kode mahasiswa dari berbagai kemungkinan field API
     const mahasiswaCode =
       student.mahasiswa_code ||
@@ -266,23 +231,6 @@ const DetailDokumenValidRektor = () => {
           </div>
         )}
 
-        {/* SEARCH BAR */}
-        <div ref={searchRef} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-0">
-          <div className="w-full lg:max-w-md">
-            <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
-              <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
-              <input
-                type="text"
-                placeholder="Cari: Nama, NIM..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setShowSuggestions(true); }}
-                onFocus={() => setShowSuggestions(true)}
-                className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
-              />
-            </div>
-          </div>
-        </div>
-
         {/* SUGGESTIONS */}
         {showSuggestions && search.trim() && (
           <div className="bg-white border-x border-b border-gray-100 shadow-md rounded-b-xl mb-6 overflow-y-auto" style={{ maxHeight: "260px" }}>
@@ -332,15 +280,14 @@ const DetailDokumenValidRektor = () => {
                   <th className="py-4 px-6 text-center">Program Studi</th>
                   <th className="py-4 px-6 text-center w-[120px]">Tahun Lulus</th>
                   <th className="py-4 px-6 text-center w-[120px]">Status Berkas</th>
-                  {/* Status Email — hanya tampil, tanpa tombol kirim */}
-                  <th className="py-4 px-6 text-center w-[140px]">Status Email</th>
                   <th className="py-4 px-6 text-center w-20">Detail</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
+                    {/* 🔥 colSpan diubah menjadi 7 karena kolom Status Email dihapus */}
+                    <td colSpan="7" className="py-12 text-center text-gray-400 font-medium">
                       Memuat data dokumen valid...
                     </td>
                   </tr>
@@ -360,18 +307,7 @@ const DetailDokumenValidRektor = () => {
                           {item.status || "Terbit"}
                         </span>
                       </td>
-                      {/* Badge Status Email — read only */}
-                      <td className="py-4 px-6 text-center align-middle">
-                        <span
-                          className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${
-                            item.status_email === "Terkirim"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-orange-100 text-orange-700"
-                          }`}
-                        >
-                          {item.status_email}
-                        </span>
-                      </td>
+                      {/* 🔥 td Status Email telah dihapus */}
                       <td className="py-4 px-6 text-center">
                         <button
                           onClick={() => handleGoDetailMahasiswa(item)}
@@ -384,7 +320,7 @@ const DetailDokumenValidRektor = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
+                    <td colSpan="7" className="py-12 text-center text-gray-400 font-medium">
                       <div className="flex flex-col items-center justify-center">
                         <FiSearch className="text-4xl mb-3 text-gray-300" />
                         <p>Mahasiswa tidak ditemukan.</p>
@@ -393,7 +329,7 @@ const DetailDokumenValidRektor = () => {
                   </tr>
                 )}
               </tbody>
-            </table>
+            </table>  
           </div>
         </div>
       </div>

@@ -19,6 +19,20 @@ const ROLES_WITH_NOTIF = [
   "rektor",
 ];
 
+const NOTIF_READ_KEY = "notif_read_ids";
+
+const getReadIds = () => {
+  try {
+    return JSON.parse(localStorage.getItem(NOTIF_READ_KEY) || "[]");
+  } catch {
+    return [];
+  }
+};
+
+const saveReadIds = (ids) => {
+  localStorage.setItem(NOTIF_READ_KEY, JSON.stringify(ids));
+};
+
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -27,18 +41,15 @@ const Navbar = () => {
   const [openMenu, setOpenMenu] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [readIds, setReadIds] = useState(getReadIds);
   const [scrolled, setScrolled] = useState(false);
 
   const notifRef = useRef(null);
   const mobileMenuRef = useRef(null);
 
-  // ==========================================
-  // EKSTRAKSI DATA USER
-  // ==========================================
- const userRole = user?.role?.toLowerCase().trim() || "";
+  const userRole = user?.role?.toLowerCase().trim() || "";
   const fallbackName = user?.email ? user.email.split("@")[0] : "User";
-  
-  // 🔥 TEKS ATAS: Paksa jadi "Admin" jika role-nya admin
+
   let displayTitle = user?.name || user?.fullname || user?.username || fallbackName;
   if (["admin", "admin_sistem"].includes(userRole)) {
     displayTitle = "Admin";
@@ -46,25 +57,24 @@ const Navbar = () => {
 
   const showNotifIcon = ROLES_WITH_NOTIF.includes(userRole);
 
-  // 🔥 TEKS BAWAH (SUB-BAB)
   let displaySubtitle = null;
   const rawUnitName = user?.nama_unit || user?.unit || user?.fakultas || user?.department || user?.prodi?.unit?.nama_unit || "";
   const cleanUnit = rawUnitName.replace(/^fakultas\s+/i, "").trim();
 
   if (["admin", "admin_sistem"].includes(userRole)) {
-    displaySubtitle = "Sistem"; 
+    displaySubtitle = "Sistem";
   } else if (["operator", "operator_data"].includes(userRole)) {
-    displaySubtitle = "Data"; 
+    displaySubtitle = "Data";
   } else if (["rektor"].includes(userRole)) {
-    displaySubtitle = null; 
+    displaySubtitle = null;
   } else if (["wakil_rektor_1", "wakil_rektor", "tu_rektorat"].includes(userRole)) {
-    displaySubtitle = "Rektorat"; 
+    displaySubtitle = "Rektorat";
   } else if (["dekan", "wakil_dekan_1", "wakil_dekan", "tu_fakultas"].includes(userRole)) {
-    displaySubtitle = cleanUnit ? `Fakultas ${cleanUnit}` : "Fakultas"; 
+    displaySubtitle = cleanUnit ? `Fakultas ${cleanUnit}` : "Fakultas";
   } else {
     displaySubtitle = cleanUnit ? `Fakultas ${cleanUnit}` : userRole;
   }
-  // KONFIGURASI MENU
+
   const adminMenu = [
     { name: "Dashboard",       path: "/admin/dashboard" },
     { name: "Template",        path: "/admin/template" },
@@ -81,16 +91,16 @@ const Navbar = () => {
   ];
 
   const verifikatorMenu = [
-    { name: "Dashboard",      path: "/verifikator/dashboard" },
-    { name: "Daftar Batch",   path: "/verifikator/daftar-batch" },
-    { name: "Pelaporan",      path: "/verifikator/pelaporan" },
+    { name: "Dashboard",    path: "/verifikator/dashboard" },
+    { name: "Daftar Batch", path: "/verifikator/daftar-batch" },
+    { name: "Pelaporan",    path: "/verifikator/pelaporan" },
   ];
 
   const rektorMenu = [
-    { name: "Dashboard",      path: "/rektor/dashboard" },
-    { name: "Daftar Batch",   path: "/rektor/daftar-batch" },
-    { name: "Pelaporan",      path: "/rektor/pelaporan" },
-    { name: "Dokumen Valid",  path: "/rektor/dokumen-valid" },
+    { name: "Dashboard",     path: "/rektor/dashboard" },
+    { name: "Daftar Batch",  path: "/rektor/daftar-batch" },
+    { name: "Pelaporan",     path: "/rektor/pelaporan" },
+    { name: "Dokumen Valid", path: "/rektor/dokumen-valid" },
   ];
 
   const menuConfig = {
@@ -98,9 +108,9 @@ const Navbar = () => {
     admin_sistem:   adminMenu,
     operator:       operatorMenu,
     operator_data:  operatorMenu,
-    rektor:         rektorMenu,          
-    tu_rektorat:    verifikatorMenu,     
-    wakil_rektor_1: verifikatorMenu,     
+    rektor:         rektorMenu,
+    tu_rektorat:    verifikatorMenu,
+    wakil_rektor_1: verifikatorMenu,
     tu_fakultas:    verifikatorMenu,
     wakil_dekan_1:  verifikatorMenu,
     dekan:          verifikatorMenu,
@@ -108,13 +118,16 @@ const Navbar = () => {
 
   const activeMenus = menuConfig[userRole] || verifikatorMenu;
 
+  // 🔥 Hitung unread: notif yang id_log-nya belum ada di readIds
+  const unreadCount = notifications.filter(
+    (n) => !readIds.includes(n.id_log)
+  ).length;
+
   const isRouteActive = (path) => {
     if (path === "/admin/data-mahasiswa" && location.pathname.startsWith("/admin/data-mahasiswa")) return true;
     if (path === "/operator/detail-mahasiswa" && location.pathname.startsWith("/operator/detail-mahasiswa")) return true;
-    
     if (path.includes("/daftar-batch") && location.pathname.includes("/detail-batch")) return true;
     if (path.includes("/dokumen-valid") && location.pathname.includes("/detail-dokumen-valid")) return true;
-    
     return location.pathname === path;
   };
 
@@ -141,29 +154,29 @@ const Navbar = () => {
   };
 
   const getNotificationTargetPath = () => {
-    if (["operator", "operator_data"].includes(userRole)) {
-      return "/operator/pelaporan";
-    }
-
-    if (["rektor"].includes(userRole)) {
-      return "/rektor/pelaporan";
-    }
-
+    if (["operator", "operator_data"].includes(userRole)) return "/operator/pelaporan";
+    if (["rektor"].includes(userRole)) return "/rektor/pelaporan";
     if ([
-      "tu_fakultas",
-      "wakil_dekan_1",
-      "wakil_dekan",
-      "dekan",
-      "tu_rektorat",
-      "wakil_rektor_1",
-      "wakil_rektor",
-    ].includes(userRole)) {
-      return "/verifikator/pelaporan";
-    }
-
+      "tu_fakultas", "wakil_dekan_1", "wakil_dekan", "dekan",
+      "tu_rektorat", "wakil_rektor_1", "wakil_rektor",
+    ].includes(userRole)) return "/verifikator/pelaporan";
     return getDashboardPath();
   };
 
+  // 🔥 Buka panel notif → tandai semua sebagai read
+  const handleToggleNotif = () => {
+    const next = !showNotif;
+    setShowNotif(next);
+
+    if (next && notifications.length > 0) {
+      const allIds = notifications.map((n) => n.id_log);
+      const merged = [...new Set([...readIds, ...allIds])];
+      setReadIds(merged);
+      saveReadIds(merged);
+    }
+  };
+
+  // 🔥 Lihat Lainnya: navigate ke pelaporan, tutup panel
   const handleNotificationClick = () => {
     setShowNotif(false);
     navigate(getNotificationTargetPath());
@@ -184,37 +197,31 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
- useEffect(() => {
-  if (!showNotifIcon) {
-    setNotifications([]);
-    return;
-  }
-
-  let isMounted = true;
-
-  const loadNotifications = async () => {
-    try {
-      const data = await getRejectRevokeNotifications(5);
-
-      if (isMounted) {
-        setNotifications(data);
-      }
-    } catch (error) {
-      if (isMounted) {
-        setNotifications([]);
-      }
+  useEffect(() => {
+    if (!showNotifIcon) {
+      setNotifications([]);
+      return;
     }
-  };
 
-  loadNotifications();
+    let isMounted = true;
 
-  const interval = setInterval(loadNotifications, 15000);
+    const loadNotifications = async () => {
+      try {
+        const data = await getRejectRevokeNotifications(5);
+        if (isMounted) setNotifications(data);
+      } catch (error) {
+        if (isMounted) setNotifications([]);
+      }
+    };
 
-  return () => {
-    isMounted = false;
-    clearInterval(interval);
-  };
-}, [showNotifIcon, userRole, user?.id_user]);
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 15000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [showNotifIcon, userRole, user?.id_user]);
 
   const linkClass = (path) => {
     const isActive = isRouteActive(path);
@@ -226,11 +233,12 @@ const Navbar = () => {
   const mobileLinkClass = (path) => {
     const isActive = isRouteActive(path);
     return `block px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
-      isActive ? "bg-[#27AE60]/10 text-[#27AE60] font-semibold" : "text-gray-600 hover:bg-gray-50 hover:text-[#27AE60]"
+      isActive
+        ? "bg-[#27AE60]/10 text-[#27AE60] font-semibold"
+        : "text-gray-600 hover:bg-gray-50 hover:text-[#27AE60]"
     }`;
   };
 
-  // 🔥 Komponen Subtitle: Hanya dirender kalau ada isinya (Kalau Rektor dia akan hilang 100%)
   const ProfileSubtitle = () => {
     if (!displaySubtitle) return null;
     return (
@@ -246,7 +254,11 @@ const Navbar = () => {
 
         {/* Logo */}
         <NavLink to={getDashboardPath()} className="flex items-center gap-3 cursor-pointer group">
-          <img src={logo} alt="Logo UIKA" className="w-10 h-10 md:w-12 md:h-12 object-contain transition-transform group-hover:scale-105" />
+          <img
+            src={logo}
+            alt="Logo UIKA"
+            className="w-10 h-10 md:w-12 md:h-12 object-contain transition-transform group-hover:scale-105"
+          />
           <div className="leading-tight hidden sm:block">
             <div className="text-black font-semibold text-xs md:text-sm">Universitas</div>
             <div className="text-[#27AE60] font-bold text-xs md:text-sm">Ibn Khaldun Bogor</div>
@@ -264,83 +276,105 @@ const Navbar = () => {
 
         {/* Right Side */}
         <div className="flex items-center gap-3 md:gap-5">
+
+          {/* Notifikasi */}
           {showNotifIcon && (
-  <div className="relative" ref={notifRef}>
-    <button
-      onClick={() => setShowNotif(!showNotif)}
-      className="relative p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-400 hover:text-[#27AE60]"
-    >
-      <FiBell size={20} />
-
-      {/* BADGE MERAH DI SINI */}
-      {notifications.length > 0 && (
-        <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
-          {notifications.length > 9 ? "9+" : notifications.length}
-        </span>
-      )}
-    </button>
-
-    {showNotif && (
-      <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-100 shadow-2xl rounded-2xl p-4 z-50">
-        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
-          Notifikasi
-        </h3>
-
-        {notifications.length > 0 ? (
-          <div className="space-y-2 max-h-80 overflow-y-auto">
-            {notifications.map((notif) => (
+            <div className="relative" ref={notifRef}>
               <button
-                key={notif.id_log}
-                type="button"
-                onClick={handleNotificationClick}
-                className="w-full text-left border border-gray-100 rounded-xl p-3 hover:bg-gray-50 transition-colors"
+                onClick={handleToggleNotif}
+                className="relative p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-400 hover:text-[#27AE60]"
               >
-                <div className="flex items-start gap-3">
-                  <span
-                    className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                      notif.type === "reject"
-                        ? "bg-red-50 text-red-600"
-                        : "bg-orange-50 text-orange-600"
-                    }`}
-                  >
-                    {notif.type === "reject" ? "R" : "V"}
+                <FiBell size={20} />
+                {/* 🔥 Badge hanya tampil jika ada yang unread */}
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
-
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-gray-800">
-                      {notif.title || "Aktivitas terbaru"}
-                    </p>
-
-                    <p className="text-xs text-gray-500 mt-1">
-                      {notif.message || "Ada aktivitas reject/revoke terbaru."}
-                    </p>
-
-                    {notif.time_label && (
-                      <p className="text-[11px] text-gray-400 mt-2">
-                        {notif.time_label} WIB
-                      </p>
-                    )}
-                  </div>
-                </div>
+                )}
               </button>
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-gray-500 italic text-center py-2">
-            Tidak ada notifikasi reject/revoke.
-          </p>
-        )}
-      </div>
-    )}
-  </div>
-)}
+
+              {showNotif && (
+                <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-100 shadow-2xl rounded-2xl p-4 z-50">
+                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
+                    Notifikasi
+                  </h3>
+
+                  {notifications.length > 0 ? (
+                    <>
+                      <div className="space-y-2 max-h-80 overflow-y-auto">
+                        {notifications.map((notif) => {
+                          const isRead = readIds.includes(notif.id_log);
+                          return (
+                           // SESUDAH
+                              <div
+                                key={notif.id_log}
+                                className={`w-full text-left border rounded-xl p-3 transition-colors ${
+                                  isRead
+                                    ? "border-gray-100 bg-white"
+                                    : "border-green-100 bg-green-50"
+                                }`}
+                              >
+                              <div className="flex items-start gap-3">
+                                <span
+                                  className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                                    notif.type === "reject"
+                                      ? "bg-red-50 text-red-600"
+                                      : "bg-orange-50 text-orange-600"
+                                  }`}
+                                >
+                                  {notif.type === "reject" ? "R" : "V"}
+                                </span>
+
+                                <div className="min-w-0">
+                                  <p className="text-xs font-semibold text-gray-800">
+                                    {notif.title || "Aktivitas terbaru"}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {notif.message || "Ada aktivitas reject/revoke terbaru."}
+                                  </p>
+                                  {notif.time_label && (
+                                    <p className="text-[11px] text-gray-400 mt-2">
+                                      {notif.time_label} WIB
+                                    </p>
+                                  )}
+                                </div>
+
+                                {/* 🔥 Dot unread */}
+                                {!isRead && (
+                                  <span className="mt-1 ml-auto w-2 h-2 rounded-full bg-[#27AE60] shrink-0" />
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* 🔥 Lihat Lainnya — satu-satunya yang bisa diklik */}
+                      <button
+                        type="button"
+                        onClick={handleNotificationClick}
+                        className="mt-3 w-full py-2 rounded-xl bg-[#27AE60] hover:bg-[#219150] text-white text-xs font-bold transition-colors"
+                      >
+                        Lihat Lainnya
+                      </button>
+                    </>
+                  ) : (
+                    <p className="text-xs text-gray-500 italic text-center py-2">
+                      Tidak ada notifikasi reject/revoke.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Profile */}
-          <div className="flex items-center gap-3 border-l pl-3 md:pl-4 cursor-pointer group" onClick={handleProfileClick}>
+          <div
+            className="flex items-center gap-3 border-l pl-3 md:pl-4 cursor-pointer group"
+            onClick={handleProfileClick}
+          >
             <div className="text-right leading-tight hidden sm:block">
-              {/* Teks Atas: Nama Asli dari DB */}
               <div className="text-gray-800 font-bold text-sm capitalize">{displayTitle}</div>
-              {/* Teks Bawah: Mapping Sub-bab Cerdas */}
               <ProfileSubtitle />
             </div>
             <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-[#27AE60] flex items-center justify-center text-[#27AE60] bg-gray-50 group-hover:bg-[#27AE60] group-hover:text-white transition-all duration-300">
@@ -350,7 +384,10 @@ const Navbar = () => {
 
           {/* Hamburger */}
           <div className="md:hidden" ref={mobileMenuRef}>
-            <button onClick={() => setOpenMenu(!openMenu)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors text-gray-600 hover:text-[#27AE60]">
+            <button
+              onClick={() => setOpenMenu(!openMenu)}
+              className="p-2 rounded-xl hover:bg-gray-100 transition-colors text-gray-600 hover:text-[#27AE60]"
+            >
               {openMenu ? <FiX size={22} /> : <FiMenu size={22} />}
             </button>
           </div>
@@ -361,12 +398,20 @@ const Navbar = () => {
       <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${openMenu ? "max-h-screen opacity-100" : "max-h-0 opacity-0"}`}>
         <div className="px-4 pb-4 pt-1 border-t border-gray-100 bg-white space-y-1">
           {activeMenus.map((menu, idx) => (
-            <NavLink key={idx} to={menu.path} className={() => mobileLinkClass(menu.path)} onClick={() => setOpenMenu(false)}>
+            <NavLink
+              key={idx}
+              to={menu.path}
+              className={() => mobileLinkClass(menu.path)}
+              onClick={() => setOpenMenu(false)}
+            >
               {menu.name}
             </NavLink>
           ))}
-          <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-gray-50 rounded-xl transition-colors"
-            onClick={() => { handleProfileClick(); setOpenMenu(false); }}>
+
+          <div
+            className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-gray-50 rounded-xl transition-colors"
+            onClick={() => { handleProfileClick(); setOpenMenu(false); }}
+          >
             <div className="w-8 h-8 rounded-full border-2 border-[#27AE60] flex items-center justify-center text-[#27AE60] bg-gray-50">
               <FiUser size={16} />
             </div>
@@ -378,7 +423,7 @@ const Navbar = () => {
         </div>
       </div>
     </nav>
-  );  
+  );
 };
 
 export default Navbar;

@@ -16,7 +16,6 @@ const normalizeStatus = (status) => {
   return value || "";
 };
 
-// 🔥 INI FUNGSI YANG TADI HILANG DAN BIKIN ERROR
 const formatNamaBatch = (kode) => {
   return kode || "-";
 };
@@ -44,7 +43,6 @@ const formatSingkatanFakultas = (namaFakultas) => {
   return namaFakultas; 
 };
 
-// 🔥 FORMAT STATUS EMAIL
 const formatStatusEmail = (statusKirimRaw) => {
   const raw = String(statusKirimRaw || "").toLowerCase();
   if (
@@ -59,7 +57,6 @@ const formatStatusEmail = (statusKirimRaw) => {
 const formatMahasiswa = (item, index, batchData, targetStatus) => {
   const coreMhs = item?.mahasiswa || item || {};
   
-  // Memeriksa keberadaan status kirim individual dari backend
   const rawStatusKirim = 
     item.status_email ||
     item.status_kirim ||
@@ -99,8 +96,6 @@ const formatMahasiswa = (item, index, batchData, targetStatus) => {
     periode: item.periode || batchData?.periode_label || "-",
     status: targetStatus,
     batch: item.nama_batch || batchData?.nama_batch || "-",
-    
-    // 🔥 SINKRONISASI PINTAR: Jika data mahasiswa kosong, warisi status dari Batch induknya langsung
     status_email: rawStatusKirim ? formatStatusEmail(rawStatusKirim) : (batchData?.status_email || "Belum Terkirim"),
     raw: item.raw || item,
   };
@@ -151,7 +146,7 @@ const Statusbatch = () => {
     periode_label: batchFromState.periode || "-",
     total_record_label: batchFromState.total ? `${batchFromState.total} Mahasiswa` : "-",
     status: displayLabel,
-    status_email: batchFromState.status_email || "Belum Terkirim", // Tangkap status awal grup
+    status_email: batchFromState.status_email || "Belum Terkirim",
   });
 
   const [mahasiswa, setMahasiswa] = useState([]);
@@ -173,7 +168,6 @@ const Statusbatch = () => {
         let bData = {};
         let mList = [];
 
-        // Fetching Data via API
         const result = await getDetailBatch(currentBatchCode, currentStatus);
         
         if (result) {
@@ -189,7 +183,6 @@ const Statusbatch = () => {
 
         if (!Array.isArray(mList)) mList = [];
 
-        // SUPER FILTER DI FRONTEND
         if (currentStatus && mList.length > 0) {
           const filteredList = mList.filter(item => {
             const rawStatus = 
@@ -260,7 +253,6 @@ const Statusbatch = () => {
           || batchFromState.tahun
           || "-";
 
-        // Ambil status email gabungan dari state navigasi atau respons mentah API
         const batchEmailStatus = batchFromState.status_email || formatStatusEmail(bData.status_email || bData.status_kirim);
 
         const mappedBatchData = {
@@ -291,6 +283,7 @@ const Statusbatch = () => {
     return [...mahasiswa].sort((a, b) => (a.nama || "").localeCompare(b.nama || ""));
   }, [mahasiswa]);
 
+  // 🔥 UPDATE: Fungsi navigasi yang kebal peluru dan menyertakan source dokumen_valid
   const handleDetailMahasiswa = (item) => {
     const mahasiswaCode =
       item.mahasiswa_code ||
@@ -298,11 +291,12 @@ const Statusbatch = () => {
       item.uuid ||
       item.mahasiswa_uuid ||
       item.raw?.mahasiswa_code ||
-      item.raw?.uuid;
+      item.raw?.uuid ||
+      item.id;
 
     if (!mahasiswaCode) {
       console.error("Mahasiswa code tidak ditemukan:", item);
-      alert("Kode mahasiswa tidak ditemukan.");
+      alert("Kode mahasiswa tidak ditemukan, gagal membuka detail.");
       return;
     }
 
@@ -317,17 +311,24 @@ const Statusbatch = () => {
       batch: item.batch || batchData?.nama_batch,
     };
 
-    const navState = { state: { mahasiswa: formattedMahasiswa, batch: batchData } };
-
-    if (userRole === "rektor") navigate(`/rektor/detail-mahasiswa/${safeMahasiswaCode}`, navState);
-    else if (userRole.includes("operator")) navigate(`/operator/detail-mahasiswa/${safeMahasiswaCode}`, navState);
-    else if (userRole.includes("admin")) navigate(`/admin/detail-mahasiswa/${safeMahasiswaCode}`, navState);
-    else navigate(`/verifikator/detail-mahasiswa/${safeMahasiswaCode}`, {
-      state: {
-        mahasiswa: item,
+    // State navigasi lengkap menyertakan source
+    const navState = { 
+      state: { 
+        mahasiswa: formattedMahasiswa, 
         batch: batchData,
-      },
-    });
+        source: "dokumen_valid" 
+      } 
+    };
+
+    if (userRole === "rektor") {
+      navigate(`/rektor/detail-mahasiswa/${safeMahasiswaCode}`, navState);
+    } else if (userRole.includes("operator")) {
+      navigate(`/operator/detail-mahasiswa/${safeMahasiswaCode}`, navState);
+    } else if (userRole.includes("admin")) {
+      navigate(`/admin/detail-mahasiswa/${safeMahasiswaCode}`, navState);
+    } else {
+      navigate(`/verifikator/detail-mahasiswa/${safeMahasiswaCode}`, navState);
+    }
   };
 
   if (isLoading) {
@@ -397,8 +398,7 @@ const Statusbatch = () => {
                 <th className="px-6 py-4 text-center">NIM</th>
                 <th className="px-6 py-4 text-center">Program Studi</th>
                 <th className="px-6 py-4 text-center">Tahun Lulus</th>
-                <th className="px-6 py-4 text-center">Status Berkas</th>
-                <th className="px-6 py-4 text-center">Status Email</th>
+                <th className="px-6 py-4 text-center">Status</th>
                 <th className="px-6 py-4 text-center w-20">Detail</th>
               </tr>
             </thead>
@@ -416,17 +416,6 @@ const Statusbatch = () => {
                         {getBadgeLabel(mhs.status)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-center align-middle">
-                      <span
-                        className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${
-                          mhs.status_email === "Terkirim"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-orange-100 text-orange-700"
-                        }`}
-                      >
-                        {mhs.status_email}
-                      </span>
-                    </td>
                     <td className="px-6 py-4 text-center">
                       <button type="button" onClick={() => handleDetailMahasiswa(mhs)} className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition">
                         <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>
@@ -436,7 +425,7 @@ const Statusbatch = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center text-gray-400 capitalize">
+                  <td colSpan="7" className="px-6 py-8 text-center text-gray-400 capitalize">
                     Data mahasiswa {currentStatus} tidak ditemukan.
                   </td>
                 </tr>

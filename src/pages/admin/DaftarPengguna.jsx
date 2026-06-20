@@ -8,13 +8,13 @@ import {
   FiEye,
   FiEyeOff,
   FiCheckCircle,
+  FiXCircle, // 🔥 Tambahan icon untuk notifikasi error
 } from "react-icons/fi";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { getUnitsData, getPersonilByRole, getFakultasList } from "./DaftarUnit";
 
 // 🔥 IMPORT BRANKAS TOKEN
 import { useAuth } from "../context/AuthContext";
-
 
 // ==================== FUNGSI VALIDASI EMAIL ====================
 // ==================== FUNGSI FORMAT ROLE (UI) ====================
@@ -43,9 +43,6 @@ const isValidEmail = (email) => {
 };
 // ===============================================================
 
-
-
-
 const DaftarPengguna = () => {
   // 🔥 STATE TOKEN DARI AUTH CONTEXT
   const { token } = useAuth();
@@ -53,66 +50,68 @@ const DaftarPengguna = () => {
   const [openTambah, setOpenTambah] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [openHapus, setOpenHapus] = useState(false);
-  const [openSukses, setOpenSukses] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
   const [users, setUsers] = useState([]);
-  const [isLoading, setIsLoading] = useState(true); // 🔥 State untuk animasi loading
+  const [isLoading, setIsLoading] = useState(true);
 
-  // 🔥 FUNGSI TARIK DATA DARI DATABASE BACKEND
-const fetchUsers = async () => {
-  try {
-    setIsLoading(true);
-    const response = await fetch("/api/user/getAllUser", {
-      headers: { "Authorization": `Bearer ${token}` }
-    });
+  // 🔥 STATE UNTUK MODAL NOTIFIKASI (Menggantikan alert bawaan browser)
+  const [notif, setNotif] = useState({
+    show: false,
+    title: "",
+    message: "",
+    type: "success", // bisa "success" atau "error"
+  });
 
-    const result = await response.json();
-    
-    // 🔥 PERBAIKAN DI SINI:
-    // Kita ambil data dari 'result.data' karena backend mengirim format { status, data }
-    if (response.ok && result.data) {
-      const data = result.data; 
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/user/getAllUser", {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+
+      const result = await response.json();
       
-     const formattedUsers = data.map(u => {
-  // 🔥 Tentukan Nama Pejabat
-// Di dalam map fetchUsers:
-const namaPejabat = u.unit ? (
-  u.role === "rektor" ? u.unit.rektor : 
-  u.role === "dekan" ? u.unit.dekan : 
-  u.role === "wakil_rektor_1" ? u.unit.wakil_rektor_1 :
-  u.role === "wakil_dekan_1" ? u.unit.wakil_dekan_1 :
-  u.role === "tu_rektorat" ? u.unit.tu_rektorat :
-  u.role === "tu_fakultas" ? u.unit.tu_fakultas : "-"
-) : "-";
+      if (response.ok && result.data) {
+        const data = result.data; 
+        
+        const formattedUsers = data.map(u => {
+          const namaPejabat = u.unit ? (
+            u.role === "rektor" ? u.unit.rektor : 
+            u.role === "dekan" ? u.unit.dekan : 
+            u.role === "wakil_rektor_1" ? u.unit.wakil_rektor_1 :
+            u.role === "wakil_dekan_1" ? u.unit.wakil_dekan_1 :
+            u.role === "tu_rektorat" ? u.unit.tu_rektorat :
+            u.role === "tu_fakultas" ? u.unit.tu_fakultas : "-"
+          ) : "-";
 
-const nidnPejabat = u.unit ? (
-  u.role === "rektor" ? (u.unit.nidnRektor || u.unit.nidn_rektor) : 
-  u.role === "dekan" ? (u.unit.nidnDekan || u.unit.nidn_dekan) : 
-  u.role === "wakil_rektor_1" ? (u.unit.nidnWakilRektor || u.unit.nidn_wakil_rektor_1) :
-  u.role === "wakil_dekan_1" ? (u.unit.nidnWakilDekan || u.unit.nidn_wakil_dekan_1) :
-  u.role === "tu_rektorat" ? u.unit.nidn_tu_rektorat :
-  u.role === "tu_fakultas" ? "" : ""
-) : "";
+          const nidnPejabat = u.unit ? (
+            u.role === "rektor" ? (u.unit.nidnRektor || u.unit.nidn_rektor) : 
+            u.role === "dekan" ? (u.unit.nidnDekan || u.unit.nidn_dekan) : 
+            u.role === "wakil_rektor_1" ? (u.unit.nidnWakilRektor || u.unit.nidn_wakil_rektor_1) :
+            u.role === "wakil_dekan_1" ? (u.unit.nidnWakilDekan || u.unit.nidn_wakil_dekan_1) :
+            u.role === "tu_rektorat" ? u.unit.nidn_tu_rektorat :
+            u.role === "tu_fakultas" ? "" : ""
+          ) : "";
 
-  return {
-    id: u.id || u.id_user || u.uuid,
-    role: u.role || "-",
-    email: u.email || "-",
-    nama: namaPejabat,
-    nidn: nidnPejabat, // 
-    unit: u.unit?.nama_unit || "-"
-  };
-});
+          return {
+            id: u.id || u.id_user || u.uuid,
+            role: u.role || "-",
+            email: u.email || "-",
+            nama: namaPejabat,
+            nidn: nidnPejabat,
+            unit: u.unit?.nama_unit || "-"
+          };
+        });
 
-setUsers(formattedUsers);
+        setUsers(formattedUsers);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error("Error:", error);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
     if (token) fetchUsers();
@@ -132,53 +131,79 @@ setUsers(formattedUsers);
       if (response.ok) {
         fetchUsers(); 
         setOpenTambah(false);
-        setOpenSukses(true);
+        setNotif({
+          show: true,
+          title: "Berhasil Menyimpan",
+          message: "Data pengguna baru telah berhasil ditambahkan ke sistem.",
+          type: "success",
+        });
       } else {
         const errorData = await response.json();
-        alert(
-          `Gagal menambah pengguna: ${errorData.message || "Error server"}`,
-        );
+        setNotif({
+          show: true,
+          title: "Gagal Menyimpan",
+          message: errorData.message || "Terjadi kesalahan pada server.",
+          type: "error",
+        });
       }
     } catch (error) {
-      alert("Error koneksi saat menambah pengguna.");
+      setNotif({
+        show: true,
+        title: "Error Koneksi",
+        message: "Gagal terhubung ke server saat menambah pengguna.",
+        type: "error",
+      });
     }
   };
 
-  // 🔥 FUNGSI UPDATE KE DATABASE
   const handleEditUser = async (updatedUser) => {
     try {
-      // 🎯 CATATAN: Sesuaikan rute ini dengan rute PUT di Backend
       const response = await fetch(`/api/user/editUser/${updatedUser.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        // Jangan kirim password jika tidak diubah (optional, tergantung backend)
         body: JSON.stringify(updatedUser),
       });
 
       if (response.ok) {
-        fetchUsers(); // Tarik data terbaru dari DB
+        fetchUsers(); 
         setOpenEdit(false);
-        setOpenSukses(true);
+        setNotif({
+          show: true,
+          title: "Berhasil Diperbarui",
+          message: "Data pengguna telah berhasil diperbarui.",
+          type: "success",
+        });
       } else {
         const errorData = await response.json();
-        alert(
-          `Gagal mengupdate pengguna: ${errorData.message || "Error server"}`,
-        );
+        setNotif({
+          show: true,
+          title: "Gagal Memperbarui",
+          message: errorData.message || "Terjadi kesalahan pada server.",
+          type: "error",
+        });
       }
     } catch (error) {
-      alert("Error koneksi saat mengupdate pengguna.");
+      setNotif({
+        show: true,
+        title: "Error Koneksi",
+        message: "Gagal terhubung ke server saat memperbarui pengguna.",
+        type: "error",
+      });
     }
   };
 
-  // 🔥 FUNGSI HAPUS KE DATABASE
   const handleHapusUser = async () => {
-    console.log("Data yang akan dihapus:", selectedUser);
     const userId = selectedUser?.id_user || selectedUser?.id;
     if (!userId) {
-      alert("Error: ID User tidak ditemukan! ID: " + userId);
+      setNotif({
+        show: true,
+        title: "Gagal",
+        message: "ID Pengguna tidak ditemukan untuk dihapus.",
+        type: "error",
+      });
       return;
     }
 
@@ -194,14 +219,28 @@ setUsers(formattedUsers);
         setOpenHapus(false);
         await fetchUsers();
         setSelectedUser(null); 
-        alert("Data berhasil dihapus!");
+        setNotif({
+          show: true,
+          title: "Berhasil Dihapus",
+          message: "Akses pengguna telah berhasil dihapus dari sistem.",
+          type: "success",
+        });
       } else {
         const errorData = await response.json();
-        alert(`Gagal menghapus: ${errorData.message}`);
+        setNotif({
+          show: true,
+          title: "Gagal Menghapus",
+          message: errorData.message || "Terjadi kesalahan pada server.",
+          type: "error",
+        });
       }
     } catch (error) {
-      console.error("Error saat hapus:", error);
-      alert("Error koneksi.");
+      setNotif({
+        show: true,
+        title: "Error Koneksi",
+        message: "Gagal terhubung ke server saat menghapus pengguna.",
+        type: "error",
+      });
     }
   };
 
@@ -236,67 +275,55 @@ setUsers(formattedUsers);
               <th className="py-4 px-4 text-center">Aksi</th>
             </tr>
           </thead>
-<tbody className="text-gray-700">
-  {isLoading ? (
-    <tr>
-      <td colSpan="6" className="py-10 text-center">Memuat data...</td>
-    </tr>
-  ) : users && users.length > 0 ? (
-    users.map((user, index) => {
-      console.log(`User ${index}: Role='${user.role}', Unit Pejabat=`, user.unit);
-    // 1. Ambil Nama dengan aman
-      let namaTampil = user.nama || "-";
-      if (user.unit && typeof user.unit === 'object') {
-        const r = (user.role || "").trim();
+          <tbody className="text-gray-700">
+            {isLoading ? (
+              <tr>
+                <td colSpan="6" className="py-10 text-center">Memuat data...</td>
+              </tr>
+            ) : users && users.length > 0 ? (
+              users.map((user, index) => {
+                let namaTampil = user.nama || "-";
+                if (user.unit && typeof user.unit === 'object') {
+                  const r = (user.role || "").trim();
+                  if (r === "rektor") namaTampil = user.unit.rektor;
+                  else if (r === "dekan") namaTampil = user.unit.dekan;
+                  else if (r === "wakil_rektor_1") namaTampil = user.unit.wakil_rektor_1;
+                  else if (r === "wakil_dekan_1") namaTampil = user.unit.wakil_dekan_1;
+                  else if (r === "tu_rektorat") namaTampil = user.unit.tu_rektorat;
+                  else if (r === "tu_fakultas") namaTampil = user.unit.tu_fakultas;
+                  if (!namaTampil) namaTampil = "-";
+                }
 
-        const roleLower = (user.role || "").toLowerCase();
+                const unitTampil = typeof user.unit === 'object' && user.unit !== null 
+                                   ? (user.unit.nama_unit || "-") 
+                                   : (user.unit || "-");
 
-        if (r === "rektor") namaTampil = user.unit.rektor;
-    else if (r === "dekan") namaTampil = user.unit.dekan;
-    else if (r === "wakil_rektor_1") namaTampil = user.unit.wakil_rektor_1;
-    else if (r === "wakil_dekan_1") namaTampil = user.unit.wakil_dekan_1;
-    else if (r === "tu_rektorat") namaTampil = user.unit.tu_rektorat;
-    else if (r === "tu_fakultas") namaTampil = user.unit.tu_fakultas;
-    if (!namaTampil) namaTampil = "-";
-        
-   
-      }
-
-      // 2. Ambil Nama Unit dengan aman
-      const unitTampil = typeof user.unit === 'object' && user.unit !== null 
-                         ? (user.unit.nama_unit || "-") 
-                         : (user.unit || "-");
-
-      return (
-        <tr key={user.id || index} className="border-b border-gray-100 hover:bg-gray-50">
-          <td className="py-4 px-4 text-center font-bold">{index + 1}.</td>
-          <td className="py-4 px-4 font-bold">{formatRoleUI(user.role) }</td>
-          <td className="py-4 px-4 text-center">{namaTampil}</td>
-          <td className="py-4 px-4 text-center">{unitTampil}</td>
-          <td className="py-4 px-4 text-center">{user.email || "-"}</td>
-          <td className="py-4 px-4">
-            <div className="flex justify-center gap-3">
-              <button type="button" className="text-blue-600" onClick={() => {
-                console.log("ID yang dipilih:", user.id); // 🔥 Cek ini di Console
-                 setSelectedUser(user); setOpenEdit(true); }}>
-                <FiEdit2 size={18} />
-              </button>
-              <button type="button" className="text-red-500" onClick={() => { setSelectedUser(user); setOpenHapus(true); }}>
-                <FiTrash2 size={18} />
-              </button>
-            </div>
-          </td>
-        </tr>
-      );
-    })
-  ) : (
-    <tr>
-      <td colSpan="6" className="py-8 text-center text-gray-400">Belum ada data.</td>
-    </tr>
-  )}
-</tbody>
-
-         
+                return (
+                  <tr key={user.id || index} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-4 px-4 text-center font-bold">{index + 1}.</td>
+                    <td className="py-4 px-4 font-bold">{formatRoleUI(user.role) }</td>
+                    <td className="py-4 px-4 text-center">{namaTampil}</td>
+                    <td className="py-4 px-4 text-center">{unitTampil}</td>
+                    <td className="py-4 px-4 text-center">{user.email || "-"}</td>
+                    <td className="py-4 px-4">
+                      <div className="flex justify-center gap-3">
+                        <button type="button" className="text-blue-600" onClick={() => { setSelectedUser(user); setOpenEdit(true); }}>
+                          <FiEdit2 size={18} />
+                        </button>
+                        <button type="button" className="text-red-500" onClick={() => { setSelectedUser(user); setOpenHapus(true); }}>
+                          <FiTrash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan="6" className="py-8 text-center text-gray-400">Belum ada data.</td>
+              </tr>
+            )}
+          </tbody>
         </table>
       </div>
 
@@ -307,6 +334,7 @@ setUsers(formattedUsers);
               onSave={handleAddUser}
               onClose={() => setOpenTambah(false)}
               users={users}
+              onError={(msg) => setNotif({ show: true, title: "Peringatan", message: msg, type: "error" })}
             />
           </div>
         </div>
@@ -318,7 +346,6 @@ setUsers(formattedUsers);
             <EditUserForm
               userData={{
                 ...selectedUser,
-                // 🔥 KUNCI PERBAIKAN: Pastikan unit hanya mengirimkan teks nama_unit saja
                 unit:
                   typeof selectedUser.unit === "object" &&
                   selectedUser.unit !== null
@@ -346,27 +373,39 @@ setUsers(formattedUsers);
         </div>
       )}
 
-      {openSukses && (
+      {/* 🔥 MODAL NOTIFIKASI DINAMIS MENGGANTIKAN ALERT() */}
+      {notif.show && (
         <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-[999]">
-          <div className="bg-white w-[400px] rounded-2xl shadow-xl overflow-hidden">
+          <div className="bg-white w-[400px] rounded-2xl shadow-xl overflow-hidden transform transition-all scale-100">
             <div className="p-8 flex flex-col items-center text-center gap-4">
-              <div className="w-16 h-16 mx-auto bg-[#0B4B48] flex items-center justify-center rounded-full shadow-md">
-                <FiCheckCircle size={36} className="text-white" />
+              {/* Icon berubah dinamis tergantung tipe (success / error) */}
+              <div className={`w-16 h-16 mx-auto flex items-center justify-center rounded-full shadow-md ${
+                notif.type === "success" ? "bg-[#0B4B48]" : "bg-red-500"
+              }`}>
+                {notif.type === "success" ? (
+                  <FiCheckCircle size={36} className="text-white" />
+                ) : (
+                  <FiXCircle size={36} className="text-white" />
+                )}
               </div>
               <h2 className="text-xl font-bold text-gray-800">
-                Data Berhasil Disimpan
+                {notif.title}
               </h2>
               <p className="text-sm text-gray-500">
-                Data pengguna telah berhasil disimpan ke dalam sistem.
+                {notif.message}
               </p>
             </div>
             <div className="flex justify-center px-8 py-5 bg-gray-50 border-t border-gray-100">
               <button
                 type="button"
-                onClick={() => setOpenSukses(false)}
-                className="w-full py-2.5 rounded-xl bg-[#0B4B48] shadow-md font-semibold text-white hover:bg-[#083c3a] transition"
+                onClick={() => setNotif({ ...notif, show: false })}
+                className={`w-full py-2.5 rounded-xl shadow-md font-semibold text-white transition ${
+                  notif.type === "success" 
+                  ? "bg-[#0B4B48] hover:bg-[#083c3a]" 
+                  : "bg-red-500 hover:bg-red-600"
+                }`}
               >
-                Selesai
+                Tutup
               </button>
             </div>
           </div>
@@ -377,7 +416,7 @@ setUsers(formattedUsers);
 };
 
 // ==================== FORM TAMBAH ====================
-const AddUserForm = ({ onSave, onClose, users = [] }) => {
+const AddUserForm = ({ onSave, onClose, users = [], onError }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [jenisUnit, setJenisUnit] = useState("");
   const [namaUnit, setNamaUnit] = useState("");
@@ -416,11 +455,9 @@ const AddUserForm = ({ onSave, onClose, users = [] }) => {
     if (!jenisUnit || !role || !namaUnit) return null;
 
     try {
-      // 🔥 Pastikan menggunakan 'const' agar tidak undefined
       const hasilData = getPersonilByRole(jenisUnit, role, namaUnit);
       return hasilData || null;
     } catch (error) {
-      // 🔥 Jika file DaftarUnit.js gagal menemukan data, tangkap error-nya di sini
       console.error("🚨 CRASH DICEGAH: Gagal mengambil data personil", error);
       return null;
     }
@@ -428,31 +465,23 @@ const AddUserForm = ({ onSave, onClose, users = [] }) => {
 
   const personilData = getPersonilData();
 
-// 🔥 PERBAIKAN: Hapus variabel personilData di luar, masukkan ke dalam effect
   useEffect(() => {
-    // 1. Panggil data langsung di dalam sini
     const dataPejabat = getPersonilData();
 
     setForm((prev) => {
       const newNama = dataPejabat?.nama || "";
       const newNidn = dataPejabat?.nidn || "";
 
-      // 🔥 SABUK PENGAMAN (ANTI-LOOP): 
-      // Jika nama dan nidn di form SAAT INI sudah sama dengan data baru,
-      // HENTIKAN update agar tidak terjadi infinite render!
       if (prev.nama === newNama && prev.nidn === newNidn) {
         return prev;
       }
 
-      // Jika beda, baru update form-nya
       return {
         ...prev,
         nama: newNama,
         nidn: newNidn,
       };
     });
-
-  // 🔥 KUNCI UTAMA: Hanya jalankan ini jika Komandan mengganti dropdown ini
   }, [jenisUnit, namaUnit, role]);
 
   const handleJenisUnitChange = (value) => {
@@ -503,12 +532,12 @@ const AddUserForm = ({ onSave, onClose, users = [] }) => {
 
   const handleSubmit = () => {
     if (!isValidEmail(form.email)) {
-      alert("Email harus menggunakan format yang benar!");
+      onError("Format email yang diinputkan tidak valid. Gunakan format @domain.com");
       return;
     }
 
     if (isSubmitDisabled()) {
-      alert("Semua field harus diisi dengan benar!");
+      onError("Harap pastikan semua field mandatory telah terisi dengan benar.");
       return;
     }
     
@@ -827,25 +856,25 @@ const EditUserForm = ({ userData, onSave, onClose }) => {
         </div>
 
         {/* Baris Password */}
-<div>
-  <label className="text-sm font-semibold text-gray-500 mb-1 block">Password</label>
-  <div className="relative">
-    <input 
-      name="password" 
-      type={showPassword ? "text" : "password"} 
-      value={form.password} 
-      onChange={handleChange}
-      placeholder="••••••••" // Menandakan ada password tersimpan
-      className="w-full border border-gray-300 rounded-xl px-4 py-3 pr-12 focus:ring-2 focus:ring-[#0B4B48] outline-none" 
-    />
-    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600">
-      {showPassword ? <FiEye size={20} /> : <FiEyeOff size={20} />}
-    </button>
-  </div>
-  <p className="text-xs text-gray-400 mt-2">
-    *Kosongkan kolom ini jika tidak ingin mengubah password lama.
-  </p>
-</div> 
+        <div>
+          <label className="text-sm font-semibold text-gray-500 mb-1 block">Password</label>
+          <div className="relative">
+            <input 
+              name="password" 
+              type={showPassword ? "text" : "password"} 
+              value={form.password} 
+              onChange={handleChange}
+              placeholder="••••••••" 
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 pr-12 focus:ring-2 focus:ring-[#0B4B48] outline-none" 
+            />
+            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600">
+              {showPassword ? <FiEye size={20} /> : <FiEyeOff size={20} />}
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 mt-2">
+            *Kosongkan kolom ini jika tidak ingin mengubah password lama.
+          </p>
+        </div> 
       </div>
 
       {/* Footer Tombol */}
@@ -856,6 +885,7 @@ const EditUserForm = ({ userData, onSave, onClose }) => {
     </>
   );
 };
+
 // ==================== FORM HAPUS ====================
 const DeleteUserForm = ({ userData, onDelete, onClose }) => {
   if (!userData) return null;
@@ -876,7 +906,7 @@ const DeleteUserForm = ({ userData, onDelete, onClose }) => {
         <div className="mt-5 bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 space-y-1 text-left">
           <p className="text-base font-bold text-gray-800">{userData.nama}</p>
           <p className="text-sm font-semibold text-[#0B4B48]">
-            {userData.role} — {userData.unit}
+            {formatRoleUI(userData.role)} — {userData.unit}
           </p>
           <p className="text-sm text-gray-500">{userData.email}</p>
         </div>

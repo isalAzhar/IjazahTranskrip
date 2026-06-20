@@ -26,6 +26,10 @@ const DaftarBatch = () => {
   const [selectedFakultas, setSelectedFakultas] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
 
+  // STATE BARU UNTUK DROPDOWN DINAMIS
+  const [fakultasList, setFakultasList] = useState([]);
+  const [years, setYears] = useState([]);
+
   // Autocomplete States
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchContainerRef = useRef(null);
@@ -45,16 +49,42 @@ const DaftarBatch = () => {
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [isRejecting, setIsRejecting] = useState(false);
 
-  const currentYear = new Date().getFullYear();
-  const years = Array.from(
-    { length: currentYear - 2021 + 1 },
-    (_, i) => currentYear - i,
-  );
-
   const renderFakultas = (fakultas) => {
     if (Array.isArray(fakultas)) return fakultas.join(", ") || "-";
     return fakultas || "-";
   };
+
+  // FETCH DATA FAKULTAS DAN TAHUN SECARA DINAMIS DARI BACKEND
+  useEffect(() => {
+    const fetchGlobalOptions = async () => {
+      try {
+        const result = await getPendingBatches({ limit: 5000 });
+        const rows = Array.isArray(result.data) ? result.data : [];
+
+        // Ekstrak list Fakultas
+        const allFakultas = rows.flatMap(item => 
+          Array.isArray(item.fakultas) ? item.fakultas : [item.fakultas || item.raw?.fakultas]
+        );
+        const uniqueFakultas = [...new Set(allFakultas.filter((f) => f && f !== "-"))];
+        setFakultasList(uniqueFakultas);
+
+        // Ekstrak list Tahun dan Urutkan Descending (Terbaru ke Lama)
+        const uniqueYears = [
+          ...new Set(
+            rows
+              .map((item) => (item.tahun_lulus || item.tahun || item.raw?.tahun_lulus || item.raw?.tahun)?.toString())
+              .filter((y) => y && y !== "-")
+          ),
+        ].sort((a, b) => Number(b) - Number(a));
+        
+        setYears(uniqueYears);
+      } catch (error) {
+        console.error("Gagal memuat opsi filter fakultas dan tahun", error);
+      }
+    };
+
+    fetchGlobalOptions();
+  }, []);
 
   // Fetch data batch pending dari backend
   const fetchBatchData = async () => {
@@ -115,16 +145,9 @@ const DaftarBatch = () => {
         const q = searchQuery.toLowerCase();
 
         data = data.filter((item) => {
-          const batchText = [
-            item.nomor_batch_upload,
-            renderFakultas(item.fakultas),
-            item.tahun_lulus,
-            item.periode,
-            item.pending_count,
-          ]
-            .join(" ")
-            .toLowerCase();
-
+          // 🔥 PERBAIKAN: Izinkan pencarian berdasarkan Nomor Batch untuk tabel
+          const batchText = String(item.nomor_batch_upload || "").toLowerCase();
+          
           const mahasiswaText = Array.isArray(item.mahasiswa)
             ? item.mahasiswa
                 .map((mhs) =>
@@ -136,16 +159,16 @@ const DaftarBatch = () => {
                     mhs.nama_prodi,
                     mhs.program_studi,
                     mhs.programStudi,
-                    mhs.fakultas,
-                    mhs.tahun_lulus,
                   ]
+                    .filter(Boolean)
                     .join(" ")
                     .toLowerCase(),
                 )
                 .join(" ")
             : "";
 
-          return `${batchText} ${mahasiswaText}`.includes(q);
+          // Tabel akan tampil jika Batch ATAU data Mahasiswa cocok
+          return batchText.includes(q) || mahasiswaText.includes(q);
         });
       }
 
@@ -209,7 +232,7 @@ const DaftarBatch = () => {
     realBatchData.forEach((batch) => {
       if (Array.isArray(batch.mahasiswa)) {
         batch.mahasiswa.forEach((mhs) => {
-          const nama = String(mhs.nama_mahasiswa || "").toLowerCase();
+          const nama = String(mhs.nama_mahasiswa || mhs.nama || "").toLowerCase();
           const nim = String(mhs.nim || "").toLowerCase();
           const prodi = String(
             mhs.program_studi ||
@@ -218,17 +241,12 @@ const DaftarBatch = () => {
               mhs.nama_prodi ||
               "",
           ).toLowerCase();
-          const fakultas = String(mhs.fakultas || "").toLowerCase();
 
-          if (
-            nama.includes(q) ||
-            nim.includes(q) ||
-            prodi.includes(q) ||
-            fakultas.includes(q)
-          ) {
+          // 🔥 KUNCI PENTING: Dropdown HANYA merespons Nama, NIM, Prodi
+          if (nama.includes(q) || nim.includes(q) || prodi.includes(q)) {
             suggestions.push({
               id: mhs.nim || Math.random().toString(),
-              nama: mhs.nama_mahasiswa || "-",
+              nama: mhs.nama_mahasiswa || mhs.nama || "-",
               nim: mhs.nim || "-",
               prodi:
                 mhs.program_studi ||
@@ -293,7 +311,7 @@ const DaftarBatch = () => {
 
   const handleConfirmReject = async () => {
     if (!selectedBatch) return;
-    setIsRejecting(true); // 🔥 Loading dimulai
+    setIsRejecting(true);
     try {
       const batchCode =
         selectedBatch.batch_code ||
@@ -315,7 +333,7 @@ const DaftarBatch = () => {
       alert(error.message || "Gagal melakukan reject batch.");
       setShowRejectConfirm(false);
     } finally {
-      setIsRejecting(false); // 🔥 Loading selesai
+      setIsRejecting(false);
     }
   };
 
@@ -346,24 +364,24 @@ const DaftarBatch = () => {
         <div className="mb-6" ref={searchContainerRef}>
           <div className="bg-white p-4 shadow-sm border border-gray-100 rounded-xl">
             <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-              {/* Search */}
-              <div className="w-full lg:max-w-md">
-                <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
-                  <FiSearch className="text-gray-400 text-lg mr-3" />
-                  <input
-                    type="text"
-                    placeholder="Cari: Batch, Nama, NIM, Prodi,"
-                    value={searchQuery}
-                    onFocus={() => setShowSuggestions(true)}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setCurrentPage(1);
-                      setShowSuggestions(true);
-                    }}
-                    className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
-                  />
-                </div>
+             {/* Search */}
+            <div className="w-full lg:max-w-md">
+              <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
+                <FiSearch className="text-gray-400 text-lg mr-3" />
+                <input
+                  type="text"
+                  placeholder="Cari: Nama, NIM, Prodi..." // 🔥 Teks "Batch," telah dihapus dari placeholder
+                  value={searchQuery}
+                  onFocus={() => setShowSuggestions(true)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                    setShowSuggestions(true);
+                  }}
+                  className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
+                />
               </div>
+            </div>
 
               <div className="flex items-center gap-3 w-full lg:w-auto">
                 {REKTORAT_ROLES.includes(userRole) && (
@@ -377,22 +395,12 @@ const DaftarBatch = () => {
                       className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
                     >
                       <option value="">Semua Fakultas</option>
-                      <option value="Fakultas Agama Islam">
-                        Fakultas Agama Islam
-                      </option>
-                      <option value="Fakultas Keguruan dan Ilmu Pendidikan">
-                        Fakultas Keguruan dan Ilmu Pendidikan
-                      </option>
-                      <option value="Fakultas Ekonomi dan Bisnis">
-                        Fakultas Ekonomi dan Bisnis
-                      </option>
-                      <option value="Fakultas Teknik dan Sains">
-                        Fakultas Teknik dan Sains
-                      </option>
-                      <option value="Fakultas Hukum">Fakultas Hukum</option>
-                      <option value="Fakultas Ilmu Kesehatan">
-                        Fakultas Ilmu Kesehatan
-                      </option>
+                      {/* 🔥 Render Fakultas Dinamis dari Backend */}
+                      {fakultasList.map((f, i) => (
+                        <option key={i} value={f}>
+                          {f}
+                        </option>
+                      ))}
                     </select>
                     <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
                   </div>
@@ -409,8 +417,9 @@ const DaftarBatch = () => {
                     className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
                   >
                     <option value="">Semua Tahun</option>
-                    {years.map((y) => (
-                      <option key={y} value={y}>
+                    {/* 🔥 Render Tahun Dinamis dari Backend */}
+                    {years.map((y, i) => (
+                      <option key={i} value={y}>
                         {y}
                       </option>
                     ))}
@@ -519,8 +528,8 @@ const DaftarBatch = () => {
               <thead className="bg-[#F9FAFB] text-gray-500 font-bold border-b border-gray-200">
                 <tr>
                   <th className="py-4 px-6 text-center w-16">No.</th>
-                  <th className="py-4 px-6 w-[220px]">List Batch</th>
-                  <th className="py-4 px-6">Fakultas</th>
+                  <th className="py-4 px-6 text-center w-[220px]">List Batch</th>
+                  <th className="py-4 px-6 text-center">Fakultas</th>
                   <th className="py-4 px-6 text-center">Tahun Lulus</th>
                   <th className="py-4 px-6 text-center">Periode</th>
                   <th className="py-4 px-6 text-center">Total Data</th>
@@ -548,22 +557,20 @@ const DaftarBatch = () => {
                     <td className="py-4 px-6 text-center font-bold text-gray-800">
                       {(currentPage - 1) * itemsPerPage + i + 1}.
                     </td>
-                    <td className="py-4 px-6 font-bold text-gray-900">
+                    <td className="py-4 px-6 text-center font-bold text-gray-900">
                       {item.nomor_batch_upload}
                     </td>
-                    <td className="py-4 px-6 font-normal text-gray-800">
+                    <td className="py-4 px-6 text-center font-normal text-gray-800">
                       {renderFakultas(item.fakultas)}
                     </td>
                     <td className="py-4 px-6 text-center font-semibold text-gray-700">
                       {item.tahun_lulus}
                     </td>
 
-                    {/* 🔥 PERBAIKAN PERIODE: Hapus underscore & format judul */}
                     <td className="py-4 px-6 text-center font-semibold text-gray-700 capitalize">
                       {item.periode ? item.periode.replace(/_/g, " ") : "-"}
                     </td>
 
-                    {/* 🔥 TOTAL DATA: Semi-bold, tanpa background, sejajar dengan periode */}
                     <td className="py-4 px-6 text-center font-semibold text-gray-700">
                       {item.pending_count}
                     </td>

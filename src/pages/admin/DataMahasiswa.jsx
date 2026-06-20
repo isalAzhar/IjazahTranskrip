@@ -7,6 +7,18 @@ import {
   getDetailBatch,
 } from "../../services/dashboard.api";
 
+// 🔥 FUNGSI BARU: Untuk Kapitalisasi Huruf Depan (Title Case)
+const formatPeriode = (periode) => {
+  if (!periode || periode === "-") return "-";
+  
+  // Ubah underscore jadi spasi, lalu buat Title Case
+  const raw = periode.toString().replace(/_/g, " ").toLowerCase();
+  return raw
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
 const normalizeBatch = (item = {}, index = 0) => {
   const batchCode =
     item.batch_code ||
@@ -52,7 +64,8 @@ const normalizeBatch = (item = {}, index = 0) => {
 
     tahun_lulus: item.tahun_lulus || item.tahun || item.tahunLulus || "-",
 
-    periode: item.periode || item.semester || item.periode_lulus || "-",
+    // 🔥 Terapkan formatPeriode di sini agar teksnya rapi
+    periode: formatPeriode(item.periode || item.semester || item.periode_lulus),
 
     total: Number(
       item.total ||
@@ -79,7 +92,13 @@ const DataMahasiswa = () => {
   const [mahasiswaSearchResults, setMahasiswaSearchResults] = useState([]);
   const [isSearchingMahasiswa, setIsSearchingMahasiswa] = useState(false);
 
+  const [fakultas, setFakultas] = useState("");
+  const [fakultasList, setFakultasList] = useState([]);
+
   const [tahun, setTahun] = useState("");
+  // 🔥 STATE BARU UNTUK TAHUN (Tidak di-hardcode lagi)
+  const [years, setYears] = useState([]);
+
   const [currentPage, setCurrentPage] = useState(1);
 
   const [batchData, setBatchData] = useState([]);
@@ -93,8 +112,6 @@ const DataMahasiswa = () => {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const [apiError, setApiError] = useState("");
-
-  const years = ["2021", "2022", "2023", "2024", "2025", "2026"];
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -119,6 +136,42 @@ const DataMahasiswa = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // 🔥 FETCH DATA FAKULTAS DAN TAHUN SECARA DINAMIS
+  useEffect(() => {
+    const fetchGlobalOptions = async () => {
+      try {
+        const result = await getDashboardBatches({ limit: 5000 });
+        const rows = Array.isArray(result.data) ? result.data : [];
+        
+        // Ekstrak list Fakultas
+        const uniqueFakultas = [
+          ...new Set(
+            rows
+              .map((item) => item.fakultas || item.raw?.fakultas)
+              .filter((f) => f && f !== "-")
+          ),
+        ];
+        setFakultasList(uniqueFakultas);
+
+        // Ekstrak list Tahun dan Urutkan Descending (Terbaru ke Lama)
+        const uniqueYears = [
+          ...new Set(
+            rows
+              .map((item) => (item.tahun_lulus || item.tahun || item.raw?.tahun_lulus || item.raw?.tahun)?.toString())
+              .filter((y) => y && y !== "-")
+          ),
+        ].sort((a, b) => Number(b) - Number(a));
+        
+        setYears(uniqueYears);
+
+      } catch (error) {
+        console.error("Gagal memuat list fakultas dan tahun", error);
+      }
+    };
+
+    fetchGlobalOptions();
+  }, []);
+
   const isMatchMahasiswaSearch = (mhs, keyword) => {
     const text = [
       mhs.nama,
@@ -127,10 +180,8 @@ const DataMahasiswa = () => {
       mhs.prodi,
       mhs.program_studi,
       mhs.nama_prodi,
-      mhs.fakultas,
-      mhs.tahun_lulus,
-      mhs.tahun,
     ]
+      .filter(Boolean) 
       .join(" ")
       .toLowerCase();
 
@@ -153,13 +204,18 @@ const DataMahasiswa = () => {
           limit: itemsPerPage,
           search: debouncedSearch,
           tahun_lulus: tahun,
+          fakultas: fakultas, 
         });
 
         const rows = Array.isArray(result.data) ? result.data : [];
 
-        const normalizedRows = rows.map((item, index) =>
+        let normalizedRows = rows.map((item, index) =>
           normalizeBatch(item, index),
         );
+
+        if (fakultas) {
+          normalizedRows = normalizedRows.filter((r) => r.fakultas === fakultas);
+        }
 
         setBatchData(normalizedRows);
 
@@ -190,17 +246,18 @@ const DataMahasiswa = () => {
                     ? detailData.mahasiswa
                     : [];
 
-                  return mahasiswaList
-                    .filter((mhs) => isMatchMahasiswaSearch(mhs, keyword))
-                    .map((mhs) => ({
-                      ...mhs,
-                      batch: batch.batch,
-                      batch_code: batchCode,
-                      fakultas: mhs.fakultas || batch.fakultas,
-                      tahun_lulus: mhs.tahun_lulus || batch.tahun_lulus,
-                      prodi:
-                        mhs.prodi || mhs.program_studi || mhs.nama_prodi || "-",
-                    }));
+                  const mappedMahasiswa = mahasiswaList.map((mhs) => ({
+                    ...mhs,
+                    batch: batch.batch,
+                    batch_code: batchCode,
+                    fakultas: mhs.fakultas || batch.fakultas || "-",
+                    tahun_lulus: mhs.tahun_lulus || batch.tahun_lulus || "-",
+                    prodi: mhs.prodi || mhs.program_studi || mhs.nama_prodi || "-",
+                  }));
+
+                  return mappedMahasiswa.filter((mhs) =>
+                    isMatchMahasiswaSearch(mhs, keyword)
+                  );
                 } catch (error) {
                   console.error("Gagal ambil detail batch:", batchCode, error);
                   return [];
@@ -244,41 +301,40 @@ const DataMahasiswa = () => {
     };
 
     fetchBatchData();
-  }, [currentPage, debouncedSearch, tahun]);
+  }, [currentPage, debouncedSearch, tahun, fakultas]); 
 
   const paginatedData = batchData;
 
   const totalPages = Number(pagination.total_page || 1);
   const totalData = Number(pagination.total_data || 0);
 
-
   const currentSuggestions = mahasiswaSearchResults
-  .map((mhs) => ({
-    id:
-      mhs.mahasiswa_code ||
-      mhs.mahasiswaCode ||
-      mhs.uuid ||
-      mhs.mahasiswa_uuid ||
-      mhs.nim,
+    .map((mhs) => ({
+      id:
+        mhs.mahasiswa_code ||
+        mhs.mahasiswaCode ||
+        mhs.uuid ||
+        mhs.mahasiswa_uuid ||
+        mhs.nim,
 
-    nama: mhs.nama || mhs.nama_mahasiswa || "-",
-    nim: mhs.nim || "-",
-    prodi:
-      mhs.prodi ||
-      mhs.program_studi ||
-      mhs.nama_prodi ||
-      "Program Studi",
-    fakultas: mhs.fakultas || "-",
-    batchName: mhs.batch || "-",
-    batchData: {
-      batch: mhs.batch,
-      batch_code: mhs.batch_code,
-      fakultas: mhs.fakultas,
-      tahun_lulus: mhs.tahun_lulus,
-    },
-    mahasiswaData: mhs,
-  }))
-  .filter((v, i, a) => a.findIndex((t) => t.id === v.id) === i);
+      nama: mhs.nama || mhs.nama_mahasiswa || "-",
+      nim: mhs.nim || "-",
+      prodi:
+        mhs.prodi ||
+        mhs.program_studi ||
+        mhs.nama_prodi ||
+        "Program Studi",
+      fakultas: mhs.fakultas || "-",
+      batchName: mhs.batch || "-",
+      batchData: {
+        batch: mhs.batch,
+        batch_code: mhs.batch_code,
+        fakultas: mhs.fakultas,
+        tahun_lulus: mhs.tahun_lulus,
+      },
+      mahasiswaData: mhs,
+    }))
+    .filter((v, i, a) => a.findIndex((t) => t.id === v.id) === i);
 
   const handlePageChange = (pageNumber) => {
     if (pageNumber >= 1 && pageNumber <= totalPages) {
@@ -332,30 +388,28 @@ const DataMahasiswa = () => {
     ));
   };
 
-
   const handleNavigateMahasiswa = (item) => {
-  const mahasiswaCode =
-    item.mahasiswaData?.mahasiswa_code ||
-    item.mahasiswaData?.mahasiswaCode ||
-    item.mahasiswaData?.uuid ||
-    item.mahasiswaData?.mahasiswa_uuid;
+    const mahasiswaCode =
+      item.mahasiswaData?.mahasiswa_code ||
+      item.mahasiswaData?.mahasiswaCode ||
+      item.mahasiswaData?.uuid ||
+      item.mahasiswaData?.mahasiswa_uuid;
 
-  if (!mahasiswaCode) {
-    console.error("Mahasiswa code tidak ditemukan:", item);
-    alert("Kode mahasiswa tidak ditemukan.");
-    return;
-  }
+    if (!mahasiswaCode) {
+      console.error("Mahasiswa code tidak ditemukan:", item);
+      alert("Kode mahasiswa tidak ditemukan.");
+      return;
+    }
 
-  const safeMahasiswaCode = encodeURIComponent(mahasiswaCode);
+    const safeMahasiswaCode = encodeURIComponent(mahasiswaCode);
 
-  navigate(`/admin/detail-mahasiswa/${safeMahasiswaCode}`, {
-    state: {
-      mahasiswa: item.mahasiswaData,
-      batch: item.batchData,
-    },
-  });
-};
-
+    navigate(`/admin/detail-mahasiswa/${safeMahasiswaCode}`, {
+      state: {
+        mahasiswa: item.mahasiswaData,
+        batch: item.batchData,
+      },
+    });
+  };
 
   const handleDetailBatch = (item) => {
     const batchCode =
@@ -411,103 +465,121 @@ const DataMahasiswa = () => {
           )}
         </div>
 
-       {/* BAGIAN FILTER & SEARCH */}
-<div className="mb-6" ref={searchContainerRef}>
-  <div className="bg-white p-4 shadow-sm border border-gray-100 rounded-xl">
-    <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-      {/* Search */}
-      <div className="w-full lg:max-w-md">
-        <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
-          <FiSearch className="text-gray-400 text-lg mr-3" />
+        {/* BAGIAN FILTER & SEARCH */}
+        <div className="mb-6" ref={searchContainerRef}>
+          <div className="bg-white p-4 shadow-sm border border-gray-100 rounded-xl">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+              
+              {/* Search */}
+              <div className="w-full lg:max-w-md">
+                <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
+                  <FiSearch className="text-gray-400 text-lg mr-3" />
+                  
+                  <input
+                    type="text"
+                    placeholder="Cari: Nama, NIM, Prodi..."
+                    value={search}
+                    onFocus={() => setShowSuggestions(true)}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      setCurrentPage(1);
+                      setShowSuggestions(true);
+                    }}
+                    className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
+                  />
+                </div>
+              </div>
 
-          <input
-            type="text"
-            placeholder="Cari: Batch, Nama, NIM, Prodi,"
-            value={search}
-            onFocus={() => setShowSuggestions(true)}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setCurrentPage(1);
-              setShowSuggestions(true);
-            }}
-            className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
-          />
-        </div>
-      </div>
+              <div className="flex items-center gap-3 w-full lg:w-auto">
+                <div className="relative w-full lg:w-44">
+                  <select
+                    value={fakultas}
+                    onChange={(e) => {
+                      setFakultas(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
+                  >
+                    <option value="">Semua Fakultas</option>
+                    {fakultasList.map((item, i) => (
+                      <option key={i} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+                </div>
 
-      <div className="flex items-center gap-3 w-full lg:w-auto">
-        <div className="relative w-full lg:w-44">
-          <select
-            value={tahun}
-            onChange={(e) => {
-              setTahun(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
-          >
-            <option value="">Semua Tahun</option>
-
-            {years.map((item, i) => (
-              <option key={i} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-
-          <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {(isFetching || isSearchingMahasiswa) && (
-    <p className="text-xs text-[#117065] mt-3 font-semibold">
-      Memuat data terbaru...
-    </p>
-  )}
-
-  {/* AUTOCOMPLETE SUGGESTION LIST */}
-  {showSuggestions &&
-    search.trim() &&
-    currentSuggestions.length > 0 && (
-      <div className="mt-4 w-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden max-h-[400px] overflow-y-auto">
-        {currentSuggestions.map((item, index) => (
-          <div
-            key={item.id || index}
-            onClick={() => {
-              setShowSuggestions(false);
-              handleNavigateMahasiswa(item);
-            }}
-            className={`px-6 py-4 cursor-pointer hover:bg-gray-50 transition-colors flex justify-between items-center ${
-              index !== currentSuggestions.length - 1
-                ? "border-b border-gray-100"
-                : ""
-            }`}
-          >
-            <div className="flex flex-col">
-              <span className="text-[14px] font-bold text-gray-800">
-                {item.nama}
-              </span>
-
-              <span className="text-[13px] text-gray-400 mt-0.5">
-                {item.nim} • {item.prodi}
-              </span>
-
-              <span className="text-[13px] text-gray-400 mt-0.5">
-                {item.fakultas}
-              </span>
-            </div>
-
-            <div className="flex-shrink-0 ml-4">
-              <span className="bg-[#F3F4F6] text-gray-500 text-[12px] font-bold px-3 py-1.5 rounded-lg border border-gray-100">
-                {item.batchName}
-              </span>
+                <div className="relative w-full lg:w-44">
+                  <select
+                    value={tahun}
+                    onChange={(e) => {
+                      setTahun(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
+                  >
+                    <option value="">Semua Tahun</option>
+                    {years.map((item, i) => (
+                      <option key={i} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+                </div>
+              </div>
             </div>
           </div>
-        ))}
-      </div>
-    )}
-</div>
+
+          {(isFetching || isSearchingMahasiswa) && (
+            <p className="text-xs text-[#117065] mt-3 font-semibold">
+              Memuat data terbaru...
+            </p>
+          )}
+
+          {/* AUTOCOMPLETE SUGGESTION LIST */}
+          {showSuggestions &&
+            search.trim() &&
+            currentSuggestions.length > 0 && (
+              <div className="mt-4 w-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden max-h-[400px] overflow-y-auto">
+                {currentSuggestions.map((item, index) => (
+                  <div
+                    key={item.id || index}
+                    onClick={() => {
+                      setShowSuggestions(false);
+                      handleNavigateMahasiswa(item);
+                    }}
+                    className={`px-6 py-4 cursor-pointer hover:bg-gray-50 transition-colors flex justify-between items-center ${
+                      index !== currentSuggestions.length - 1
+                        ? "border-b border-gray-100"
+                        : ""
+                    }`}
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-[14px] font-bold text-gray-800">
+                        {item.nama}
+                      </span>
+
+                      <span className="text-[13px] text-gray-400 mt-0.5">
+                        {item.nim} • {item.prodi}
+                      </span>
+
+                      <span className="text-[13px] text-gray-400 mt-0.5">
+                        {item.fakultas}
+                      </span>
+                    </div>
+
+                    <div className="flex-shrink-0 ml-4">
+                      <span className="bg-[#F3F4F6] text-gray-500 text-[12px] font-bold px-3 py-1.5 rounded-lg border border-gray-100">
+                        {item.batchName}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+        </div>
 
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <table className="w-full table-fixed text-sm">
