@@ -13,6 +13,32 @@ import {
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { getAkademikProfile } from "@/services/api";
 
+const getGoogleDriveFileId = (url) => {
+  if (!url) return null;
+
+  const patterns = [
+    /\/file\/d\/([^/]+)/,
+    /[?&]id=([^&]+)/,
+    /\/open\?id=([^&]+)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match?.[1]) return match[1];
+  }
+
+  return null;
+};
+
+const getGoogleDriveImageUrl = (url, size = 500) => {
+  const fileId = getGoogleDriveFileId(url);
+
+  if (!fileId) return url;
+
+  return `https://drive.google.com/thumbnail?id=${fileId}&sz=w${size}`;
+};
+
+
 const badgeClass = (status) => {
   const map = {
     Proses: "bg-[#3B82F6] text-white",
@@ -319,6 +345,7 @@ const DetailPelaporan= () => {
                   src={fotoMahasiswa}
                   alt={mahasiswa?.nama_mahasiswa || "Foto Mahasiswa"}
                   className="w-full h-full object-cover"
+                  style={{ objectPosition: "center 20%" }}
                   onError={() => setImageError(true)}
                 />
               ) : (

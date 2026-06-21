@@ -12,6 +12,31 @@ import DashboardLayout from "../../components/ui/DashboardLayout";
 import { getAkademikProfile } from "@/services/api";
 import { useAuth } from "../context/AuthContext";
 
+const getGoogleDriveFileId = (url) => {
+  if (!url) return null;
+
+  const patterns = [
+    /\/file\/d\/([^/]+)/,
+    /[?&]id=([^&]+)/,
+    /\/open\?id=([^&]+)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match?.[1]) return match[1];
+  }
+
+  return null;
+};
+
+const getGoogleDriveImageUrl = (url, size = 500) => {
+  const fileId = getGoogleDriveFileId(url);
+
+  if (!fileId) return url;
+
+  return `https://drive.google.com/thumbnail?id=${fileId}&sz=w${size}`;
+};
+
 const badgeClass = (status) => {
   const map = {
     Proses: "bg-[#3B82F6] text-white",
@@ -52,6 +77,10 @@ const formatStatusLabel = (status) => {
 const getImageUrl = (imagePath) => {
   if (!imagePath) return null;
 
+  if (imagePath.includes("drive.google.com")) {
+    return getGoogleDriveImageUrl(imagePath, 500);
+  }
+
   if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
     return imagePath;
   }
@@ -59,9 +88,7 @@ const getImageUrl = (imagePath) => {
   const baseUrl =
     import.meta.env.VITE_API_PUBLIC_URL || "http://localhost:3000";
 
-  if (imagePath.startsWith("/")) {
-    return `${baseUrl}${imagePath}`;
-  }
+  if (imagePath.startsWith("/")) return `${baseUrl}${imagePath}`;
 
   return `${baseUrl}/${imagePath}`;
 };
@@ -108,13 +135,13 @@ const DetailMahasiswa = () => {
 
   // 🔥 1. Ambil source dari navigasi
   const source = location.state?.source || "";
-  
+
   // 🔥 2. Cek Role
   const role = user?.role?.toLowerCase() || "";
-  
+
   // 🔥 3. KUNCI GANDA: Harus Operator/Rektor DAN harus datang dari menu Dokumen Valid
-  const canViewDocuments = 
-    ["operator", "operator_data", "rektor"].includes(role) && 
+  const canViewDocuments =
+    ["operator", "operator_data", "rektor"].includes(role) &&
     source === "dokumen_valid";
 
   const [profile, setProfile] = useState(null);
@@ -144,7 +171,7 @@ const DetailMahasiswa = () => {
         setError(
           err?.message ||
             err?.response?.data?.message ||
-            "Gagal mengambil detail mahasiswa."
+            "Gagal mengambil detail mahasiswa.",
         );
       }
     } finally {
@@ -199,7 +226,7 @@ const DetailMahasiswa = () => {
       profile?.dokumen?.ijazah?.url ||
       mahasiswa?.ijazah?.file_pdf_url ||
       mahasiswa?.ijazah?.file_url ||
-      mahasiswa?.ijazah?.url
+      mahasiswa?.ijazah?.url,
   );
 
   const transkripUrl = getFileUrl(
@@ -214,7 +241,7 @@ const DetailMahasiswa = () => {
       profile?.dokumen?.transkrip?.url ||
       mahasiswa?.transkrip?.file_pdf_url ||
       mahasiswa?.transkrip?.file_url ||
-      mahasiswa?.transkrip?.url
+      mahasiswa?.transkrip?.url,
   );
 
   const openPdf = (url, title) => {
@@ -357,6 +384,7 @@ const DetailMahasiswa = () => {
                   src={fotoMahasiswa}
                   alt={mahasiswa?.nama_mahasiswa || "Foto Mahasiswa"}
                   className="w-full h-full object-cover"
+                  style={{ objectPosition: "center 20%" }}
                   onError={() => setImageError(true)}
                 />
               ) : (
@@ -389,7 +417,7 @@ const DetailMahasiswa = () => {
           <div className="text-right flex flex-col items-end gap-1 max-w-[320px]">
             <span
               className={`${badgeClass(
-                detailStatus
+                detailStatus,
               )} text-white text-[13px] px-6 py-1.5 rounded-full font-bold shadow-sm inline-block`}
             >
               {statusLabel}
@@ -433,7 +461,7 @@ const DetailMahasiswa = () => {
               <InfoItem
                 label="Tempat, Tanggal Lahir"
                 value={`${mahasiswa?.tempat_lahir || "-"}, ${formatTanggal(
-                  mahasiswa?.tanggal_lahir
+                  mahasiswa?.tanggal_lahir,
                 )}`}
               />
 
