@@ -53,6 +53,10 @@ const badgeClass = (status) => {
 const getImageUrl = (imagePath) => {
   if (!imagePath) return null;
 
+  if (imagePath.includes("drive.google.com")) {
+    return getGoogleDriveImageUrl(imagePath, 500);
+  }
+
   if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
     return imagePath;
   }
