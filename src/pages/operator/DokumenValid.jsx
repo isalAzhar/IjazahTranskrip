@@ -36,6 +36,8 @@ const OperatorDokumenValid = () => {
   const [statusEmail, setStatusEmail] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const filterBarRef = useRef(null);
 
   const [batches, setBatches] = useState([]);
   const [filterOptions, setFilterOptions] = useState({
@@ -60,6 +62,44 @@ const OperatorDokumenValid = () => {
 
   const totalPages = pagination.total_page || 1;
   const currentData = batches;
+
+  // 🔥 PERBAIKAN TRACKING JALUR DATA MAHASISWA (SAMA SEPERTI REKTOR)
+  const searchSuggestions = (() => {
+    if (!search.trim()) return [];
+    const q = search.toLowerCase();
+    let suggestions = [];
+
+    batches.forEach((batch) => {
+      const mhsList = Array.isArray(batch.mahasiswa_match) && batch.mahasiswa_match.length > 0
+        ? batch.mahasiswa_match
+        : (Array.isArray(batch.mahasiswa) ? batch.mahasiswa : []);
+
+      mhsList.forEach((mhs) => {
+        const nama = String(mhs.nama_mahasiswa || mhs.nama || "").toLowerCase();
+        const nim = String(mhs.nim || "").toLowerCase();
+        const prodi = String(mhs.program_studi || mhs.programStudi || mhs.prodi || mhs.nama_prodi || "").toLowerCase();
+
+        if (nama.includes(q) || nim.includes(q) || prodi.includes(q)) {
+          // Ambil kode identitas mahasiswa se-aman mungkin
+          const code = mhs.mahasiswa_code || mhs.mahasiswaCode || mhs.uuid || mhs.mahasiswa_uuid || mhs.id;
+          
+          suggestions.push({
+            id: mhs.nim || Math.random().toString(),
+            mahasiswa_code: code, // Di-inject langsung di luar agar gampang diakses onClick
+            nama: mhs.nama_mahasiswa || mhs.nama || "-",
+            nim: mhs.nim || "-",
+            prodi: mhs.program_studi || mhs.programStudi || mhs.prodi || mhs.nama_prodi || "Program Studi",
+            fakultas: mhs.fakultas || batch.fakultas || "-",
+            batchName: batch.nomor_batch_upload || batch.batch || "-",
+            batchData: batch,
+            mahasiswaData: mhs,
+          });
+        }
+      });
+    });
+
+    return suggestions.filter((v, i, a) => a.findIndex((t) => t.nim === v.nim) === i);
+  })();
 
   const fetchValidBatches = async () => {
     setIsLoading(true);
@@ -91,6 +131,9 @@ const OperatorDokumenValid = () => {
           id: batchCode || item.id || item.id_batch_upload,
           batch_code: batchCode,
           batchCode,
+          mahasiswa_match: Array.isArray(item.mahasiswa_match)
+            ? item.mahasiswa_match
+            : [],
           status_email: formatStatusEmail(
             item.status_kirim ||
               item.statusKirim ||
@@ -153,6 +196,16 @@ const OperatorDokumenValid = () => {
     }, 500);
     return () => clearTimeout(timer);
   }, [search]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (filterBarRef.current && !filterBarRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handlePage = (p) => {
     if (p >= 1 && p <= totalPages) setCurrentPage(p);
@@ -280,81 +333,136 @@ const OperatorDokumenValid = () => {
           </p>
         </div>
 
-        {/* FILTER BAR — tanpa dropdown suggestions */}
-        <div className="bg-white p-4 shadow-sm border border-gray-100 rounded-xl mb-6">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-            <div className="w-full lg:max-w-md">
-              <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
-                <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
-                <input
-                  type="text"
-                  placeholder="Cari: Nama, NIM, Batch..."
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 w-full lg:w-auto">
-              <div className="relative w-full lg:w-72">
-                <select
-                  value={selectedFakultas}
-                  onChange={(e) => {
-                    setSelectedFakultas(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
-                >
-                  <option value="">Semua Fakultas</option>
-                  {filterOptions.fakultas.map((namaFakultas) => (
-                    <option key={namaFakultas} value={namaFakultas}>
-                      {namaFakultas}
-                    </option>
-                  ))}
-                </select>
-                <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+        {/* FILTER BAR */}
+        <div ref={filterBarRef} className="relative z-20 mb-6">
+          <div className={`bg-white p-4 shadow-sm border border-gray-100 ${showSuggestions && searchSuggestions.length > 0 ? "rounded-t-xl" : "rounded-xl"}`}>
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+              <div className="w-full lg:max-w-md">
+                <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
+                  <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Cari: Nama, NIM, Prodi..."
+                    value={search}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      setShowSuggestions(true);
+                      setCurrentPage(1);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
+                  />
+                </div>
               </div>
 
-              <div className="relative w-full lg:w-44">
-                <select
-                  value={selectedYear}
-                  onChange={(e) => {
-                    setSelectedYear(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
-                >
-                  <option value="">Semua Tahun</option>
-                  {filterOptions.tahun.map((tahun) => (
-                    <option key={tahun} value={tahun}>
-                      {tahun}
-                    </option>
-                  ))}
-                </select>
-                <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
-              </div>
+              <div className="flex items-center gap-3 w-full lg:w-auto">
+                <div className="relative w-full lg:w-72">
+                  <select
+                    value={selectedFakultas}
+                    onChange={(e) => {
+                      setSelectedFakultas(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
+                  >
+                    <option value="">Semua Fakultas</option>
+                    {filterOptions.fakultas.map((namaFakultas) => (
+                      <option key={namaFakultas} value={namaFakultas}>
+                        {namaFakultas}
+                      </option>
+                    ))}
+                  </select>
+                  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+                </div>
 
-              <div className="relative w-full lg:w-48">
-                <select
-                  value={statusEmail}
-                  onChange={(e) => {
-                    setStatusEmail(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
-                >
-                  <option value="">Semua Status</option>
-                  <option value="Terkirim">Terkirim</option>
-                  <option value="Belum Terkirim">Belum Terkirim</option>
-                </select>
-                <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+                <div className="relative w-full lg:w-44">
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => {
+                      setSelectedYear(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
+                  >
+                    <option value="">Semua Tahun</option>
+                    {filterOptions.tahun.map((tahun) => (
+                      <option key={tahun} value={tahun}>
+                        {tahun}
+                      </option>
+                    ))}
+                  </select>
+                  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+                </div>
+
+                <div className="relative w-full lg:w-48">
+                  <select
+                    value={statusEmail}
+                    onChange={(e) => {
+                      setStatusEmail(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
+                  >
+                    <option value="">Semua Status</option>
+                    <option value="Terkirim">Terkirim</option>
+                    <option value="Belum Terkirim">Belum Terkirim</option>
+                  </select>
+                  <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
+                </div>
               </div>
             </div>
           </div>
+
+          {/* 🔥 SUGGESTION LIST YANG SUDAH DIPERBAIKI JALURNYA */}
+          {showSuggestions && searchSuggestions.length > 0 && (
+            <div className="absolute left-0 right-0 top-full bg-white border-x border-b border-gray-100 shadow-lg rounded-b-xl overflow-y-auto" style={{ maxHeight: "260px", marginTop: "-1px" }}>
+              {searchSuggestions.map((student, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => {
+                    setShowSuggestions(false);
+                    setSearch("");
+
+                    // Ambil dari variabel mahasiswa_code yang sudah kita petakan dengan aman
+                    const mahasiswaCode = student.mahasiswa_code;
+
+                    if (!mahasiswaCode) {
+                      alert("Kode mahasiswa tidak ditemukan pada data pencarian ini.");
+                      return;
+                    }
+
+                    // Arahkan ke /operator sesuai dengan file ini
+                    navigate(
+                      `/operator/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`,
+                      {
+                        state: {
+                          mahasiswa: student.mahasiswaData, // Mengirim data mentah asli mahasiswa
+                          batch: student.batchData,         // Mengirim info batch pendukung
+                          source: "dokumen_valid",
+                        },
+                      }
+                    );
+                  }}
+                  className="px-6 py-4 border-b border-gray-50 hover:bg-teal-50 cursor-pointer flex justify-between items-center transition-colors last:border-b-0"
+                >
+                  <div className="flex flex-col gap-0.5">
+                    <div className="font-bold text-[#1F2937] text-[14px] mb-0.5">
+                      {student.nama}
+                    </div>
+                    <div className="text-[12px] font-normal text-gray-500">
+                      {student.nim} • {student.prodi}
+                    </div>
+                    <div className="text-[12px] font-normal text-gray-400">
+                      {student.fakultas}
+                    </div>
+                  </div>
+                  <div className="text-[11px] font-semibold bg-[#F3F4F6] text-gray-500 px-3 py-1.5 rounded-md h-fit whitespace-nowrap ml-4">
+                    {student.batchName}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {errorMessage && (
@@ -392,7 +500,7 @@ const OperatorDokumenValid = () => {
                     const isTerkirim = item.status_email === "Terkirim";
                     return (
                       <tr
-                        key={item.batch_code || item.batchCode || item.id || i}
+                        key={item.batch_code || item.batchCode || item.raw?.batch_code || item.id || i}
                         className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                       >
                         <td className="py-4 px-6 text-center font-semibold text-gray-800">
@@ -415,8 +523,9 @@ const OperatorDokumenValid = () => {
                         </td>
                         <td className="py-4 px-6 text-center align-middle">
                           <div className="flex justify-center">
+                            {/* 🔥 WHITESPACE NOWRAP AGAR TIDAK TURUN BARIS */}
                             <span
-                              className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${
+                              className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-md text-xs font-bold ${
                                 isTerkirim
                                   ? "bg-green-100 text-green-700"
                                   : "bg-orange-100 text-orange-700"
@@ -435,6 +544,7 @@ const OperatorDokumenValid = () => {
                             >
                               <DetailIcon />
                             </button>
+                            {/* 🔥 TOMBOL KIRIM EMAIL (DISABLED JIKA SUDAH TERKIRIM) */}
                             <button
                               type="button"
                               onClick={() => !isTerkirim && handleKirimBatch(item)}
@@ -571,7 +681,7 @@ const OperatorDokumenValid = () => {
                 >
                   Kembali
                 </button>
-              </div>
+              </div>  
             )}
           </div>
         </div>

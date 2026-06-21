@@ -59,18 +59,6 @@ const formatNamaBatch = (kode) => {
   return `Batch ${parseInt(day)} ${bulan[parseInt(month)] || ""} ${year}`;
 };
 
-// ✅ Format Status Email
-const formatStatusEmail = (statusKirimRaw) => {
-  const raw = String(statusKirimRaw || "").toLowerCase();
-  if (
-    raw.includes("sudah") ||
-    (raw.includes("terkirim") && !raw.includes("belum"))
-  ) {
-    return "Terkirim";
-  }
-  return "Belum Terkirim";
-};
-
 const DetailDokumenValid = () => {
   const navigate = useNavigate();
   const { batchCode, batchId, id } = useParams();
@@ -157,30 +145,6 @@ const DetailDokumenValid = () => {
     });
   }, [search, mahasiswa]);
 
-  // 🔥 Logika memformat data tabel dengan pewarisan status_email dari batch (seperti di Statusbatch.jsx)
-  const filteredTable = useMemo(() => {
-    const parentEmailStatus = batchFromState.status_email || formatStatusEmail(batch?.status_email || batch?.status_kirim);
-
-    return searchSuggestions.map((item) => {
-      const coreMhs = item?.mahasiswa || item || {};
-      const rawStatusKirim = 
-        item.status_email ||
-        item.status_kirim ||
-        item.statusKirim ||
-        coreMhs.status_email ||
-        coreMhs.status_kirim ||
-        item.raw?.status_email ||
-        item.raw?.status_kirim;
-
-      return {
-        ...item,
-        // Sinkronisasi pintar
-        status_email: rawStatusKirim ? formatStatusEmail(rawStatusKirim) : parentEmailStatus
-      };
-    });
-  }, [searchSuggestions, batch, batchFromState]);
-
-
   const handleGoDetailMahasiswa = (student) => {
     const mahasiswaCode =
       student.mahasiswa_code ||
@@ -256,23 +220,6 @@ const DetailDokumenValid = () => {
           </div>
         )}
 
-        {/* SEARCH BAR */}
-        <div ref={searchRef} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-0">
-          <div className="w-full lg:max-w-md">
-            <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
-              <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
-              <input
-                type="text"
-                placeholder="Cari: Nama, NIM..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setShowSuggestions(true); }}
-                onFocus={() => setShowSuggestions(true)}
-                className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
-              />
-            </div>
-          </div>
-        </div>
-
         {/* SUGGESTIONS */}
         {showSuggestions && search.trim() && (
           <div className="bg-white border-x border-b border-gray-100 shadow-md rounded-b-xl mb-6 overflow-y-auto" style={{ maxHeight: "260px" }}>
@@ -322,20 +269,18 @@ const DetailDokumenValid = () => {
                   <th className="py-4 px-6 text-center">Program Studi</th>
                   <th className="py-4 px-6 text-center w-[120px]">Tahun Lulus</th>
                   <th className="py-4 px-6 text-center w-[120px]">Status Berkas</th>
-                  {/* 🔥 Tambah Kolom Status Email */}
-                  <th className="py-4 px-6 text-center w-[140px]">Status Email</th>
                   <th className="py-4 px-6 text-center w-20">Detail</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
+                    <td colSpan="7" className="py-12 text-center text-gray-400 font-medium">
                       Memuat data dokumen valid...
                     </td>
                   </tr>
-                ) : filteredTable.length > 0 ? (
-                  filteredTable.map((item, i) => (
+                ) : searchSuggestions.length > 0 ? (
+                  searchSuggestions.map((item, i) => (
                     <tr key={item.mahasiswa_code || item.mahasiswaCode || item.nim} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                       <td className="py-4 px-6 text-center font-semibold text-gray-800">{i + 1}.</td>
                       <td className="py-4 px-6 font-semibold text-gray-900">{item.nama || item.nama_mahasiswa || "-"}</td>
@@ -345,18 +290,6 @@ const DetailDokumenValid = () => {
                       <td className="py-4 px-6 text-center">
                         <span className="inline-block px-5 py-1.5 rounded-full text-xs font-bold text-white bg-[#16A36B]">
                           {item.status || "Terbit"}
-                        </span>
-                      </td>
-                      {/* 🔥 Badge Status Email */}
-                      <td className="py-4 px-6 text-center align-middle">
-                        <span
-                          className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${
-                            item.status_email === "Terkirim"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-orange-100 text-orange-700"
-                          }`}
-                        >
-                          {item.status_email}
                         </span>
                       </td>
                       <td className="py-4 px-6 text-center">
@@ -369,7 +302,7 @@ const DetailDokumenValid = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
+                    <td colSpan="7" className="py-12 text-center text-gray-400 font-medium">
                       <div className="flex flex-col items-center justify-center">
                         <FiSearch className="text-4xl mb-3 text-gray-300" />
                         <p>Mahasiswa tidak ditemukan.</p>
