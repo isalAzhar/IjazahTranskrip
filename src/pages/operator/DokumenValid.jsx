@@ -70,25 +70,46 @@ const OperatorDokumenValid = () => {
     let suggestions = [];
 
     batches.forEach((batch) => {
-      const mhsList = Array.isArray(batch.mahasiswa_match) && batch.mahasiswa_match.length > 0
-        ? batch.mahasiswa_match
-        : (Array.isArray(batch.mahasiswa) ? batch.mahasiswa : []);
+      const mhsList =
+        Array.isArray(batch.mahasiswa_match) && batch.mahasiswa_match.length > 0
+          ? batch.mahasiswa_match
+          : Array.isArray(batch.mahasiswa)
+            ? batch.mahasiswa
+            : [];
 
       mhsList.forEach((mhs) => {
         const nama = String(mhs.nama_mahasiswa || mhs.nama || "").toLowerCase();
         const nim = String(mhs.nim || "").toLowerCase();
-        const prodi = String(mhs.program_studi || mhs.programStudi || mhs.prodi || mhs.nama_prodi || "").toLowerCase();
+        const prodi = String(
+          mhs.program_studi ||
+            mhs.programStudi ||
+            mhs.prodi ||
+            mhs.nama_prodi ||
+            "",
+        ).toLowerCase();
 
         if (nama.includes(q) || nim.includes(q) || prodi.includes(q)) {
           // Ambil kode identitas mahasiswa se-aman mungkin
-          const code = mhs.mahasiswa_code || mhs.mahasiswaCode || mhs.uuid || mhs.mahasiswa_uuid || mhs.id;
-          
+          const code =
+            mhs.mahasiswa_code ||
+            mhs.mahasiswaCode ||
+            mhs.uuid ||
+            mhs.mahasiswa_uuid ||
+            mhs.raw?.mahasiswa_code ||
+            mhs.raw?.uuid ||
+            null;
+
           suggestions.push({
             id: mhs.nim || Math.random().toString(),
             mahasiswa_code: code, // Di-inject langsung di luar agar gampang diakses onClick
             nama: mhs.nama_mahasiswa || mhs.nama || "-",
             nim: mhs.nim || "-",
-            prodi: mhs.program_studi || mhs.programStudi || mhs.prodi || mhs.nama_prodi || "Program Studi",
+            prodi:
+              mhs.program_studi ||
+              mhs.programStudi ||
+              mhs.prodi ||
+              mhs.nama_prodi ||
+              "Program Studi",
             fakultas: mhs.fakultas || batch.fakultas || "-",
             batchName: batch.nomor_batch_upload || batch.batch || "-",
             batchData: batch,
@@ -98,7 +119,9 @@ const OperatorDokumenValid = () => {
       });
     });
 
-    return suggestions.filter((v, i, a) => a.findIndex((t) => t.nim === v.nim) === i);
+    return suggestions.filter(
+      (v, i, a) => a.findIndex((t) => t.nim === v.nim) === i,
+    );
   })();
 
   const fetchValidBatches = async () => {
@@ -183,7 +206,13 @@ const OperatorDokumenValid = () => {
 
   useEffect(() => {
     fetchValidBatches();
-  }, [currentPage, debouncedSearch, selectedFakultas, selectedYear, statusEmail]);
+  }, [
+    currentPage,
+    debouncedSearch,
+    selectedFakultas,
+    selectedYear,
+    statusEmail,
+  ]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -335,7 +364,9 @@ const OperatorDokumenValid = () => {
 
         {/* FILTER BAR */}
         <div ref={filterBarRef} className="relative z-20 mb-6">
-          <div className={`bg-white p-4 shadow-sm border border-gray-100 ${showSuggestions && searchSuggestions.length > 0 ? "rounded-t-xl" : "rounded-xl"}`}>
+          <div
+            className={`bg-white p-4 shadow-sm border border-gray-100 ${showSuggestions && searchSuggestions.length > 0 ? "rounded-t-xl" : "rounded-xl"}`}
+          >
             <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
               <div className="w-full lg:max-w-md">
                 <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
@@ -413,9 +444,11 @@ const OperatorDokumenValid = () => {
             </div>
           </div>
 
-          {/* 🔥 SUGGESTION LIST YANG SUDAH DIPERBAIKI JALURNYA */}
           {showSuggestions && searchSuggestions.length > 0 && (
-            <div className="absolute left-0 right-0 top-full bg-white border-x border-b border-gray-100 shadow-lg rounded-b-xl overflow-y-auto" style={{ maxHeight: "260px", marginTop: "-1px" }}>
+            <div
+              className="absolute left-0 right-0 top-full bg-white border-x border-b border-gray-100 shadow-lg rounded-b-xl overflow-y-auto"
+              style={{ maxHeight: "260px", marginTop: "-1px" }}
+            >
               {searchSuggestions.map((student, idx) => (
                 <div
                   key={idx}
@@ -423,24 +456,25 @@ const OperatorDokumenValid = () => {
                     setShowSuggestions(false);
                     setSearch("");
 
-                    // Ambil dari variabel mahasiswa_code yang sudah kita petakan dengan aman
                     const mahasiswaCode = student.mahasiswa_code;
 
                     if (!mahasiswaCode) {
-                      alert("Kode mahasiswa tidak ditemukan pada data pencarian ini.");
+                      console.error("Kode mahasiswa tidak ditemukan:", student);
+                      alert(
+                        "Kode mahasiswa tidak ditemukan pada data pencarian ini.",
+                      );
                       return;
                     }
 
-                    // Arahkan ke /operator sesuai dengan file ini
                     navigate(
-                      `/operator/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`,
+                      `/operator/detail-pelaporan/${encodeURIComponent(mahasiswaCode)}`,
                       {
                         state: {
-                          mahasiswa: student.mahasiswaData, // Mengirim data mentah asli mahasiswa
-                          batch: student.batchData,         // Mengirim info batch pendukung
-                          source: "dokumen_valid",
+                          mahasiswa: student.mahasiswaData,
+                          batch: student.batchData,
+                          source: "dokumen_valid_search",
                         },
-                      }
+                      },
                     );
                   }}
                   className="px-6 py-4 border-b border-gray-50 hover:bg-teal-50 cursor-pointer flex justify-between items-center transition-colors last:border-b-0"
@@ -491,7 +525,10 @@ const OperatorDokumenValid = () => {
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
+                    <td
+                      colSpan="8"
+                      className="py-12 text-center text-gray-400 font-medium"
+                    >
                       Memuat data dokumen valid...
                     </td>
                   </tr>
@@ -500,7 +537,13 @@ const OperatorDokumenValid = () => {
                     const isTerkirim = item.status_email === "Terkirim";
                     return (
                       <tr
-                        key={item.batch_code || item.batchCode || item.raw?.batch_code || item.id || i}
+                        key={
+                          item.batch_code ||
+                          item.batchCode ||
+                          item.raw?.batch_code ||
+                          item.id ||
+                          i
+                        }
                         className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                       >
                         <td className="py-4 px-6 text-center font-semibold text-gray-800">
@@ -547,14 +590,20 @@ const OperatorDokumenValid = () => {
                             {/* 🔥 TOMBOL KIRIM EMAIL (DISABLED JIKA SUDAH TERKIRIM) */}
                             <button
                               type="button"
-                              onClick={() => !isTerkirim && handleKirimBatch(item)}
+                              onClick={() =>
+                                !isTerkirim && handleKirimBatch(item)
+                              }
                               disabled={isTerkirim}
                               className={`w-7 h-7 rounded-md flex items-center justify-center transition-all shadow-sm ${
                                 isTerkirim
                                   ? "bg-gray-300 text-gray-100 cursor-not-allowed"
                                   : "bg-[#117065] text-white hover:bg-[#0c5249] cursor-pointer"
                               }`}
-                              title={isTerkirim ? "Email Sudah Terkirim" : "Kirim Email"}
+                              title={
+                                isTerkirim
+                                  ? "Email Sudah Terkirim"
+                                  : "Kirim Email"
+                              }
                             >
                               <FiSend size={12} />
                             </button>
@@ -565,7 +614,10 @@ const OperatorDokumenValid = () => {
                   })
                 ) : (
                   <tr>
-                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
+                    <td
+                      colSpan="8"
+                      className="py-12 text-center text-gray-400 font-medium"
+                    >
                       <div className="flex flex-col items-center justify-center">
                         <FiSearch className="text-4xl mb-3 text-gray-300" />
                         <p>Data dokumen tidak ditemukan.</p>
@@ -579,7 +631,8 @@ const OperatorDokumenValid = () => {
 
           <div className="px-6 py-5 border-t border-gray-100 bg-white flex justify-between items-center">
             <p className="text-sm text-gray-400 font-medium">
-              Menampilkan {currentData.length} dari {pagination.total_data || 0} data
+              Menampilkan {currentData.length} dari {pagination.total_data || 0}{" "}
+              data
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -613,20 +666,33 @@ const OperatorDokumenValid = () => {
                     <FiSend className="text-[#117065]" size={20} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900 text-[16px]">Kirim Email</h3>
-                    <p className="text-gray-500 text-[13px]">Konfirmasi pengiriman</p>
+                    <h3 className="font-bold text-gray-900 text-[16px]">
+                      Kirim Email
+                    </h3>
+                    <p className="text-gray-500 text-[13px]">
+                      Konfirmasi pengiriman
+                    </p>
                   </div>
                 </div>
                 <p className="text-[13px] text-gray-700 mb-6 leading-relaxed">
                   Apakah Anda yakin ingin mengirimkan email dokumen untuk{" "}
                   <span className="font-bold text-gray-900">
-                    {emailModal.data?.batch || emailModal.data?.nomor_batch_upload || "batch ini"}
+                    {emailModal.data?.batch ||
+                      emailModal.data?.nomor_batch_upload ||
+                      "batch ini"}
                   </span>
                   ? Tindakan ini tidak dapat dibatalkan.
                 </p>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setEmailModal({ show: false, type: "", data: null, message: "" })}
+                    onClick={() =>
+                      setEmailModal({
+                        show: false,
+                        type: "",
+                        data: null,
+                        message: "",
+                      })
+                    }
                     className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-colors"
                   >
                     Batal
@@ -643,9 +709,12 @@ const OperatorDokumenValid = () => {
             {emailModal.type === "loading" && (
               <div className="flex flex-col items-center justify-center py-6 text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-t-2 border-[#117065] mb-4"></div>
-                <h3 className="font-bold text-gray-900 text-[16px] mb-1">Mengirim Email...</h3>
+                <h3 className="font-bold text-gray-900 text-[16px] mb-1">
+                  Mengirim Email...
+                </h3>
                 <p className="text-gray-500 text-[13px]">
-                  Mohon tunggu sebentar, proses ini memakan waktu dan jangan tutup halaman ini.
+                  Mohon tunggu sebentar, proses ini memakan waktu dan jangan
+                  tutup halaman ini.
                 </p>
               </div>
             )}
@@ -654,12 +723,21 @@ const OperatorDokumenValid = () => {
                 <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
                   <FiCheckCircle className="text-green-500" size={28} />
                 </div>
-                <h3 className="font-bold text-gray-900 text-[17px] mb-2">Proses Selesai</h3>
+                <h3 className="font-bold text-gray-900 text-[17px] mb-2">
+                  Proses Selesai
+                </h3>
                 <p className="text-gray-500 text-[13px] mb-6 whitespace-pre-line leading-relaxed">
                   {emailModal.message}
                 </p>
                 <button
-                  onClick={() => setEmailModal({ show: false, type: "", data: null, message: "" })}
+                  onClick={() =>
+                    setEmailModal({
+                      show: false,
+                      type: "",
+                      data: null,
+                      message: "",
+                    })
+                  }
                   className="w-full py-2.5 rounded-xl bg-[#117065] text-white font-bold text-sm hover:bg-teal-800 transition-colors"
                 >
                   Tutup
@@ -671,17 +749,26 @@ const OperatorDokumenValid = () => {
                 <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
                   <FiAlertTriangle className="text-red-500" size={28} />
                 </div>
-                <h3 className="font-bold text-gray-900 text-[17px] mb-2">Pengiriman Gagal</h3>
+                <h3 className="font-bold text-gray-900 text-[17px] mb-2">
+                  Pengiriman Gagal
+                </h3>
                 <p className="text-gray-500 text-[13px] mb-6 whitespace-pre-line leading-relaxed">
                   {emailModal.message}
                 </p>
                 <button
-                  onClick={() => setEmailModal({ show: false, type: "", data: null, message: "" })}
+                  onClick={() =>
+                    setEmailModal({
+                      show: false,
+                      type: "",
+                      data: null,
+                      message: "",
+                    })
+                  }
                   className="w-full py-2.5 rounded-xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 transition-colors"
                 >
                   Kembali
                 </button>
-              </div>  
+              </div>
             )}
           </div>
         </div>

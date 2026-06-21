@@ -353,32 +353,42 @@ const StatusIjazah = () => {
       },
     });
   };
+  const getRolePath = (role) => {
+  const normalizedRole = String(role || "").toLowerCase();
+
+  if (normalizedRole.includes("rektor")) return "rektor";
+  if (normalizedRole.includes("operator")) return "operator";
+  if (normalizedRole.includes("verifikator")) return "verifikator";
+  if (normalizedRole.includes("admin")) return "admin";
+
+  return "operator";
+};
 
   const handleGoDetailMahasiswa = (student) => {
-    const mahasiswaCode =
-      student.mahasiswa_code ||
-      student.mahasiswaCode ||
-      student.uuid ||
-      student.mahasiswa_uuid ||
-      student.id ||
-      student.raw?.mahasiswa_code ||
-      student.raw?.uuid;
+  const mahasiswaCode =
+    student.mahasiswa_code ||
+    student.mahasiswaCode ||
+    student.uuid ||
+    student.mahasiswa_uuid ||
+    student.raw?.mahasiswa_code ||
+    student.raw?.uuid;
 
-    if (!mahasiswaCode) {
-      alert("Kode mahasiswa tidak ditemukan pada data ini.");
-      return;
-    }
+  if (!mahasiswaCode) {
+    console.error("Kode mahasiswa tidak ditemukan:", student);
+    alert("Kode mahasiswa tidak ditemukan pada data ini.");
+    return;
+  }
 
-    const safeCode = encodeURIComponent(mahasiswaCode);
-    const currentRolePath = location.pathname.split('/')[1] || "operator";
+  const safeCode = encodeURIComponent(mahasiswaCode);
+  const rolePath = getRolePath(userRole);
 
-    navigate(`/${currentRolePath}/detail-mahasiswa/${safeCode}`, {
-      state: {
-        mahasiswa: student,
-        source: currentStatus === "terbit" ? "dokumen_valid" : "", 
-      },
-    });
-  };
+  navigate(`/${rolePath}/detail-mahasiswa/${safeCode}`, {
+    state: {
+      mahasiswa: student,
+     
+    },
+  });
+};
 
   const renderPaginationButtons = () => {
     const pages = [];

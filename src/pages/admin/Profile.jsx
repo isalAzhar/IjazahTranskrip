@@ -201,7 +201,7 @@ const Profile = () => {
                 onClick={() => setIsPasswordModalOpen(true)}
                 className="ml-4 text-[#0B4B48] text-sm font-bold hover:underline"
               >
-                Ubah Sandi
+                Ubah Password
               </button>
             </div>
 
