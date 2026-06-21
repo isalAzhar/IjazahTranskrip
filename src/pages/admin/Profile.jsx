@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/ui/DashboardLayout";
-import { FiUser, FiLock, FiCheckCircle, FiEye, FiEyeOff } from "react-icons/fi";
+import { FiUser, FiLock, FiCheckCircle, FiEye, FiEyeOff, FiX, FiAlertCircle } from "react-icons/fi";
 
 // 🔥 IMPORT AUTH CONTEXT
 import { useAuth } from "../context/AuthContext";
@@ -35,8 +35,10 @@ const Profile = () => {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   
-  // State untuk Pop-up Success (Toast)
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  // 🔥 NEW: State untuk Pop-up Notifikasi (Toast) & Alert Modal
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const [alertModal, setAlertModal] = useState({ show: false, message: "", title: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // State untuk Form Ubah Sandi
   const [currentPassword, setCurrentPassword] = useState("");
@@ -47,6 +49,17 @@ const Profile = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // 🔥 FUNGSI SHOW TOAST (Pop-up sukses/error)
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3500);
+  };
+
+  // 🔥 FUNGSI SHOW ALERT MODAL (Pengganti alert())
+  const showAlert = (message, title = "Perhatian") => {
+    setAlertModal({ show: true, message, title });
+  };
 
   // 🔥 1. FUNGSI FETCH DATA PROFIL
   useEffect(() => {
@@ -61,7 +74,6 @@ const Profile = () => {
         console.log("🔍 ISI FULL RESPON BACKEND:", result);        
         
         if (response.ok && result.data) {
-          // Format tanggal jika ada dari backend
           const joinDate = result.data.created_at 
             ? new Date(result.data.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
             : "-";
@@ -92,17 +104,26 @@ const Profile = () => {
     navigate("/login");
   };
 
+  // 🔥 FUNGSI UBAH PASSWORD (DENGAN VALIDASI & NOTIFIKASI)
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     
+    // 🔥 VALIDASI PAKAI ALERT MODAL (BUKAN ALERT BIASA)
     if (newPassword !== confirmPassword) {
-      alert("Konfirmasi kata sandi tidak cocok!");
+      showAlert("Konfirmasi kata sandi tidak cocok!", "Gagal");
       return;
     }
     if (newPassword.length < 8) {
-      alert("Kata sandi baru minimal 8 karakter!");
+      showAlert("Kata sandi baru minimal 8 karakter!", "Gagal");
       return;
     }
+    if (currentPassword === "") {
+      showAlert("Harap masukkan kata sandi saat ini!", "Gagal");
+      return;
+    }
+
+    // 🔥 SET LOADING SUBMIT
+    setIsSubmitting(true);
 
     try {
       const response = await fetch("/api/user/changePassword", {
@@ -120,6 +141,7 @@ const Profile = () => {
       const result = await response.json();
 
       if (response.ok) {
+        // 🔥 RESET FORM
         setIsPasswordModalOpen(false);
         setCurrentPassword("");
         setNewPassword("");
@@ -128,13 +150,16 @@ const Profile = () => {
         setShowNewPassword(false);
         setShowConfirmPassword(false);
 
-        setShowSuccessToast(true);
-        setTimeout(() => setShowSuccessToast(false), 3000);
+        // 🔥 TAMPILKAN TOAST SUKSES
+        showToast("Kata sandi berhasil diperbarui!", "success");
       } else {
-        alert(result.message || "Gagal mengubah kata sandi.");
+        // 🔥 TAMPILKAN ERROR DARI BACKEND VIA ALERT MODAL
+        showAlert(result.message || "Gagal mengubah kata sandi.", "Gagal");
       }
     } catch (error) {
-      alert("Terjadi kesalahan jaringan.");
+      showAlert("Terjadi kesalahan jaringan. Silakan coba lagi.", "Error Jaringan");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -215,12 +240,13 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* --- MODAL UBAH KATA SANDI --- */}
+      {/* ============================================================ */}
+      {/* 🔥 MODAL UBAH KATA SANDI (DENGAN LOADING STATE) */}
+      {/* ============================================================ */}
       {isPasswordModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-[24px] w-full max-w-[500px] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
             
-            {/* Modal Header */}
             <div className="p-8 pb-6 border-b border-gray-100">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Ubah Kata Sandi</h2>
               <p className="text-sm text-gray-600">
@@ -228,7 +254,6 @@ const Profile = () => {
               </p>
             </div>
 
-            {/* Modal Body / Form */}
             <form onSubmit={handlePasswordSubmit}>
               <div className="p-8 space-y-6">
                 
@@ -244,14 +269,14 @@ const Profile = () => {
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       required
-                      className="w-full pl-4 pr-12 py-3 rounded-xl border border-gray-300 text-gray-800 focus:border-[#0B4B48] focus:ring-1 focus:ring-[#0B4B48] outline-none transition-all placeholder:text-gray-400"
+                      disabled={isSubmitting}
+                      className="w-full pl-4 pr-12 py-3 rounded-xl border border-gray-300 text-gray-800 focus:border-[#0B4B48] focus:ring-1 focus:ring-[#0B4B48] outline-none transition-all placeholder:text-gray-400 disabled:opacity-50"
                     />
                     <button
                       type="button"
                       onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
                     >
-                      {/* 🔥 Ikon diperbaiki: true = FiEye (terbuka), false = FiEyeOff (tertutup) */}
                       {showCurrentPassword ? <FiEye size={20} /> : <FiEyeOff size={20} />}
                     </button>
                   </div>
@@ -270,14 +295,14 @@ const Profile = () => {
                       onChange={(e) => setNewPassword(e.target.value)}
                       required
                       minLength={8}
-                      className="w-full pl-4 pr-12 py-3 rounded-xl border border-gray-300 text-gray-800 focus:border-[#0B4B48] focus:ring-1 focus:ring-[#0B4B48] outline-none transition-all placeholder:text-gray-400"
+                      disabled={isSubmitting}
+                      className="w-full pl-4 pr-12 py-3 rounded-xl border border-gray-300 text-gray-800 focus:border-[#0B4B48] focus:ring-1 focus:ring-[#0B4B48] outline-none transition-all placeholder:text-gray-400 disabled:opacity-50"
                     />
                     <button
                       type="button"
                       onClick={() => setShowNewPassword(!showNewPassword)}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
                     >
-                      {/* 🔥 Ikon sudah benar: true = FiEye (terbuka), false = FiEyeOff (tertutup) */}
                       {showNewPassword ? <FiEye size={20} /> : <FiEyeOff size={20} />}
                     </button>
                   </div>
@@ -296,14 +321,14 @@ const Profile = () => {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
-                      className="w-full pl-4 pr-12 py-3 rounded-xl border border-gray-300 text-gray-800 focus:border-[#0B4B48] focus:ring-1 focus:ring-[#0B4B48] outline-none transition-all placeholder:text-gray-400"
+                      disabled={isSubmitting}
+                      className="w-full pl-4 pr-12 py-3 rounded-xl border border-gray-300 text-gray-800 focus:border-[#0B4B48] focus:ring-1 focus:ring-[#0B4B48] outline-none transition-all placeholder:text-gray-400 disabled:opacity-50"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
                     >
-                      {/* 🔥 Ikon sudah benar: true = FiEye (terbuka), false = FiEyeOff (tertutup) */}
                       {showConfirmPassword ? <FiEye size={20} /> : <FiEyeOff size={20} />}
                     </button>
                   </div>
@@ -315,16 +340,30 @@ const Profile = () => {
               <div className="bg-[#EBEBEB] p-6 flex justify-end gap-3 rounded-b-[24px]">
                 <button
                   type="button"
-                  onClick={() => setIsPasswordModalOpen(false)}
-                  className="px-6 py-2.5 rounded-xl bg-white text-gray-600 font-medium shadow-sm hover:bg-gray-50 transition-colors focus:outline-none"
+                  onClick={() => {
+                    if (!isSubmitting) setIsPasswordModalOpen(false);
+                  }}
+                  className="px-6 py-2.5 rounded-xl bg-white text-gray-600 font-medium shadow-sm hover:bg-gray-50 transition-colors focus:outline-none disabled:opacity-50"
+                  disabled={isSubmitting}
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-[#0B4B48] text-white font-medium shadow-sm hover:bg-[#083634] transition-colors focus:outline-none"
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 rounded-xl bg-[#0B4B48] text-white font-medium shadow-sm hover:bg-[#083634] transition-colors focus:outline-none disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  Simpan Perubahan
+                  {isSubmitting ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Menyimpan...
+                    </>
+                  ) : (
+                    "Simpan Perubahan"
+                  )}
                 </button>
               </div>
             </form>
@@ -332,7 +371,9 @@ const Profile = () => {
         </div>
       )}
 
-      {/* --- MODAL KONFIRMASI LOGOUT --- */}
+      {/* ============================================================ */}
+      {/* 🔥 MODAL KONFIRMASI LOGOUT (TETAP SAMA) */}
+      {/* ============================================================ */}
       {isLogoutModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-[32px] p-8 w-full max-w-[420px] shadow-2xl text-center animate-in fade-in zoom-in duration-200">
@@ -363,12 +404,53 @@ const Profile = () => {
         </div>
       )}
 
-      {/* --- POP-UP SUCCESS (TOAST) --- */}
-      {showSuccessToast && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[70] animate-in slide-in-from-bottom-5 fade-in duration-300">
-          <div className="bg-[#0B4B48] text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-3">
-            <FiCheckCircle className="text-[#27AE60]" size={20} />
-            <span className="text-sm font-medium">Kata sandi berhasil diperbarui!</span>
+      {/* ============================================================ */}
+      {/* 🔥 ALERT MODAL (PENGGANTI alert()) */}
+      {/* ============================================================ */}
+      {alertModal.show && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[24px] p-8 w-full max-w-[400px] shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 bg-[#FFF3E0] rounded-full flex items-center justify-center flex-shrink-0">
+                <FiAlertCircle className="text-[#E65100] text-2xl" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900 mb-1">{alertModal.title || "Perhatian"}</h3>
+                <p className="text-sm text-gray-600 leading-relaxed">{alertModal.message}</p>
+              </div>
+              <button 
+                onClick={() => setAlertModal({ show: false, message: "", title: "" })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <FiX size={20} />
+              </button>
+            </div>
+            <div className="flex justify-end">
+              <button 
+                onClick={() => setAlertModal({ show: false, message: "", title: "" })}
+                className="px-8 py-2.5 rounded-xl bg-[#0B4B48] text-white font-medium hover:bg-[#083634] transition-colors"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* 🔥 TOAST NOTIFICATION (POP-UP SUKSES/GAGAL) */}
+      {/* ============================================================ */}
+      {toast.show && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[80] animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className={`px-6 py-3 rounded-full shadow-lg flex items-center gap-3 ${
+            toast.type === "success" ? "bg-[#0B4B48] text-white" : "bg-[#CC0000] text-white"
+          }`}>
+            {toast.type === "success" ? (
+              <FiCheckCircle className="text-[#27AE60]" size={20} />
+            ) : (
+              <FiAlertCircle className="text-white" size={20} />
+            )}
+            <span className="text-sm font-medium">{toast.message}</span>
           </div>
         </div>
       )}

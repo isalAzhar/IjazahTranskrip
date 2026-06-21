@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/ui/DashboardLayout";
-import { FiUser, FiLock, FiCheckCircle, FiEye, FiEyeOff } from "react-icons/fi";
+import { FiUser, FiLock, FiCheckCircle, FiEye, FiEyeOff, FiX, FiAlertCircle } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 
 // ==================== FUNGSI FORMAT ROLE ====================
@@ -23,7 +23,6 @@ const formatRoleUI = (role) => {
 
 const Profile = () => {
   const navigate = useNavigate();
-  // 🔥 Ambil token dari context untuk request ke backend
   const { token, logout } = useAuth();
 
   // 🔥 State Data User Dinamis
@@ -35,6 +34,9 @@ const Profile = () => {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   
+  // 🔥 NEW: State untuk Alert Modal (pengganti alert)
+  const [alertModal, setAlertModal] = useState({ show: false, message: "", title: "" });
+  
   // State Form Kata Sandi
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -42,6 +44,11 @@ const Profile = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // 🔥 FUNGSI SHOW ALERT MODAL (Pengganti alert())
+  const showAlert = (message, title = "Perhatian") => {
+    setAlertModal({ show: true, message, title });
+  };
 
   // 🔥 1. PENYEDOTAN DATA PROFIL DARI BACKEND
   useEffect(() => {
@@ -82,15 +89,17 @@ const Profile = () => {
     navigate("/login");
   };
 
-  // 🔥 2. FUNGSI UBAH SANDI REAL KE BACKEND
+  // 🔥 2. FUNGSI UBAH SANDI REAL KE BACKEND (pakai Alert Modal)
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
+    
+    // 🔥 VALIDASI PAKAI ALERT MODAL (BUKAN ALERT BIASA)
     if (newPassword !== confirmPassword) {
-      alert("Konfirmasi kata sandi tidak cocok!");
+      showAlert("Konfirmasi kata sandi tidak cocok!", "Gagal");
       return;
     }
     if (newPassword.length < 8) {
-      alert("Kata sandi baru minimal 8 karakter!");
+      showAlert("Kata sandi baru minimal 8 karakter!", "Gagal");
       return;
     }
 
@@ -121,10 +130,10 @@ const Profile = () => {
         setShowSuccessToast(true);
         setTimeout(() => setShowSuccessToast(false), 3000);
       } else {
-        alert(result.message || "Gagal mengubah kata sandi.");
+        showAlert(result.message || "Gagal mengubah kata sandi.", "Gagal");
       }
     } catch (error) {
-      alert("Terjadi kesalahan jaringan.");
+      showAlert("Terjadi kesalahan jaringan.", "Error");
     }
   };
 
@@ -143,27 +152,22 @@ const Profile = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-y-10 gap-x-6 mb-12">
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Nama Lengkap</p>
-              {/* 🔥 Diubah menjadi dinamis */}
               <p className="text-lg font-bold text-gray-800">{isLoading ? "Memuat..." : userData?.nama}</p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">NIDN</p>
-              {/* 🔥 Diubah menjadi dinamis */}
               <p className="text-lg font-bold text-gray-800 tracking-wider">{isLoading ? "Memuat..." : userData?.nidn}</p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Email</p>
-              {/* 🔥 Diubah menjadi dinamis */}
               <p className="text-lg font-bold text-gray-800">{isLoading ? "Memuat..." : userData?.email}</p>
             </div>
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Role</p>
-              {/* 🔥 Diubah menjadi dinamis */}
               <p className="text-lg font-bold text-gray-800">{isLoading ? "Memuat..." : formatRoleUI(userData?.role)}</p>
             </div>
             <div className="col-span-2">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tanggal Bergabung</p>
-              {/* 🔥 Diubah menjadi dinamis */}
               <p className="text-lg font-bold text-gray-800">{isLoading ? "Memuat..." : userData?.tanggal_bergabung}</p>
             </div>
           </div>
@@ -289,6 +293,37 @@ const Profile = () => {
               </button>
               <button onClick={handleLogout} className="px-10 py-3 rounded-2xl bg-[#CC0000] text-white font-bold hover:bg-[#A30000] transition-colors w-full shadow-md shadow-red-500/20">
                 Keluar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🔥 ALERT MODAL (PENGGANTI alert) */}
+      {alertModal.show && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-[400px] shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 bg-[#FFF3E0] rounded-full flex items-center justify-center flex-shrink-0">
+                <FiAlertCircle className="text-[#E65100] text-2xl" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900 mb-1">{alertModal.title || "Perhatian"}</h3>
+                <p className="text-sm text-gray-600 leading-relaxed">{alertModal.message}</p>
+              </div>
+              <button 
+                onClick={() => setAlertModal({ show: false, message: "", title: "" })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <FiX size={20} />
+              </button>
+            </div>
+            <div className="flex justify-end">
+              <button 
+                onClick={() => setAlertModal({ show: false, message: "", title: "" })}
+                className="px-8 py-2.5 rounded-xl bg-[#0B4B48] text-white font-medium hover:bg-[#083634] transition-colors"
+              >
+                OK
               </button>
             </div>
           </div>
