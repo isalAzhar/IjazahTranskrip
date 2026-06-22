@@ -80,7 +80,7 @@ const mapSummaryStats = (summary) => {
         raw.totalIjazahTerbit ??
         raw.terbit ??
         raw.total_terbit ??
-        0,
+        0
     ),
 
     permintaanVerifikasi: toNumber(
@@ -90,7 +90,7 @@ const mapSummaryStats = (summary) => {
         raw.permintaanVerifikasi ??
         raw.proses ??
         raw.total_proses ??
-        0,
+        0
     ),
 
     dataReject: toNumber(
@@ -102,7 +102,7 @@ const mapSummaryStats = (summary) => {
         raw.rejected ??
         raw.reject ??
         raw.total_rejected ??
-        0,
+        0
     ),
 
     dataRevoke: toNumber(
@@ -114,7 +114,7 @@ const mapSummaryStats = (summary) => {
         raw.revoked ??
         raw.revoke ??
         raw.total_revoked ??
-        0,
+        0
     ),
 
     terbitMingguIni: toNumber(
@@ -122,7 +122,7 @@ const mapSummaryStats = (summary) => {
         data.terbit_minggu_ini ??
         raw.terbitMingguIni ??
         raw.terbit_minggu_ini ??
-        0,
+        0
     ),
 
     prosesMingguIni: toNumber(
@@ -130,7 +130,7 @@ const mapSummaryStats = (summary) => {
         data.proses_minggu_ini ??
         raw.prosesMingguIni ??
         raw.proses_minggu_ini ??
-        0,
+        0
     ),
 
     rejectMingguIni: toNumber(
@@ -138,7 +138,7 @@ const mapSummaryStats = (summary) => {
         data.reject_minggu_ini ??
         raw.rejectMingguIni ??
         raw.reject_minggu_ini ??
-        0,
+        0
     ),
 
     revokeMingguIni: toNumber(
@@ -146,10 +146,11 @@ const mapSummaryStats = (summary) => {
         data.revoke_minggu_ini ??
         raw.revokeMingguIni ??
         raw.revoke_minggu_ini ??
-        0,
+        0
     ),
   };
 };
+
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -159,17 +160,18 @@ const Dashboard = () => {
   const [tableData, setTableData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState("");
-  const [summaryStats, setSummaryStats] = useState({
-    totalIjazahTerbit: 0,
-    permintaanVerifikasi: 0,
-    dataReject: 0,
-    dataRevoke: 0,
 
-    terbitMingguIni: 0,
-    prosesMingguIni: 0,
-    rejectMingguIni: 0,
-    revokeMingguIni: 0,
-  });
+const [summaryStats, setSummaryStats] = useState({
+  totalIjazahTerbit: 0,
+  permintaanVerifikasi: 0,
+  dataReject: 0,
+  dataRevoke: 0,
+
+  terbitMingguIni: 0,
+  prosesMingguIni: 0,
+  rejectMingguIni: 0,
+  revokeMingguIni: 0,
+});
 
   // ==================== STATE FILTER DINAMIS ====================
   const [searchQuery, setSearchQuery] = useState("");
@@ -205,16 +207,16 @@ const Dashboard = () => {
           }).catch(() => ({ data: [] })),
 
           getStatistics().catch(() => ({
-            totalIjazahTerbit: 0,
-            permintaanVerifikasi: 0,
-            dataReject: 0,
-            dataRevoke: 0,
+  totalIjazahTerbit: 0,
+  permintaanVerifikasi: 0,
+  dataReject: 0,
+  dataRevoke: 0,
 
-            terbitMingguIni: 0,
-            prosesMingguIni: 0,
-            rejectMingguIni: 0,
-            revokeMingguIni: 0,
-          })),
+  terbitMingguIni: 0,
+  prosesMingguIni: 0,
+  rejectMingguIni: 0,
+  revokeMingguIni: 0,
+})),
         ]);
 
         const rows = Array.isArray(latestValidations.data)
@@ -222,8 +224,13 @@ const Dashboard = () => {
           : [];
 
         setTableData(rows);
+        console.log("SUMMARY RAW:", summary);
+console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
         setSummaryStats(mapSummaryStats(summary));
+        
 
+        // 🔥 BUILD DROPDOWN DINAMIS BERDASARKAN DATA TABEL
+        // Ekstrak Fakultas Unik
         const uniqueFaculties = [
           ...new Set(
             rows.map((item) => item.fakultas).filter((f) => f && f !== "-"),
@@ -231,6 +238,7 @@ const Dashboard = () => {
         ];
         setFakultasOptions(["Semua Fakultas", ...uniqueFaculties]);
 
+        // Ekstrak Tahun Unik
         const uniqueYears = [
           ...new Set(
             rows
@@ -378,15 +386,16 @@ const Dashboard = () => {
 
       {/* 🔥 STAT CARD DINAMIS MENGIKUTI TABEL */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+       <StatCard
+         title="Jumlah Ijazah Terbit"
+         value={summaryStats.totalIjazahTerbit}
+         sub={`${summaryStats.terbitMingguIni} Terbit Minggu ini`}
+         subColor="text-[#27AE60]"
+        icon={Icons.Badge}
+       onClick={() => navigate("/ijazah/terbit")}
+       />
+
         <StatCard
-          title="Jumlah Ijazah Terbit"
-          value={summaryStats.totalIjazahTerbit}
-          sub={`${summaryStats.terbitMingguIni} Ijazah Terbit Minggu ini`}
-          subColor="text-[#27AE60]"
-          icon={Icons.Badge}
-          onClick={() => navigate("/ijazah/terbit")}
-        />
-  <StatCard
           title="Jumlah Ijazah di Proses"
           value={summaryStats.permintaanVerifikasi}
           sub={`${summaryStats.prosesMingguIni} di Proses Minggu ini`}
@@ -398,7 +407,7 @@ const Dashboard = () => {
         <StatCard
           title="Jumlah Ijazah di Reject"
           value={summaryStats.dataReject}
-          sub={`${summaryStats.rejectMingguIni} Data di Reject Minggu ini`}
+         sub={`${summaryStats.rejectMingguIni} di Reject Minggu ini`}
           subColor="text-[#F97316]"
           icon={Icons.Close}
           onClick={() => navigate("/ijazah/reject")}
@@ -408,15 +417,11 @@ const Dashboard = () => {
           title="Jumlah Ijazah di Revoke"
           value={summaryStats.dataRevoke}
           sub={
-            summaryStats.revokeMingguIni > 0
-              ? `${summaryStats.revokeMingguIni} Data di Revoke Minggu ini`
-              : "0 Data di Revoke Minggu ini"
-          }
+          summaryStats.revokeMingguIni > 0 ? `${summaryStats.revokeMingguIni} di Revoke Minggu ini`  : "di Revoke Minggu ini" }
           subColor="text-[#F59E0B]"
           icon={Icons.List}
           onClick={() => navigate("/ijazah/revoke")}
         />
-      
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -445,15 +450,15 @@ const Dashboard = () => {
               Aktivitas Verifikasi
             </h2>
             <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto xl:justify-end">
-              <div className="relative w-full sm:w-72">
+              <div className="relative w-full sm:w-80">
                 <FiSearch
                   className="absolute left-3 top-2.5 text-gray-400"
                   size={16}
                 />
                 <input
                   type="text"
-                  placeholder="Cari: Nama, NIM, Prodi"
-                  className="w-full pl-9 pr-4 py-2 rounded-md bg-white text-sm outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] transition-colors"
+                  placeholder="Cari: Nama, NIM, Prodi..."
+                  className="w-full pl-9 pr-4 py-2 rounded-lg bg-white text-sm outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] transition-colors shadow-sm"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -461,9 +466,9 @@ const Dashboard = () => {
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:ml-auto">
                 {/* 🔥 DROPDOWN FAKULTAS DIKEMBALIKAN */}
-                <div className="relative w-full sm:w-64">
+                <div className="relative w-full sm:w-75">
                   <select
-                    className="w-full appearance-none bg-white text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] cursor-pointer transition-colors"
+                    className="w-full appearance-none bg-white text-gray-800 text-sm py-2 pl-4 pr-10 rounded-lg outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] cursor-pointer transition-colors shadow-sm"
                     value={selectedFakultas}
                     onChange={(e) => setSelectedFakultas(e.target.value)}
                   >
@@ -480,7 +485,7 @@ const Dashboard = () => {
 
                 <div className="relative w-full sm:w-44">
                   <select
-                    className="w-full appearance-none bg-white text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] cursor-pointer transition-colors"
+                    className="w-full appearance-none bg-white text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] cursor-pointer transition-colors shadow-sm"
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
                   >
@@ -497,7 +502,7 @@ const Dashboard = () => {
 
                 <div className="relative w-full sm:w-40">
                   <select
-                    className="w-full appearance-none bg-white text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] cursor-pointer transition-colors"
+                    className="w-full appearance-none bg-white text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] cursor-pointer transition-colors shadow-sm"
                     value={selectedTahun}
                     onChange={(e) => setSelectedTahun(e.target.value)}
                   >

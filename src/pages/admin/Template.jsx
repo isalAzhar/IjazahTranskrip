@@ -109,6 +109,11 @@ const DEFAULT_FIELD_META = {
   fontStyle: "normal",
   textDecoration: "none",
   align: "center",
+  color: "#111827",
+
+  imageScale: 1,
+  objectFit: "contain",
+  objectPosition: "center",
 };
 
 const FIELD_META = {
@@ -298,26 +303,44 @@ const FIELD_META = {
     "Paraf KATU Rektor": {
       field: "assets.paraf_katu_rektor",
       type: "image",
+      imageScale: 1.6,
+      objectFit: "contain",
+      objectPosition: "center",
     },
     "Paraf WAREK": {
       field: "assets.paraf_warek",
       type: "image",
+      imageScale: 1.6,
+      objectFit: "contain",
+      objectPosition: "center",
     },
     "Paraf KATU Fakultas": {
       field: "assets.paraf_katu_fakultas",
       type: "image",
+      imageScale: 1.6,
+      objectFit: "contain",
+      objectPosition: "center",
     },
     "Paraf Wadek": {
       field: "assets.paraf_wadek",
       type: "image",
+      imageScale: 1.6,
+      objectFit: "contain",
+      objectPosition: "center",
     },
     "Stempel Rektor": {
       field: "assets.stempel_rektor",
       type: "image",
+      imageScale: 1.95,
+      objectFit: "contain",
+      objectPosition: "center",
     },
     "Stempel Dekan": {
       field: "assets.stempel_dekan",
       type: "image",
+      imageScale: 1.95,
+      objectFit: "contain",
+      objectPosition: "center",
     },
   },
 
@@ -362,7 +385,7 @@ const FIELD_META = {
       fontWeight: "500",
       align: "left",
     },
-    "NINA": {
+    NINA: {
       field: "mahasiswa.nina",
       type: "text",
       fontSize: 7,
@@ -370,7 +393,7 @@ const FIELD_META = {
       fontWeight: "500",
       align: "left",
     },
-    "NIK": {
+    NIK: {
       field: "mahasiswa.nik",
       type: "text",
       fontSize: 7,
@@ -394,7 +417,7 @@ const FIELD_META = {
       fontWeight: "500",
       align: "left",
     },
-    "Fakultas": {
+    Fakultas: {
       field: "akademik.fakultas",
       type: "text",
       fontSize: 7,
@@ -418,7 +441,7 @@ const FIELD_META = {
       fontWeight: "500",
       align: "left",
     },
-    "Status": {
+    Status: {
       field: "akademik.status_kelulusan",
       type: "text",
       fontSize: 7,
@@ -458,6 +481,9 @@ const FIELD_META = {
       fontFamily: "arial",
       fontWeight: "600",
       align: "center",
+      imageScale: 1.6,
+      objectFit: "contain",
+      objectPosition: "center",
     },
     "Nama Dekan": {
       field: "pejabat.nama_dekan",
@@ -479,10 +505,16 @@ const FIELD_META = {
     "Paraf KATU Fakultas": {
       field: "assets.paraf_katu_fakultas",
       type: "image",
+      imageScale: 1.6,
+      objectFit: "contain",
+      objectPosition: "center",
     },
     "Paraf Kaprodi": {
       field: "assets.paraf_kaprodi",
       type: "image",
+      imageScale: 1.6,
+      objectFit: "contain",
+      objectPosition: "center",
     },
   },
 };
@@ -523,6 +555,11 @@ const normalizeElementFromMeta = (templateType, element) => {
     fontStyle: meta.fontStyle || "normal",
     textDecoration: meta.textDecoration || "none",
     align: meta.align || "center",
+    color: meta.color || element.color || "#111827",
+
+    imageScale: Number(meta.imageScale ?? element.imageScale ?? 1),
+    objectFit: meta.objectFit || element.objectFit || "contain",
+    objectPosition: meta.objectPosition || element.objectPosition || "center",
 
     ...(element.roleLabel || meta.roleLabel
       ? { roleLabel: element.roleLabel || meta.roleLabel }
@@ -616,7 +653,7 @@ const fieldTextSize = {
     "Nomor SK Akreditasi": "text-[7px]",
     Status: "text-[7px]",
     "Tanggal Lulus": "text-[7px]",
-    "Tanggal": "text-[7px]",
+    Tanggal: "text-[7px]",
     "Nama Dekan": "text-[8px]",
     "NIDN Dekan": "text-[7px]",
   },
@@ -763,7 +800,78 @@ const getJustifyFromAlign = (align = "center") => {
   if (align === "right") return "flex-end";
   return "center";
 };
+const getGenerateTextAlign = (element = {}) => {
+  if (element.align === "left") return "left";
+  if (element.align === "right") return "right";
+  return "center";
+};
 
+const getGenerateTextJustify = (element = {}) => {
+  if (element.align === "left") return "flex-start";
+  if (element.align === "right") return "flex-end";
+  return "center";
+};
+
+const getGenerateFontFamily = (element = {}) => {
+  return typeof element.fontFamily === "string" && element.fontFamily.trim()
+    ? element.fontFamily
+    : "Times New Roman";
+};
+
+const getGenerateFontWeight = (element = {}, fallback = "400") => {
+  return typeof element.fontWeight === "string" && element.fontWeight.trim()
+    ? element.fontWeight
+    : fallback;
+};
+
+const getGenerateFontSize = (element = {}, fallback = 12) => {
+  const fontSize = Number(element.fontSize ?? fallback);
+
+  return Number.isFinite(fontSize) && fontSize > 0 ? fontSize : fallback;
+};
+
+const getGenerateFontStyle = (element = {}, fallback = "normal") => {
+  return element.fontStyle === "italic" ? "italic" : fallback;
+};
+
+const getGenerateTextDecoration = (element = {}, fallback = "none") => {
+  return element.textDecoration === "underline" ? "underline" : fallback;
+};
+
+const getGenerateColor = (element = {}) => {
+  if (element.color) return element.color;
+
+  if (element.label === "Gelar") return "#0B6B63";
+
+  return "#111827";
+};
+
+const getGenerateTextStyle = (
+  element = {},
+  { fallbackFontSize = 12, fallbackFontWeight = "600", color } = {},
+) => {
+  const fontSizeNumber = getGenerateFontSize(element, fallbackFontSize);
+
+  return {
+    fontSizeNumber,
+    fontSize: `${fontSizeNumber}px`,
+    fontFamily: getGenerateFontFamily(element),
+    fontWeight: getGenerateFontWeight(element, fallbackFontWeight),
+    fontStyle: getGenerateFontStyle(element),
+    textDecoration: getGenerateTextDecoration(element),
+    textAlign: getGenerateTextAlign(element),
+    justifyContent: getGenerateTextJustify(element),
+    color: color || getGenerateColor(element),
+  };
+};
+const getGenerateTextCssStyle = (element = {}, options = {}) => {
+  const { fontSizeNumber, ...cssStyle } = getGenerateTextStyle(
+    element,
+    options,
+  );
+
+  return cssStyle;
+};
 const WaitingDataText = ({
   small = false,
   value = "",
@@ -775,7 +883,7 @@ const WaitingDataText = ({
   fontWeight,
   fontStyle = "normal",
   textDecoration = "none",
-  color = "#1f2937",
+  color = "#111827",
 }) => {
   const fallbackFontSize = small
     ? documentType === "transkrip"
@@ -786,23 +894,19 @@ const WaitingDataText = ({
       : 12;
 
   const resolvedFontSize = Number(fontSize || fallbackFontSize);
-  const resolvedFontFamily = fontFamily || "Montserrat";
-  const resolvedFontWeight = fontWeight || "600";
-  const resolvedFontStyle = fontStyle || "normal";
-  const resolvedTextDecoration = textDecoration || "none";
 
   return (
     <div
-      className="w-full h-full flex items-center text-gray-800 leading-none px-1 whitespace-nowrap"
+      className="w-full h-full flex items-center leading-none px-1 whitespace-nowrap"
       style={{
         justifyContent: getJustifyFromAlign(align),
         textAlign: align,
         fontSize: `${resolvedFontSize}px`,
-        fontFamily: resolvedFontFamily,
-        fontWeight: resolvedFontWeight,
-        fontStyle: resolvedFontStyle,
-        color: color,
-        textDecoration: resolvedTextDecoration,
+        fontFamily: fontFamily || "Times New Roman",
+        fontWeight: fontWeight || "400",
+        fontStyle: fontStyle || "normal",
+        color,
+        textDecoration: textDecoration || "none",
       }}
     >
       {value || "Menunggu Data"}
@@ -850,60 +954,59 @@ const renderElements = (
       );
     }
     if (el.label === "TTD Dekan" && documentType === "transkrip") {
-  const fieldValue =
-    previewData?.[el.label] || previewData?.[el.placeholder] || "";
+      const fieldValue =
+        previewData?.[el.label] || previewData?.[el.placeholder] || "";
 
-  return (
-    <div
-      key={el.id}
-      onMouseDown={(e) => handleMouseDownElement(e, el)}
-      className={`absolute z-30 group ${
-        !isSaved && !isLocked ? "cursor-move" : "cursor-default"
-      }`}
-      style={{
-        left: el.x,
-        top: el.y,
-        width: el.width || 90,
-        height: el.height || 70,
-      }}
-    >
-      {!isPreview && (
-        <div className="pointer-events-none absolute -top-7 left-0 z-50 hidden group-hover:block whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[10px] font-bold text-white shadow-lg">
-          {el.label}
-        </div>
-      )}
-
-      <div
-        className="w-full h-full flex flex-col items-center justify-start text-black"
-        style={{
-          fontSize: `${el.fontSize || 8}px`,
-          fontFamily: el.fontFamily || "arial",
-          fontWeight: el.fontWeight || "600",
-          textAlign: el.align || "center",
-          fontStyle: el.fontStyle || "normal",
-          textDecoration: el.textDecoration || "none",
-        }}
-      >
-        <div className="mb-1">Dekan,</div>
-
-        <div className="w-[70px] h-[42px] rounded-sm overflow-hidden flex items-center justify-center">
-          {isPreview && fieldValue ? (
-            <img
-              src={fieldValue}
-              alt={el.label}
-              className="w-full h-full object-contain"
-            />
-          ) : (
-            <div className="w-full h-full border border-[#4b5563] rounded-sm flex items-center justify-center text-[7px] text-gray-500">
-              TTD
+      return (
+        <div
+          key={el.id}
+          onMouseDown={(e) => handleMouseDownElement(e, el)}
+          className={`absolute z-30 group ${
+            !isSaved && !isLocked ? "cursor-move" : "cursor-default"
+          }`}
+          style={{
+            left: el.x,
+            top: el.y,
+            width: el.width || 90,
+            height: el.height || 70,
+          }}
+        >
+          {!isPreview && (
+            <div className="pointer-events-none absolute -top-7 left-0 z-50 hidden group-hover:block whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[10px] font-bold text-white shadow-lg">
+              {el.label}
             </div>
           )}
+
+          <div
+            className="w-full h-full flex flex-col items-center justify-start text-black"
+            style={{
+              ...getGenerateTextCssStyle(el, {
+                fallbackFontSize: 8,
+                fallbackFontWeight: "600",
+              }),
+            }}
+          >
+            <div className="mb-1">Dekan,</div>
+
+            <div className="w-[70px] h-[42px] rounded-sm overflow-hidden flex items-center justify-center">
+              {isPreview && fieldValue ? (
+                <img
+                  src={fieldValue}
+                  alt={el.label}
+                  className="w-full h-full"
+                  style={getPreviewImageStyle(el)}
+                />
+              ) : (
+                <div className="w-full h-full border border-[#4b5563] rounded-sm flex items-center justify-center text-[7px] text-gray-500">
+                  TTD
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  );
-}
-    
+      );
+    }
+
     const isBoxOnly = boxOnlyFields.includes(el.label);
     const isSignature = signatureFields.includes(el.label);
     const isNameLine = nameLineFields.includes(el.label);
@@ -919,23 +1022,22 @@ const renderElements = (
       isPreview && previewAsFieldLabel[documentType]?.includes(el.label);
 
     const displayValue = isPreview
-  ? isPreviewImageField(el)
-    ? ""
-    : fieldValue || "Menunggu Data"
-  : "";
-    const textAlign =
-      el.align ||
-      (ijazahLeftAlignFields.includes(el.label) ? "left" : "center");
+      ? isPreviewImageField(el)
+        ? ""
+        : fieldValue || "Menunggu Data"
+      : "";
+    const textParams = getGenerateTextStyle(el, {
+      fallbackFontSize: documentType === "transkrip" ? 7 : 12,
+      fallbackFontWeight: "600",
+    });
 
-    const fieldFontSize = Number(
-      el.fontSize || (documentType === "transkrip" ? 7 : 12),
-    );
-
-    const fieldFontFamily = el.fontFamily || "arial";
-    const fieldFontWeight = el.fontWeight || "600";
-    const fieldFontStyle = el.fontStyle || "normal";
-    const fieldTextDecoration = el.textDecoration || "none";
-    const fieldColor = el.label === "Gelar" ? "#0B6B63" : "#1f2937";
+    const textAlign = textParams.textAlign;
+    const fieldFontSize = textParams.fontSizeNumber;
+    const fieldFontFamily = textParams.fontFamily;
+    const fieldFontWeight = textParams.fontWeight;
+    const fieldFontStyle = textParams.fontStyle;
+    const fieldTextDecoration = textParams.textDecoration;
+    const fieldColor = textParams.color;
 
     const size = getFieldSize(el.label, documentType);
     const renderWidth = el.width || size.width;
@@ -998,7 +1100,7 @@ const renderElements = (
                   {displayValue}
                 </span>
 
-                <div/>
+                <div />
               </div>
             ) : (
               <>
@@ -1010,46 +1112,47 @@ const renderElements = (
                   }}
                 />
 
-                <div/>
+                <div />
               </>
             )}
           </div>
         )}
 
         {isSignature && (
-  <div
-    className={`${fieldBoxClass} overflow-visible`}
-    style={{
-      width: renderWidth,
-      height: renderHeight,
-    }}
-  >
-    {isPreview && isPreviewImageField(el) ? (
-      imageValue ? (
-        <img
-  src={imageValue}
-  alt={el.label}
-  className={getPreviewImageClass(el.label)}
-/>
-      ) : null
-    ) : (
-      isPreview && (
-        <WaitingDataText
-          value={displayValue}
-          align={textAlign}
-          label={el.label}
-          documentType={documentType}
-          fontSize={fieldFontSize}
-          fontFamily={fieldFontFamily}
-          fontWeight={fieldFontWeight}
-          fontStyle={fieldFontStyle}
-          textDecoration={fieldTextDecoration}
-          color={fieldColor}
-        />
-      )
-    )}
-  </div>
-)}
+          <div
+            className={`${fieldBoxClass} overflow-visible`}
+            style={{
+              width: renderWidth,
+              height: renderHeight,
+            }}
+          >
+            {isPreview && isPreviewImageField(el) ? (
+              imageValue ? (
+                <img
+                  src={imageValue}
+                  alt={el.label}
+                  className={getPreviewImageClass(el.label)}
+                  style={getPreviewImageStyle(el)}
+                />
+              ) : null
+            ) : (
+              isPreview && (
+                <WaitingDataText
+                  value={displayValue}
+                  align={textAlign}
+                  label={el.label}
+                  documentType={documentType}
+                  fontSize={fieldFontSize}
+                  fontFamily={fieldFontFamily}
+                  fontWeight={fieldFontWeight}
+                  fontStyle={fieldFontStyle}
+                  textDecoration={fieldTextDecoration}
+                  color={fieldColor}
+                />
+              )
+            )}
+          </div>
+        )}
         {isNidn && (
           <div
             className="flex items-center gap-[3px]"
@@ -1096,40 +1199,41 @@ const renderElements = (
         )}
 
         {isBoxOnly && (
-  <div
-    className={`${fieldBoxClass} overflow-visible`}
-    style={{
-      width: renderWidth,
-      height: renderHeight,
-    }}
-  >
-    {isPreview && isPreviewImageField(el) ? (
-      imageValue ? (
-        <img
-  src={imageValue}
-  alt={el.label}
-  className={getPreviewImageClass(el.label)}
-/>
-      ) : null
-    ) : (
-      isPreview && (
-        <WaitingDataText
-          small={isSmallBox}
-          value={displayValue}
-          align={textAlign}
-          label={el.label}
-          documentType={documentType}
-          fontSize={fieldFontSize}
-          fontFamily={fieldFontFamily}
-          fontWeight={fieldFontWeight}
-          fontStyle={fieldFontStyle}
-          textDecoration={fieldTextDecoration}
-          color={fieldColor}
-        />
-      )
-    )}
-  </div>
-)}
+          <div
+            className={`${fieldBoxClass} overflow-visible`}
+            style={{
+              width: renderWidth,
+              height: renderHeight,
+            }}
+          >
+            {isPreview && isPreviewImageField(el) ? (
+              imageValue ? (
+                <img
+                  src={imageValue}
+                  alt={el.label}
+                  className={getPreviewImageClass(el.label)}
+                  style={getPreviewImageStyle(el)}
+                />
+              ) : null
+            ) : (
+              isPreview && (
+                <WaitingDataText
+                  small={isSmallBox}
+                  value={displayValue}
+                  align={textAlign}
+                  label={el.label}
+                  documentType={documentType}
+                  fontSize={fieldFontSize}
+                  fontFamily={fieldFontFamily}
+                  fontWeight={fieldFontWeight}
+                  fontStyle={fieldFontStyle}
+                  textDecoration={fieldTextDecoration}
+                  color={fieldColor}
+                />
+              )
+            )}
+          </div>
+        )}
 
         {!isNameLine && !isSignature && !isNidn && !isBoxOnly && (
           <div
@@ -1166,7 +1270,10 @@ const TranskripTableOverlay = ({ elements, mataKuliahData = [] }) => {
   if (!tableElement) {
     return null;
   }
-
+  const tableTextParams = getGenerateTextStyle(tableElement, {
+    fallbackFontSize: 7,
+    fallbackFontWeight: "500",
+  });
   const rows =
     mataKuliahData.length > 0
       ? mataKuliahData
@@ -1207,7 +1314,8 @@ const TranskripTableOverlay = ({ elements, mataKuliahData = [] }) => {
     ));
 
   const renderNilaiTable = (list, withFooter = false) => (
-    <table className="w-full border-collapse text-[7px] bg-transparent">
+    <table className="w-full border-collapse bg-transparent">
+      {" "}
       <thead>
         <tr>
           <th className="border border-[#707070] h-[18px] w-[24px] font-semibold">
@@ -1235,7 +1343,6 @@ const TranskripTableOverlay = ({ elements, mataKuliahData = [] }) => {
           <th className="border border-[#707070] w-[28px] font-semibold">T</th>
         </tr>
       </thead>
-
       <tbody>
         {renderNilaiRows(list)}
 
@@ -1300,6 +1407,12 @@ const TranskripTableOverlay = ({ elements, mataKuliahData = [] }) => {
         left: tableElement.x,
         top: tableElement.y,
         width: tableElement.width || 700,
+        fontSize: tableTextParams.fontSize,
+        fontFamily: tableTextParams.fontFamily,
+        fontWeight: tableTextParams.fontWeight,
+        fontStyle: tableTextParams.fontStyle,
+        textDecoration: tableTextParams.textDecoration,
+        color: tableTextParams.color,
       }}
     >
       <div className="grid grid-cols-2 gap-2">
@@ -1318,7 +1431,8 @@ const TranskripTableOverlay = ({ elements, mataKuliahData = [] }) => {
 
           <p className="text-[7px] font-bold mb-1">Kualifikasi Nilai</p>
 
-          <table className="w-full border-collapse text-[7px]">
+          <table className="w-full border-collapse">
+            {" "}
             <thead>
               <tr>
                 <th colSpan={2} className="border border-[#707070] font-bold">
@@ -1339,7 +1453,6 @@ const TranskripTableOverlay = ({ elements, mataKuliahData = [] }) => {
                 <th className="border border-[#707070] font-bold"></th>
               </tr>
             </thead>
-
             <tbody>
               {kualData.map(([huruf, angka, kualifikasi]) => (
                 <tr key={huruf}>
@@ -1377,27 +1490,27 @@ const getTemplateImageSrc = (src, fallback) => {
   return `/${src}`;
 };
 const ijazahPreviewDummyData = {
-  "Nama": "John Dean",
+  Nama: "John Dean",
   "Tempat & Tanggal Lahir": "Bogor, 12 Januari 2002",
   "Nomor Pokok Mahasiswa": "232310001035",
-  "NIK": "3271015201020001",
-  "Fakultas": "Teknik dan Sains",
+  NIK: "3271015201020001",
+  Fakultas: "Teknik dan Sains",
   "Fakultas (English)": "Faculty of Engineering and Science",
   "Program Studi": "Teknik Informatika",
   "Program Studi (English)": "Informatics Engineering",
-  "Program": "Sarjana",
+  Program: "Sarjana",
   "Program (English)": "Bachelor Degree",
   "Tanggal Kelulusan": "27 Mei 2026",
-  "PISN": "202605270001",
+  PISN: "202605270001",
   "Nomor Seri Ijazah": "UIKA-2026-0001",
-  "Akreditasi AIPT": "UNGGUL",
-  "Gelar": "Sarjana Teknik (S.T.) / Bachelor of Engineering",
+  "Akreditasi AIPT": "Unggul",
+  Gelar: "Sarjana Teknik (S.T.) / Bachelor of Engineering",
   "Tanggal Terbit": "Bogor, 27 Mei 2026",
   "Nama Rektor": "Dr. Gusti, M.Si.",
   "NIDN Rektor": "0401017001",
   "Nama Dekan": "Dr. Eagle, M.Kom.",
   "NIDN Dekan": "0412028001",
-  "Foto": fotoDummy,
+  Foto: fotoDummy,
   "Stempel Rektor": stempelRektorDummy,
   "Stempel Dekan": stempelDekanDummy,
   "Paraf WAREK": parafWarekDummy,
@@ -1408,23 +1521,22 @@ const ijazahPreviewDummyData = {
   "Paraf KATU Fakultas": parafKatuFakultasDummy,
   "QR Code":
     "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://verifikasi-ijazah.uika.ac.id/john-doe",
-
 };
 
 const transkripPreviewDummyData = {
-  "Nomor": "001/TRK-UIKA/2026",
-  "Nama": "John Dean",
+  Nomor: "001/TRK-UIKA/2026",
+  Nama: "John Dean",
   "Tempat & Tanggal Lahir": "Bogor, 12 Januari 2002",
   "Jenis Kelamin": "Laki-laki",
   "Nomor Pokok Mahasiswa": "232310001035",
-  "NINA": "1234567890",
-  "NIK": "3271015201020001",
+  NINA: "1234567890",
+  NIK: "3271015201020001",
   "Tahun Masuk": "2022",
   "Program Pendidikan": "Sarjana",
-  "Fakultas": "Teknik dan Sains",
+  Fakultas: "Teknik dan Sains",
   "Program Studi": "Teknik Informatika",
   "Nomor SK Akreditasi": "1234/SK/BAN-PT/2026",
-  "Status": "Lulus",
+  Status: "Lulus",
   "Tanggal Lulus": "27 Mei 2026",
   "Tanggal Terbit": "Bogor, 27 Mei 2026",
   "Nama Dekan": "Dr. Eagle, M.Kom.",
@@ -1432,39 +1544,25 @@ const transkripPreviewDummyData = {
   "TTD Dekan": ttddekanDummy,
   "Paraf Kaprodi": parafKaprodiDummy,
   "Paraf KATU Fakultas": parafKatuFakultasDummy,
-
 };
 const isPreviewImageField = (el) => {
   return el.type === "image" || el.type === "qr" || el.type === "signature";
-
 };
-const getPreviewImageClass = (label) => {
-  // Foto jangan terlalu besar
-  if (label === "Foto") {
-    return "w-full h-full object-cover";
-  }
+const getPreviewImageClass = () => {
+  return "w-full h-full";
+};
 
-  // QR tetap normal agar tidak pecah
-  if (label === "QR Code") {
-    return "w-full h-full object-contain";
-  }
+const getPreviewImageStyle = (el) => {
+  const scale = Number(el.imageScale ?? 1);
 
-  // Stempel lebih besar
-  if (label === "Stempel Rektor" || label === "Stempel Dekan") {
-    return "w-full h-full object-contain scale-[1.95]";
-  }
-
-  // Tanda tangan lebih besar
-  if (label === "TTD Rektor" || label === "TTD Dekan") {
-    return "w-full h-full object-contain scale-[1.45]";
-  }
-
-  // Semua paraf lebih besar
-  if (label.includes("Paraf")) {
-    return "w-full h-full object-contain scale-[1.6]";
-  }
-
-  return "w-full h-full object-contain";
+  return {
+    width: "100%",
+    height: "100%",
+    objectFit: el.objectFit || "contain",
+    objectPosition: el.objectPosition || "center",
+    transform: `scale(${Number.isFinite(scale) && scale > 0 ? scale : 1})`,
+    transformOrigin: "center",
+  };
 };
 
 const Template = () => {
@@ -1830,7 +1928,11 @@ const Template = () => {
       textDecoration: meta.textDecoration || "none",
       align:
         meta.align || (currentTemplateType === "transkrip" ? "left" : "center"),
+      color: meta.color || "#111827",
 
+      imageScale: Number(meta.imageScale ?? 1),
+      objectFit: meta.objectFit || "contain",
+      objectPosition: meta.objectPosition || "center",
       ...(meta.roleLabel ? { roleLabel: meta.roleLabel } : {}),
     };
 
@@ -2062,14 +2164,14 @@ const Template = () => {
           />
 
           {renderElements(
-  ijazahElements,
-  true,
-  true,
-  () => {},
-  "ijazah",
-  true,
-  ijazahPreviewDummyData
-)}
+            ijazahElements,
+            true,
+            true,
+            () => {},
+            "ijazah",
+            true,
+            ijazahPreviewDummyData,
+          )}
         </div>
       </div>
     );
@@ -2095,14 +2197,14 @@ const Template = () => {
           />
 
           {renderElements(
-  transkripElements,
-  true,
-  true,
-  () => {},
-  "transkrip",
-  true,
-  transkripPreviewDummyData
-)}
+            transkripElements,
+            true,
+            true,
+            () => {},
+            "transkrip",
+            true,
+            transkripPreviewDummyData,
+          )}
 
           <TranskripTableOverlay
             elements={transkripElements}

@@ -452,12 +452,6 @@ const DataMahasiswa = () => {
             Melihat daftar batch dari semua mahasiswa
           </p>
 
-          {isFetching && (
-            <p className="text-xs text-[#117065] mt-2 font-semibold">
-              Memuat data terbaru...
-            </p>
-          )}
-
           {apiError && (
             <p className="text-sm text-red-500 mt-2 font-semibold">
               {apiError}
@@ -467,12 +461,12 @@ const DataMahasiswa = () => {
 
         {/* BAGIAN FILTER & SEARCH */}
         <div className="mb-6" ref={searchContainerRef}>
-          <div className="bg-white p-4 shadow-sm border border-gray-100 rounded-xl">
+          <div className="bg-white p-4 shadow-sm border border-gray-100">
             <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
               
               {/* Search */}
               <div className="w-full lg:max-w-md">
-                <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
+                <div className="flex items-center bg-white border border-gray-300 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
                   <FiSearch className="text-gray-400 text-lg mr-3" />
                   
                   <input
@@ -485,7 +479,7 @@ const DataMahasiswa = () => {
                       setCurrentPage(1);
                       setShowSuggestions(true);
                     }}
-                    className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
+                    className="bg-transparent outline-none text-sm w-full text-gray-700 placeholder-gray-400"
                   />
                 </div>
               </div>
@@ -498,7 +492,7 @@ const DataMahasiswa = () => {
                       setFakultas(e.target.value);
                       setCurrentPage(1);
                     }}
-                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
+                    className="appearance-none bg-white border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm text-gray-800 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
                   >
                     <option value="">Semua Fakultas</option>
                     {fakultasList.map((item, i) => (
@@ -517,7 +511,7 @@ const DataMahasiswa = () => {
                       setTahun(e.target.value);
                       setCurrentPage(1);
                     }}
-                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
+                    className="appearance-none bg-white border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm text-gray-800 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
                   >
                     <option value="">Semua Tahun</option>
                     {years.map((item, i) => (
@@ -532,11 +526,6 @@ const DataMahasiswa = () => {
             </div>
           </div>
 
-          {(isFetching || isSearchingMahasiswa) && (
-            <p className="text-xs text-[#117065] mt-3 font-semibold">
-              Memuat data terbaru...
-            </p>
-          )}
 
           {/* AUTOCOMPLETE SUGGESTION LIST */}
           {showSuggestions &&

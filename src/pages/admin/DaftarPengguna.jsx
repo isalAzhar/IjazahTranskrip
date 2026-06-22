@@ -249,7 +249,7 @@ const DaftarPengguna = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Daftar Pengguna</h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 mt-1">
             Kelola data pengguna sistem dan akses pengguna secara efisien.
           </p>
         </div>

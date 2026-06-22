@@ -591,7 +591,7 @@ const DaftarUnit = () => {
 
   return (
     <DashboardLayout>
-      <div className="bg-[#F7F8FA] p-6 rounded-xl min-h-screen">
+      <div className="bg-[#F7F8FA] p-0 rounded-xl min-h-screen">
         {/* HEADER */}
         <div className="flex justify-between items-start mb-6">
           <div className="flex flex-col">
@@ -608,15 +608,15 @@ const DaftarUnit = () => {
           <button
             type="button"
             onClick={() => openForm()}
-            className="flex items-center gap-2 bg-[#0B4B48] hover:bg-[#083c3a] text-white px-4 py-2 rounded-lg shadow-xl text-sm font-semibold transition"
+            className="flex items-center gap-2 bg-[#0B4B48] hover:bg-[#083c3a] text-white px-4 py-2 rounded-lg shadow-xl text-sm font-semibold transition mt-3"
           >
-            <FiPlus size={14} />
+            <FiPlus size={16} />
             Tambah Unit
           </button>
         </div>
 
         {/* LIST UNIT */}
-        <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-3">
+        <div className="bg-white shadow-sm border border-gray-100 rounded-xl p-4 space-y-3">
           {isLoading ? (
             <div className="py-10 text-center flex flex-col items-center justify-center space-y-3">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0B4B48]"></div>
@@ -625,7 +625,7 @@ const DaftarUnit = () => {
               </p>
             </div>
           ) : units.length === 0 ? (
-            <div className="py-10 text-center text-gray-400 font-medium text-sm">
+            <div className="py-10 text-center shadow-sm text-gray-400 font-medium text-sm">
               Belum ada data unit di database. Silakan tambah unit baru.
             </div>
           ) : (
@@ -645,13 +645,13 @@ const DaftarUnit = () => {
                 const katu = isUni ? "TU Rektor" : "KATU Fakultas";
 
                 return (
-                  <div key={u.id} className="border border-gray-100 rounded-lg">
+                  <div key={u.id} className="border border-gray-200 shadow-sm rounded-lg">
                     {/* HEADER UNIT */}
                     <div
                       onClick={() =>
                         setOpenUnit(openUnit === u.id ? null : u.id)
                       }
-                      className="flex justify-between items-center gap-4 px-4 py-3 cursor-pointer hover:bg-gray-50"
+                      className="flex justify-between items-center gap-4 px-4 py-3 cursor-pointer"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="text-base font-bold text-gray-800 truncate">
@@ -722,7 +722,7 @@ const DaftarUnit = () => {
                               {u.prodi.map((p, idx) => (
                                 <div
                                   key={idx}
-                                  className="border border-gray-100 rounded-lg"
+                                  className="border border-gray-200 rounded-lg"
                                 >
                                   {/* ROW PRODI */}
                                   <div

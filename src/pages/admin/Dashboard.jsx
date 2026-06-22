@@ -389,7 +389,7 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
        <StatCard
          title="Jumlah Ijazah Terbit"
          value={summaryStats.totalIjazahTerbit}
-         sub={`${summaryStats.terbitMingguIni} Ijazah Terbit Minggu ini`}
+         sub={`${summaryStats.terbitMingguIni} Terbit Minggu ini`}
          subColor="text-[#27AE60]"
         icon={Icons.Badge}
        onClick={() => navigate("/ijazah/terbit")}
@@ -407,7 +407,7 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
         <StatCard
           title="Jumlah Ijazah di Reject"
           value={summaryStats.dataReject}
-         sub={`${summaryStats.rejectMingguIni} Data di Reject Minggu ini`}
+         sub={`${summaryStats.rejectMingguIni} di Reject Minggu ini`}
           subColor="text-[#F97316]"
           icon={Icons.Close}
           onClick={() => navigate("/ijazah/reject")}
@@ -417,7 +417,7 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
           title="Jumlah Ijazah di Revoke"
           value={summaryStats.dataRevoke}
           sub={
-          summaryStats.revokeMingguIni > 0 ? `${summaryStats.revokeMingguIni} Data di Revoke Minggu ini`  : "0 Data di Revoke Minggu ini" }
+          summaryStats.revokeMingguIni > 0 ? `${summaryStats.revokeMingguIni} di Revoke Minggu ini`  : "di Revoke Minggu ini" }
           subColor="text-[#F59E0B]"
           icon={Icons.List}
           onClick={() => navigate("/ijazah/revoke")}
@@ -450,15 +450,15 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
               Aktivitas Verifikasi
             </h2>
             <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto xl:justify-end">
-              <div className="relative w-full sm:w-72">
+              <div className="relative w-full sm:w-80">
                 <FiSearch
                   className="absolute left-3 top-2.5 text-gray-400"
                   size={16}
                 />
                 <input
                   type="text"
-                  placeholder="Cari: Nama, NIM, Prodi"
-                  className="w-full pl-9 pr-4 py-2 rounded-md bg-white text-sm outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] transition-colors"
+                  placeholder="Cari: Nama, NIM, Prodi..."
+                  className="w-full pl-9 pr-4 py-2 rounded-lg bg-white text-sm outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] transition-colors shadow-sm"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -466,9 +466,9 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:ml-auto">
                 {/* 🔥 DROPDOWN FAKULTAS DIKEMBALIKAN */}
-                <div className="relative w-full sm:w-64">
+                <div className="relative w-full sm:w-75">
                   <select
-                    className="w-full appearance-none bg-white text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] cursor-pointer transition-colors"
+                    className="w-full appearance-none bg-white text-gray-800 text-sm py-2 pl-4 pr-10 rounded-lg outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] cursor-pointer transition-colors shadow-sm"
                     value={selectedFakultas}
                     onChange={(e) => setSelectedFakultas(e.target.value)}
                   >
@@ -485,7 +485,7 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
 
                 <div className="relative w-full sm:w-44">
                   <select
-                    className="w-full appearance-none bg-white text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] cursor-pointer transition-colors"
+                    className="w-full appearance-none bg-white text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] cursor-pointer transition-colors shadow-sm"
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
                   >
@@ -502,7 +502,7 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
 
                 <div className="relative w-full sm:w-40">
                   <select
-                    className="w-full appearance-none bg-white text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] cursor-pointer transition-colors"
+                    className="w-full appearance-none bg-white text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] cursor-pointer transition-colors shadow-sm"
                     value={selectedTahun}
                     onChange={(e) => setSelectedTahun(e.target.value)}
                   >
