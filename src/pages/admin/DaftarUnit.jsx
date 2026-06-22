@@ -477,14 +477,38 @@ const DaftarUnit = () => {
     setOpenProdiForm(true);
   };
 
-  const handleDeleteProdi = (unitId, index) => {
-    setUnits((prev) =>
-      prev.map((u) => {
-        if (u.id !== unitId) return u;
-        return { ...u, prodi: u.prodi.filter((_, i) => i !== index) };
-      }),
-    );
-    triggerSuccess("Prodi berhasil dihapus");
+  const handleDeleteProdi = async (prodiId, unitId) => {
+    try {
+      const response = await fetch(`/api/unit/deleteProdi/${prodiId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (response.ok) {
+        setUnits((prev) =>
+          prev.map((u) => {
+            if (u.id !== unitId) return u;
+
+            return {
+              ...u,
+              prodi: u.prodi.filter((p) => p.id !== prodiId),
+            };
+          }),
+        );
+
+        triggerSuccess("Prodi berhasil dihapus");
+      } else {
+        alert(`Gagal menghapus prodi: ${result.message || "Kesalahan Server"}`);
+      }
+    } catch (error) {
+      console.error("Error menghapus prodi:", error);
+      alert("Terjadi kesalahan koneksi saat menghapus prodi.");
+    }
   };
 
   // 🔥 FUNGSI SIMPAN PRODI (Menembak API POST/PUT)
@@ -740,6 +764,7 @@ const DaftarUnit = () => {
                                           e.stopPropagation();
                                           setDeleteTarget({
                                             unitId: u.id,
+                                            prodiId: p.id,
                                             index: idx,
                                           });
                                           setDeleteType("prodi");
@@ -1160,7 +1185,10 @@ const DaftarUnit = () => {
                   if (deleteType === "unit") {
                     handleDelete(deleteTarget);
                   } else if (deleteType === "prodi") {
-                    handleDeleteProdi(deleteTarget.unitId, deleteTarget.index);
+                    handleDeleteProdi(
+                      deleteTarget.prodiId,
+                      deleteTarget.unitId,
+                    );
                   }
                   setShowDeleteModal(false);
                 }}
