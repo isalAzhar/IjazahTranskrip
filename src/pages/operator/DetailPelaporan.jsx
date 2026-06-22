@@ -373,7 +373,7 @@ const DetailPelaporan= () => {
 
               <div>
                 <span className="inline-block bg-[#115E59] text-white text-[12px] px-4 py-1.5 rounded-full font-bold shadow-sm">
-                  Batch ID: {batchLabel}
+                  {batchLabel}
                 </span>
               </div>
             </div>

@@ -226,16 +226,16 @@ const Navbar = () => {
   const linkClass = (path) => {
     const isActive = isRouteActive(path);
     return `px-4 py-2 text-sm font-medium transition-all duration-300 relative
-      ${isActive ? "text-[#27AE60]" : "text-gray-500 hover:text-[#27AE60]"}
-      ${isActive ? "after:absolute after:left-0 after:-bottom-1 after:w-full after:h-[0.5px] after:bg-[#27AE60]" : ""}`;
+      ${isActive ? "text-[#0B6B63]" : "text-gray-500 hover:text-[#0B6B63]"}
+      ${isActive ? "after:absolute after:left-0 after:-bottom-1 after:w-full after:h-[0.5px] after:bg-[#0B6B63]" : ""}`;
   };
 
   const mobileLinkClass = (path) => {
     const isActive = isRouteActive(path);
     return `block px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
       isActive
-        ? "bg-[#27AE60]/10 text-[#27AE60] font-semibold"
-        : "text-gray-600 hover:bg-gray-50 hover:text-[#27AE60]"
+        ? "bg-[#0B6B63]/10 text-[#0B6B63] font-semibold"
+        : "text-gray-600 hover:bg-gray-50 hover:text-[#0B6B63]"
     }`;
   };
 
@@ -261,7 +261,7 @@ const Navbar = () => {
           />
           <div className="leading-tight hidden sm:block">
             <div className="text-black font-semibold text-xs md:text-sm">Universitas</div>
-            <div className="text-[#27AE60] font-bold text-xs md:text-sm">Ibn Khaldun Bogor</div>
+            <div className="text-[#0B6B63] font-bold text-xs md:text-sm">Ibn Khaldun Bogor</div>
           </div>
         </NavLink>
 
@@ -282,13 +282,13 @@ const Navbar = () => {
             <div className="relative" ref={notifRef}>
               <button
                 onClick={handleToggleNotif}
-                className="relative p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-400 hover:text-[#27AE60]"
+                className="relative p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-400 hover:text-[#0B6B63]"
               >
                 <FiBell size={20} />
                 {/* 🔥 Badge hanya tampil jika ada yang unread */}
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
-                    {unreadCount > 9 ? "9+" : unreadCount}
+                  <span className="absolute -top-0 -right-0 min-w-[8px] h-[8px] px-1 bg-red-500 text-white text-[200px] rounded-full flex items-center justify-center">
+    
                   </span>
                 )}
               </button>
@@ -341,7 +341,7 @@ const Navbar = () => {
 
                                 {/* 🔥 Dot unread */}
                                 {!isRead && (
-                                  <span className="mt-1 ml-auto w-2 h-2 rounded-full bg-[#27AE60] shrink-0" />
+                                  <span className="mt-1 ml-auto w-2 h-2 rounded-full bg-[#0B6B63] shrink-0" />
                                 )}
                               </div>
                             </div>
@@ -353,7 +353,7 @@ const Navbar = () => {
                       <button
                         type="button"
                         onClick={handleNotificationClick}
-                        className="mt-3 w-full py-2 rounded-xl bg-[#27AE60] hover:bg-[#219150] text-white text-xs font-bold transition-colors"
+                        className="mt-3 w-full py-2 rounded-xl bg-[#0B6B63] hover:bg-[#0B6B63] text-white text-xs font-bold transition-colors"
                       >
                         Lihat Lainnya
                       </button>
@@ -377,7 +377,7 @@ const Navbar = () => {
               <div className="text-gray-800 font-bold text-sm capitalize">{displayTitle}</div>
               <ProfileSubtitle />
             </div>
-            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-[#27AE60] flex items-center justify-center text-[#27AE60] bg-gray-50 group-hover:bg-[#27AE60] group-hover:text-white transition-all duration-300">
+            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-[#0B6B63] flex items-center justify-center text-[#0B6B63] bg-gray-50 group-hover:bg-[#0B6B63] group-hover:text-white transition-all duration-300">
               <FiUser size={18} />
             </div>
           </div>
@@ -386,7 +386,7 @@ const Navbar = () => {
           <div className="md:hidden" ref={mobileMenuRef}>
             <button
               onClick={() => setOpenMenu(!openMenu)}
-              className="p-2 rounded-xl hover:bg-gray-100 transition-colors text-gray-600 hover:text-[#27AE60]"
+              className="p-2 rounded-xl hover:bg-gray-100 transition-colors text-gray-600 hover:text-[#0B6B63]"
             >
               {openMenu ? <FiX size={22} /> : <FiMenu size={22} />}
             </button>
@@ -412,7 +412,7 @@ const Navbar = () => {
             className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-gray-50 rounded-xl transition-colors"
             onClick={() => { handleProfileClick(); setOpenMenu(false); }}
           >
-            <div className="w-8 h-8 rounded-full border-2 border-[#27AE60] flex items-center justify-center text-[#27AE60] bg-gray-50">
+            <div className="w-8 h-8 rounded-full border-2 border-[#0B6B63] flex items-center justify-center text-[#0B6B63] bg-gray-50">
               <FiUser size={16} />
             </div>
             <div>

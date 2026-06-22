@@ -491,7 +491,7 @@ const DataMahasiswa = () => {
               </div>
 
               <div className="flex items-center gap-3 w-full lg:w-auto">
-                <div className="relative w-full lg:w-44">
+                <div className="relative w-full lg:w-80">
                   <select
                     value={fakultas}
                     onChange={(e) => {

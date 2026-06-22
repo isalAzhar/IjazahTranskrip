@@ -417,7 +417,7 @@ const [summaryStats, setSummaryStats] = useState({
   sub={
     summaryStats.revokeMingguIni > 0
       ? `${summaryStats.revokeMingguIni} Data di Revoke Minggu ini`
-      : "Tidak ada perubahan Minggu ini"
+      : "0 Data di Revoke Minggu ini"
   }
   subColor="text-[#F59E0B]"
   icon={Icons.List}

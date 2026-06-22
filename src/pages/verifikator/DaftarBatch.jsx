@@ -385,7 +385,7 @@ const DaftarBatch = () => {
 
               <div className="flex items-center gap-3 w-full lg:w-auto">
                 {REKTORAT_ROLES.includes(userRole) && (
-                  <div className="relative w-full lg:w-72">
+                  <div className="relative w-full lg:w-80">
                     <select
                       value={selectedFakultas}
                       onChange={(e) => {

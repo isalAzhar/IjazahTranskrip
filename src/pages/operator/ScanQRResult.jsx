@@ -10,6 +10,35 @@ import { verifyDocumentByQr } from "../../services/document.api";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
+const getGoogleDriveFileId = (url) => {
+  if (!url) return null;
+
+  const patterns = [
+    /\/file\/d\/([^/]+)/,
+    /[?&]id=([^&]+)/,
+    /\/open\?id=([^&]+)/,
+    /\/uc\?id=([^&]+)/,
+    /\/thumbnail\?id=([^&]+)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+
+    if (match?.[1]) {
+      return match[1];
+    }
+  }
+
+  return null;
+};
+
+const getGoogleDriveImageUrl = (url, size = 800) => {
+  const fileId = getGoogleDriveFileId(url);
+
+  if (!fileId) return url;
+
+  return `https://drive.google.com/thumbnail?id=${fileId}&sz=w${size}`;
+};
 const formatTanggalIndonesia = (tanggal) => {
   if (!tanggal) return "-";
 
@@ -165,13 +194,13 @@ const ScanQRResult = () => {
 
   const mahasiswa = data.mahasiswa || {};
 
-  const fotoUrl = mahasiswa.foto
-    ? mahasiswa.foto.startsWith("http")
-      ? mahasiswa.foto
-      : `${API_BASE_URL}${
-          mahasiswa.foto.startsWith("/") ? mahasiswa.foto : `/${mahasiswa.foto}`
-        }`
-    : null;
+const fotoUrl = mahasiswa.foto
+  ? mahasiswa.foto.startsWith("http")
+    ? getGoogleDriveImageUrl(mahasiswa.foto, 800)
+    : `${API_BASE_URL}${
+        mahasiswa.foto.startsWith("/") ? mahasiswa.foto : `/${mahasiswa.foto}`
+      }`
+  : null;
 
   const tanggalTerbit = formatTanggalIndonesia(data.tanggal_terbit);
   const namaMahasiswa = mahasiswa.nama_mahasiswa || "-";

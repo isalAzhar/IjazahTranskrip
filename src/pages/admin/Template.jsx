@@ -260,7 +260,7 @@ const FIELD_META = {
       fontFamily: "arial",
       fontWeight: "600",
       textDecoration: "underline",
-      align: "left",
+      align: "center",
     },
     "TTD Rektor": {
       field: "assets.ttd_rektor",
@@ -280,7 +280,7 @@ const FIELD_META = {
       fontSize: 12,
       fontFamily: "arial",
       fontWeight: "600",
-      align: "left",
+      align: "center",
       textDecoration: "underline",
     },
     "TTD Dekan": {
@@ -466,7 +466,7 @@ const FIELD_META = {
       fontFamily: "arial",
       fontWeight: "700",
       textDecoration: "underline",
-      align: "left",
+      align: "center",
     },
     "NIDN Dekan": {
       field: "pejabat.nidn_dekan",
@@ -982,7 +982,7 @@ const renderElements = (
             }}
           >
             {isPreview ? (
-              <div className="inline-flex flex-col items-left text-left">
+              <div className="inline-flex flex-col items-center text-center">
                 <span
                   className="inline-block text-gray-800 leading-none whitespace-nowrap px-1"
                   style={{

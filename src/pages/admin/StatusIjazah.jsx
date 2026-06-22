@@ -469,7 +469,7 @@ const StatusIjazah = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-              <div className="relative w-full sm:w-56">
+              <div className="relative w-full sm:w-80">
                 <select
                   value={fakultas}
                   onChange={(e) => setFakultas(e.target.value)}
