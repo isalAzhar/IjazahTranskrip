@@ -40,7 +40,7 @@ const Profile = () => {
   const [alertModal, setAlertModal] = useState({ show: false, message: "", title: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // State untuk Form Ubah Sandi
+  // State untuk Form Ubah Password
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -110,15 +110,19 @@ const Profile = () => {
     
     // 🔥 VALIDASI PAKAI ALERT MODAL (BUKAN ALERT BIASA)
     if (newPassword !== confirmPassword) {
-      showAlert("Konfirmasi kata sandi tidak cocok!", "Gagal");
+      showAlert("Konfirmasi password tidak cocok!", "Gagal");
       return;
     }
     if (newPassword.length < 8) {
-      showAlert("Kata sandi baru minimal 8 karakter!", "Gagal");
+      showAlert("Password baru minimal 8 karakter!", "Gagal");
       return;
     }
     if (currentPassword === "") {
-      showAlert("Harap masukkan kata sandi saat ini!", "Gagal");
+      showAlert("Harap masukkan password saat ini!", "Gagal");
+      return;
+    }
+    if (newPassword === currentPassword) {
+      showAlert("Password baru tidak boleh sama dengan password lama!", "Gagal");
       return;
     }
 
@@ -151,10 +155,10 @@ const Profile = () => {
         setShowConfirmPassword(false);
 
         // 🔥 TAMPILKAN TOAST SUKSES
-        showToast("Kata sandi berhasil diperbarui!", "success");
+        showToast("Password berhasil diperbarui!", "success");
       } else {
         // 🔥 TAMPILKAN ERROR DARI BACKEND VIA ALERT MODAL
-        showAlert(result.message || "Gagal mengubah kata sandi.", "Gagal");
+        showAlert(result.message || "Gagal mengubah password.", "Gagal");
       }
     } catch (error) {
       showAlert("Terjadi kesalahan jaringan. Silakan coba lagi.", "Error Jaringan");
@@ -212,14 +216,14 @@ const Profile = () => {
 
           <hr className="border-gray-100 mb-8" />
 
-          {/* Bagian Kata Sandi & Button Logout */}
+          {/* Bagian Password & Button Logout */}
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 flex items-center justify-center text-gray-400">
                 <FiLock size={24} />
               </div>
               <div>
-                <p className="text-base font-bold text-gray-800">Kata Sandi</p>
+                <p className="text-base font-bold text-gray-800">Password</p>
                 <p className="text-xs text-gray-400">Disarankan untuk diperbarui secara berkala</p>
               </div>
               <button 
@@ -241,31 +245,31 @@ const Profile = () => {
       </div>
 
       {/* ============================================================ */}
-      {/* 🔥 MODAL UBAH KATA SANDI (DENGAN LOADING STATE) */}
+      {/* 🔥 MODAL UBAH PASSWORD (DENGAN LOADING STATE) */}
       {/* ============================================================ */}
       {isPasswordModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-[24px] w-full max-w-[500px] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
             
             <div className="p-8 pb-6 border-b border-gray-100">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Ubah Kata Sandi</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Ubah Password</h2>
               <p className="text-sm text-gray-600">
-                Demi keamanan akun Anda, harap lakukan pembaruan kata sandi secara berkala.
+                Demi keamanan akun Anda, harap lakukan pembaruan password secara berkala.
               </p>
             </div>
 
             <form onSubmit={handlePasswordSubmit}>
               <div className="p-8 space-y-6">
                 
-                {/* Kata Sandi Saat Ini */}
+                {/* Password Saat Ini */}
                 <div>
                   <label className="block text-[15px] font-bold text-gray-900 mb-2">
-                    Kata Sandi Saat Ini
+                    Password Saat Ini
                   </label>
                   <div className="relative">
                     <input 
                       type={showCurrentPassword ? "text" : "password"}
-                      placeholder="Masukan kata sandi saat ini"
+                      placeholder="Masukan password saat ini"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       required
@@ -282,15 +286,15 @@ const Profile = () => {
                   </div>
                 </div>
 
-                {/* Kata Sandi Baru */}
+                {/* Password Baru */}
                 <div>
                   <label className="block text-[15px] font-bold text-gray-900 mb-2">
-                    Kata Sandi Baru
+                    Password Baru
                   </label>
                   <div className="relative">
                     <input 
                       type={showNewPassword ? "text" : "password"}
-                      placeholder="Buat kata sandi baru"
+                      placeholder="Buat password baru"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       required
@@ -309,15 +313,15 @@ const Profile = () => {
                   <p className="text-right text-xs text-gray-500 mt-1">Min 8 Karakter</p>
                 </div>
 
-                {/* Konfirmasi Kata Sandi Baru */}
+                {/* Konfirmasi Password Baru */}
                 <div>
                   <label className="block text-[15px] font-bold text-gray-900 mb-2">
-                    Konfirmasi Kata Sandi Baru
+                    Konfirmasi Password Baru
                   </label>
                   <div className="relative">
                     <input 
                       type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Ulangi kata sandi baru"
+                      placeholder="Ulangi password baru"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required

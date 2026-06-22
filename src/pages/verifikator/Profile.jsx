@@ -37,7 +37,7 @@ const Profile = () => {
   // 🔥 NEW: State untuk Alert Modal (pengganti alert)
   const [alertModal, setAlertModal] = useState({ show: false, message: "", title: "" });
   
-  // State Form Kata Sandi
+  // State Form Password
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -89,17 +89,21 @@ const Profile = () => {
     navigate("/login");
   };
 
-  // 🔥 2. FUNGSI UBAH SANDI REAL KE BACKEND (pakai Alert Modal)
+  // 🔥 2. FUNGSI UBAH PASSWORD REAL KE BACKEND (pakai Alert Modal)
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     
     // 🔥 VALIDASI PAKAI ALERT MODAL (BUKAN ALERT BIASA)
     if (newPassword !== confirmPassword) {
-      showAlert("Konfirmasi kata sandi tidak cocok!", "Gagal");
+      showAlert("Konfirmasi password tidak cocok!", "Gagal");
       return;
     }
     if (newPassword.length < 8) {
-      showAlert("Kata sandi baru minimal 8 karakter!", "Gagal");
+      showAlert("Password baru minimal 8 karakter!", "Gagal");
+      return;
+    }
+    if (newPassword === currentPassword) {
+      showAlert("Password baru tidak boleh sama dengan password lama!", "Gagal");
       return;
     }
 
@@ -130,7 +134,7 @@ const Profile = () => {
         setShowSuccessToast(true);
         setTimeout(() => setShowSuccessToast(false), 3000);
       } else {
-        showAlert(result.message || "Gagal mengubah kata sandi.", "Gagal");
+        showAlert(result.message || "Gagal mengubah password.", "Gagal");
       }
     } catch (error) {
       showAlert("Terjadi kesalahan jaringan.", "Error");
@@ -180,14 +184,14 @@ const Profile = () => {
                 <FiLock size={24} />
               </div>
               <div>
-                <p className="text-base font-bold text-gray-800">Kata Sandi</p>
+                <p className="text-base font-bold text-gray-800">Password</p>
                 <p className="text-xs text-gray-400">Disarankan untuk diperbarui secara berkala</p>
               </div>
               <button
                 onClick={() => setIsPasswordModalOpen(true)}
                 className="ml-4 text-[#0B4B48] text-sm font-bold hover:underline"
               >
-                Ubah Sandi
+                Ubah Password
               </button>
             </div>
             <button
@@ -205,17 +209,17 @@ const Profile = () => {
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl w-full max-w-125 overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
             <div className="p-8 pb-6 border-b border-gray-100">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Ubah Kata Sandi</h2>
-              <p className="text-sm text-gray-600">Demi keamanan akun Anda, harap lakukan pembaruan kata sandi secara berkala.</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Ubah Password</h2>
+              <p className="text-sm text-gray-600">Demi keamanan akun Anda, harap lakukan pembaruan password secara berkala.</p>
             </div>
             <form onSubmit={handlePasswordSubmit}>
               <div className="p-8 space-y-6">
                 <div>
-                  <label className="block text-[15px] font-bold text-gray-900 mb-2">Kata Sandi Saat Ini</label>
+                  <label className="block text-[15px] font-bold text-gray-900 mb-2">Password Saat Ini</label>
                   <div className="relative">
                     <input
                       type={showCurrentPassword ? "text" : "password"}
-                      placeholder="Masukan kata sandi saat ini"
+                      placeholder="Masukan password saat ini"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       required
@@ -227,11 +231,11 @@ const Profile = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[15px] font-bold text-gray-900 mb-2">Kata Sandi Baru</label>
+                  <label className="block text-[15px] font-bold text-gray-900 mb-2">Password Baru</label>
                   <div className="relative">
                     <input
                       type={showNewPassword ? "text" : "password"}
-                      placeholder="Buat kata sandi baru"
+                      placeholder="Buat password baru"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       required
@@ -245,11 +249,11 @@ const Profile = () => {
                   <p className="text-right text-xs text-gray-500 mt-1">Min 8 Karakter</p>
                 </div>
                 <div>
-                  <label className="block text-[15px] font-bold text-gray-900 mb-2">Konfirmasi Kata Sandi Baru</label>
+                  <label className="block text-[15px] font-bold text-gray-900 mb-2">Konfirmasi Password Baru</label>
                   <div className="relative">
                     <input
                       type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Ulangi kata sandi baru"
+                      placeholder="Ulangi password baru"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
@@ -335,7 +339,7 @@ const Profile = () => {
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-70 animate-in slide-in-from-bottom-5 fade-in duration-300">
           <div className="bg-[#0B4B48] text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-3">
             <FiCheckCircle className="text-[#27AE60]" size={20} />
-            <span className="text-sm font-medium">Kata sandi berhasil diperbarui!</span>
+            <span className="text-sm font-medium">Password berhasil diperbarui!</span>
           </div>
         </div>
       )}
