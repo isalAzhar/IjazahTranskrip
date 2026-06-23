@@ -461,7 +461,7 @@ const DataMahasiswa = () => {
 
         {/* BAGIAN FILTER & SEARCH */}
         <div className="mb-6" ref={searchContainerRef}>
-          <div className="bg-white p-4 shadow-sm border border-gray-100">
+          <div className="bg-white p-4 shadow-sm border border-gray-100 rounded-lg">
             <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
               
               {/* Search */}

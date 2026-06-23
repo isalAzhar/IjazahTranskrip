@@ -369,7 +369,7 @@ const OperatorDokumenValid = () => {
           >
             <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
               <div className="w-full lg:max-w-md">
-                <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
+                <div className="flex items-center bg-white border border-gray-300 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
                   <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
                   <input
                     type="text"
@@ -381,7 +381,7 @@ const OperatorDokumenValid = () => {
                       setCurrentPage(1);
                     }}
                     onFocus={() => setShowSuggestions(true)}
-                    className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
+                    className="bg-transparent outline-none text-sm w-full text-gray-800 placeholder-gray-400"
                   />
                 </div>
               </div>
@@ -394,7 +394,7 @@ const OperatorDokumenValid = () => {
                       setSelectedFakultas(e.target.value);
                       setCurrentPage(1);
                     }}
-                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
+                    className="appearance-none bg-white border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm text-gray-800 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
                   >
                     <option value="">Semua Fakultas</option>
                     {filterOptions.fakultas.map((namaFakultas) => (
@@ -413,7 +413,7 @@ const OperatorDokumenValid = () => {
                       setSelectedYear(e.target.value);
                       setCurrentPage(1);
                     }}
-                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
+                    className="appearance-none bg-white border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm text-gray-800 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
                   >
                     <option value="">Semua Tahun</option>
                     {filterOptions.tahun.map((tahun) => (
@@ -432,7 +432,7 @@ const OperatorDokumenValid = () => {
                       setStatusEmail(e.target.value);
                       setCurrentPage(1);
                     }}
-                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
+                    className="appearance-none bg-white border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm text-gray-800 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
                   >
                     <option value="">Semua Status</option>
                     <option value="Terkirim">Terkirim</option>

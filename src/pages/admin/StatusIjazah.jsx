@@ -453,7 +453,7 @@ const StatusIjazah = () => {
         <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm mb-6">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
             <div className="w-full lg:max-w-md">
-              <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
+              <div className="flex items-center bg-white border border-gray-300 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
                 <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
                 <input
                   type="text"
@@ -463,7 +463,7 @@ const StatusIjazah = () => {
                     setSearch(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
+                  className="bg-transparent outline-none text-sm w-full text-gray-700 placeholder-gray-400"
                 />
               </div>
             </div>
@@ -473,7 +473,7 @@ const StatusIjazah = () => {
                 <select
                   value={fakultas}
                   onChange={(e) => setFakultas(e.target.value)}
-                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
+                  className="appearance-none bg-white border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm text-gray-800 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
                 >
                   <option value="">Semua Fakultas</option>
                   {fakultasList.map((item, i) => (
@@ -489,7 +489,7 @@ const StatusIjazah = () => {
                 <select
                   value={tahun}
                   onChange={(e) => setTahun(e.target.value)}
-                  className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
+                  className="appearance-none bg-white border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm text-gray-800 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
                 >
                   <option value="">Semua Tahun</option>
                   {years.map((item, i) => (
@@ -506,7 +506,7 @@ const StatusIjazah = () => {
                   <select
                     value={statusEmail}
                     onChange={(e) => setStatusEmail(e.target.value)}
-                    className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
+                    className="appearance-none bg-white border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm text-gray-700 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
                   >
                     <option value="">Semua Status Email</option>
                     <option value="Terkirim">Terkirim</option>

@@ -307,10 +307,10 @@ const DaftarPengguna = () => {
                     <td className="py-4 px-4 text-center">{user.email || "-"}</td>
                     <td className="py-4 px-4">
                       <div className="flex justify-center gap-3">
-                        <button type="button" className="text-blue-600" onClick={() => { setSelectedUser(user); setOpenEdit(true); }}>
+                        <button type="button" className="text-gray-400 hover:text-[#1F7A6E] hover:bg-[#E8F5E9]" onClick={() => { setSelectedUser(user); setOpenEdit(true); }}>
                           <FiEdit2 size={18} />
                         </button>
-                        <button type="button" className="text-red-500" onClick={() => { setSelectedUser(user); setOpenHapus(true); }}>
+                        <button type="button" className="text-gray-400 hover:text-red-500 hover:bg-red-50" onClick={() => { setSelectedUser(user); setOpenHapus(true); }}>
                           <FiTrash2 size={18} />
                         </button>
                       </div>

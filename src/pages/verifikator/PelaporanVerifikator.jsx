@@ -254,7 +254,7 @@ const PelaporanVerivikator = () => {
 
         <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-4 border border-gray-100">
           <div className="w-full lg:max-w-md">
-            <div className="flex items-center bg-white border border-gray-200 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
+            <div className="flex items-center bg-white border border-gray-300 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
               <FiSearch className="text-gray-400 text-lg mr-3" />
 
               <input
@@ -262,17 +262,17 @@ const PelaporanVerivikator = () => {
                 placeholder="Cari: Nama, NIM, Prodi..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="bg-transparent outline-none text-sm w-full font-semibold text-gray-700 placeholder-gray-400"
+                className="bg-transparent outline-none text-sm w-full text-gray-800 placeholder-gray-400"
               />
             </div>
           </div>
 
           <div className="flex items-center gap-3 w-full lg:w-auto">
-            <div className="relative w-full lg:w-52">
+            <div className="relative w-full lg:w-45">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none bg-white border border-gray-200 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm font-bold text-gray-700 px-5 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
+                className="appearance-none bg-white border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm text-gray-800 px-5 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm text-left"
               >
                 {statusOptions.map((item) => (
                   <option
