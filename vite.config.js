@@ -31,11 +31,13 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
-      "/uploads/templates": {
+      // "/uploads/templates": {
+          "/uploads": {
+
       
         target: "http://103.158.196.32:8010",
                 // target: "http://localhost:3000",
-        
+
         changeOrigin: true,
         secure: false,
       },
