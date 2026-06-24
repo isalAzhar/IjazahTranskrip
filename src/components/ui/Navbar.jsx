@@ -32,47 +32,166 @@ const saveReadIds = (ids) => {
   localStorage.setItem(NOTIF_READ_KEY, JSON.stringify(ids));
 };
 
+const getCachedProfileUser = (key) => {
+  try {
+    return JSON.parse(localStorage.getItem(key) || "null");
+  } catch {
+    return null;
+  }
+};
+
+const saveCachedProfileUser = (key, data) => {
+  localStorage.setItem(key, JSON.stringify(data));
+};
+
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const profileCacheKey = `navbar_profile_user_${
+  user?.id_user || user?.id || user?.email || "guest"
+}`;
 
   const [openMenu, setOpenMenu] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState([]);  
   const [readIds, setReadIds] = useState(getReadIds);
+  const [profileUser, setProfileUser] = useState(() =>
+  getCachedProfileUser(profileCacheKey), );
   const [scrolled, setScrolled] = useState(false);
+
+
 
   const notifRef = useRef(null);
   const mobileMenuRef = useRef(null);
 
-  const userRole = user?.role?.toLowerCase().trim() || "";
-  const fallbackName = user?.email ? user.email.split("@")[0] : "User";
-
-  let displayTitle = user?.name || user?.fullname || user?.username || fallbackName;
-  if (["admin", "admin_sistem"].includes(userRole)) {
-    displayTitle = "Admin";
+  useEffect(() => {
+  const cachedProfile = getCachedProfileUser(profileCacheKey);
+  if (cachedProfile) {
+    setProfileUser(cachedProfile);
   }
+}, [profileCacheKey]);
 
-  const showNotifIcon = ROLES_WITH_NOTIF.includes(userRole);
+useEffect(() => {
+  const token =
+    localStorage.getItem("authToken") ||
+    localStorage.getItem("access_token") ||
+    localStorage.getItem("token");
 
-  let displaySubtitle = null;
-  const rawUnitName = user?.nama_unit || user?.unit || user?.fakultas || user?.department || user?.prodi?.unit?.nama_unit || "";
-  const cleanUnit = rawUnitName.replace(/^fakultas\s+/i, "").trim();
+  if (!token) return;
 
-  if (["admin", "admin_sistem"].includes(userRole)) {
-    displaySubtitle = "Sistem";
-  } else if (["operator", "operator_data"].includes(userRole)) {
-    displaySubtitle = "Data";
-  } else if (["rektor"].includes(userRole)) {
-    displaySubtitle = null;
-  } else if (["wakil_rektor_1", "wakil_rektor", "tu_rektorat"].includes(userRole)) {
-    displaySubtitle = "Rektorat";
-  } else if (["dekan", "wakil_dekan_1", "wakil_dekan", "tu_fakultas"].includes(userRole)) {
-    displaySubtitle = cleanUnit ? `Fakultas ${cleanUnit}` : "Fakultas";
-  } else {
-    displaySubtitle = cleanUnit ? `Fakultas ${cleanUnit}` : userRole;
-  }
+  let isMounted = true;
+
+  const loadProfile = async () => {
+    try {
+      const response = await fetch("/api/profile/me", {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (isMounted && response.ok && result?.data) {
+        setProfileUser(result.data);
+        saveCachedProfileUser(profileCacheKey, result.data);
+      }
+    } catch (error) {
+      console.error("Gagal mengambil profile user:", error);
+    }
+  };
+
+  loadProfile();
+
+  return () => {
+    isMounted = false;
+  };
+}, [profileCacheKey]);
+
+  useEffect(() => {
+  const token =
+    localStorage.getItem("authToken") ||
+    localStorage.getItem("access_token") ||
+    localStorage.getItem("token");
+
+  if (!token) return;
+
+  let isMounted = true;
+
+  const loadProfile = async () => {
+    try {
+      const response = await fetch("/api/profile/me", {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (isMounted && response.ok && result?.data) {
+        setProfileUser(result.data);
+      }
+    } catch (error) {
+      console.error("Gagal mengambil profile user:", error);
+    }
+  };
+
+  loadProfile();
+
+  return () => {
+    isMounted = false;
+  };
+}, [user?.id_user, user?.id]);
+
+ const activeUser = profileUser || user || {};
+
+const userRole = String(activeUser?.role || user?.role || "")
+  .toLowerCase()
+  .trim();
+
+const fallbackName =
+  activeUser?.email || user?.email
+    ? String(activeUser?.email || user?.email).split("@")[0]
+    : "User";
+
+const formatRoleLabel = (role) => {
+  const labels = {
+    admin: "Admin",
+    admin_sistem: "Admin",
+    operator: "Operator",
+    operator_data: "Operator",
+    tu_fakultas: "TU Fakultas",
+    wakil_dekan_1: "Wakil Dekan",
+    wakil_dekan: "Wakil Dekan",
+    dekan: "Dekan",
+    tu_rektorat: "TU Rektorat",
+    wakil_rektor_1: "Wakil Rektor",
+    wakil_rektor: "Wakil Rektor",
+    rektor: "Rektor",
+  };
+
+  return labels[role] || role || "-";
+};
+
+const getValidText = (value) => {
+  const text = String(value || "").trim();
+  return text && text !== "-" ? text : "";
+};
+
+// Teks atas: ambil nama dari response
+const displayTitle =
+  getValidText(activeUser?.nama) ||
+  getValidText(activeUser?.name) ||
+  getValidText(activeUser?.fullname) ||
+  getValidText(activeUser?.username) ||
+  fallbackName;
+
+// Teks bawah: ambil role dari response
+const displaySubtitle = formatRoleLabel(userRole);
+
+const showNotifIcon = ROLES_WITH_NOTIF.includes(userRole);
 
   const adminMenu = [
     { name: "Dashboard",       path: "/admin/dashboard" },
@@ -262,13 +381,13 @@ const Navbar = () => {
         </NavLink>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-2 lg:gap-6 overflow-x-auto">
-          {activeMenus.map((menu, idx) => (
-            <NavLink key={idx} to={menu.path} className={() => linkClass(menu.path)}>
-              {menu.name}
-            </NavLink>
-          ))}
-        </div>
+       <div className="hidden md:flex items-center gap-2 lg:gap-6">
+  {activeMenus.map((menu, idx) => (
+    <NavLink key={idx} to={menu.path} className={() => linkClass(menu.path)}>
+      {menu.name}
+    </NavLink>
+  ))}
+</div>
 
         {/* Right Action Elements */}
         <div className="flex items-center gap-1.5 sm:gap-3 md:gap-4 shrink-0">

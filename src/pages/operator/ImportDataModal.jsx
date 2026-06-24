@@ -45,6 +45,13 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
   const [showResult, setShowResult] = useState(false);
   const [importResult, setImportResult] = useState(initialImportResult);
 
+  const currentYear = new Date().getFullYear();
+
+const tahunLulusOptions = Array.from(
+  { length: 3 },
+  (_, index) => currentYear - 2 + index,
+);
+
   // Download data gagal dari response upload sebagai Excel
   const downloadFailedData = () => {
     if (
@@ -860,15 +867,11 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
                 Pilih Tahun Lulus
               </option>
               
-              <option value="2024" className="text-gray-900">
-                2024
-              </option>
-              <option value="2025" className="text-gray-900">
-                2025
-              </option>
-              <option value="2026" className="text-gray-900">
-                2026
-              </option>
+           {tahunLulusOptions.map((year) => (
+  <option key={year} value={year} className="text-gray-900">
+    {year}
+  </option>
+))}
             </select>
 
             <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
