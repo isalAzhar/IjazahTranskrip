@@ -34,7 +34,11 @@ const Login = () => {
 
     setLoading(true);
     try {
-      const response = await fetch("api/auth/login", {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL 
+        ? `${import.meta.env.VITE_API_BASE_URL}/api/auth/login` 
+        : "/api/auth/login";
+
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -89,59 +93,65 @@ const Login = () => {
   return (
     <div className="relative min-h-screen flex items-center justify-center px-6 py-6 overflow-hidden">
       <img src={bgLogin} alt="background" className="absolute inset-0 w-full h-full object-cover" />
+      {/* Kontras disesuaikan: lebih terang seperti kode pertama */}
       <div className="absolute inset-0 bg-black/30"></div>
 
-      <div className="relative w-full max-w-90 bg-white rounded-[28px] shadow-[0_15px_40px_rgba(0,0,0,0.25)] p-7 sm:p-9 flex flex-col">
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-24 h-24 sm:w-28 sm:h-28 mb-3">
+      <div className="relative w-full max-w-[360px] sm:max-w-sm bg-white rounded-[28px] shadow-2xl p-6 sm:p-8 flex flex-col z-10 mx-auto">
+        
+        <div className="flex flex-col items-center mb-6 sm:mb-8">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 mb-3 sm:mb-4 shrink-0">
             <img src={logoUika} alt="Logo UIKA" className="w-full h-full object-contain" />
           </div>
-          <h2 className="text-[17px] sm:text-xl font-bold text-gray-800 text-center">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800 text-center leading-tight">
             Universitas Ibn Khaldun Bogor
           </h2>
-          <p className="text-[10px] sm:text-xs text-gray-400 font-bold mt-1 uppercase tracking-wide text-center">
+          <p className="text-[10px] sm:text-xs text-gray-500 font-bold mt-1.5 uppercase tracking-wide text-center">
             Verifikasi & Akses Ijazah Digital
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-[13px] font-bold text-gray-600">Email</label>
+        <form onSubmit={handleLogin} className="w-full">
+          
+          <div className="mb-4 w-full">
+            <label className="block text-xs sm:text-[13px] font-bold text-gray-700 mb-1.5">
+              Email
+            </label>
             <input
               type="email"
               placeholder="Masukkan email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
-              className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-sm outline-none focus:border-[#0d6b5e] transition-all"
+              className="appearance-none w-full px-4 py-3 sm:py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-base sm:text-sm outline-none focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] transition-all"
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-[13px] font-bold text-gray-600">Password</label>
-            <div className="relative">
+          <div className="mb-5 sm:mb-6 w-full">
+            <label className="block text-xs sm:text-[13px] font-bold text-gray-700 mb-1.5">
+              Password
+            </label>
+            <div className="relative flex items-center w-full">
               <input
                 type={showPassword ? "text" : "password"}
                 placeholder="Masukkan password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
-                // ✅ Matikan icon mata bawaan semua browser
-                className="w-full px-4 py-2.5 pr-10 rounded-xl bg-gray-50 border border-gray-100 text-sm outline-none focus:border-[#0d6b5e] transition-all [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-credentials-auto-fill-button]:hidden [&::-webkit-textfield-decoration-container]:hidden"
+                className="appearance-none w-full pl-4 pr-12 py-3 sm:py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-base sm:text-sm outline-none focus:border-[#0B6B63] focus:ring-1 focus:ring-[#0B6B63] transition-all"
               />
-             <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-[#0d6b5e] transition-colors"
-              title={showPassword ? "Sembunyikan Kata Sandi" : "Tampilkan Kata Sandi"}
-            >
-              {showPassword ? <FiEye size={18} /> : <FiEyeOff size={18} />}
-            </button>
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-2 p-2 cursor-pointer text-gray-400 hover:text-[#0B6B63] transition-colors flex items-center justify-center bg-transparent outline-none"
+                title={showPassword ? "Sembunyikan Kata Sandi" : "Tampilkan Kata Sandi"}
+              >
+                {showPassword ? <FiEye size={20} /> : <FiEyeOff size={20} />}
+              </button>
             </div>
           </div>
 
           {error && (
-            <div className="bg-red-50 text-red-500 py-2 px-3 rounded-lg text-[11px] text-center font-medium">
+            <div className="bg-red-50 text-red-600 py-2.5 px-3 rounded-lg text-xs text-center font-semibold border border-red-100 mb-4">
               {error}
             </div>
           )}
@@ -149,7 +159,7 @@ const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#0d6b5e] hover:bg-[#0a5248] disabled:opacity-70 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all"
+            className="w-full bg-[#0B6B63] hover:bg-[#08524C] disabled:opacity-70 text-white font-bold py-3.5 sm:py-3 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md hover:shadow-lg"
           >
             {loading ? <FiLoader className="animate-spin" size={18} /> : "Masuk"}
           </button>

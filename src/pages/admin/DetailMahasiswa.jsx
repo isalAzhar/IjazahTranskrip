@@ -86,8 +86,7 @@ const getImageUrl = (imagePath) => {
   }
 
   const baseUrl =
-    // import.meta.env.VITE_API_PUBLIC_URL || "http://localhost:3000";
-  import.meta.env.VITE_API_PUBLIC_URL || "http://103.158.196.32:8010"; //server
+    import.meta.env.VITE_API_PUBLIC_URL || "http://103.158.196.32:8010"; 
   if (imagePath.startsWith("/")) return `${baseUrl}${imagePath}`;
 
   return `${baseUrl}/${imagePath}`;
@@ -133,13 +132,9 @@ const DetailMahasiswa = () => {
   const mahasiswaFromState = location.state?.mahasiswa || {};
   const currentMahasiswaCode = decodeURIComponent(mahasiswaCode || id || "");
 
-  // 🔥 1. Ambil source dari navigasi
   const source = location.state?.source || "";
-
-  // 🔥 2. Cek Role
   const role = user?.role?.toLowerCase() || "";
 
-  // 🔥 3. KUNCI GANDA: Harus Operator/Rektor DAN harus datang dari menu Dokumen Valid
   const canViewDocuments =
     ["operator", "operator_data", "rektor"].includes(role) &&
     source === "dokumen_valid";
@@ -249,7 +244,6 @@ const DetailMahasiswa = () => {
       alert(`Dokumen ${title} belum tersedia.`);
       return;
     }
-
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -258,17 +252,14 @@ const DetailMahasiswa = () => {
       setShowPdfModal(true);
       return;
     }
-
     if (ijazahUrl) {
       openPdf(ijazahUrl, "Ijazah");
       return;
     }
-
     if (transkripUrl) {
       openPdf(transkripUrl, "Transkrip Nilai");
       return;
     }
-
     alert("Dokumen belum tersedia.");
   };
 
@@ -376,9 +367,10 @@ const DetailMahasiswa = () => {
           </div>
         )}
 
-        <div className="bg-white rounded-xl px-8 py-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 shadow-sm border border-gray-200">
-          <div className="flex items-center gap-6">
-            <div className="w-[88px] h-[88px] rounded-full bg-[#E5F3EB] overflow-hidden flex items-center justify-center border-4 border-[#E5F3EB]">
+        {/* HEADER SECTION - RESPONSIVE FIX */}
+        <div className="bg-white rounded-xl px-4 sm:px-8 py-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6 shadow-sm border border-gray-200">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 w-full md:w-auto text-center sm:text-left">
+            <div className="w-[88px] h-[88px] rounded-full bg-[#E5F3EB] overflow-hidden flex items-center justify-center border-4 border-[#E5F3EB] shrink-0">
               {fotoMahasiswa && !imageError ? (
                 <img
                   src={fotoMahasiswa}
@@ -394,48 +386,47 @@ const DetailMahasiswa = () => {
               )}
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <h2 className="font-bold text-[20px] text-gray-900">
+            <div className="flex flex-col gap-1.5 mt-2 sm:mt-0 items-center sm:items-start">
+              <h2 className="font-bold text-[18px] sm:text-[20px] text-gray-900 leading-tight">
                 {mahasiswa?.nama_mahasiswa ||
                   mahasiswaFromState?.nama ||
                   mahasiswaFromState?.nama_mahasiswa ||
                   "-"}
               </h2>
 
-              <p className="text-[14px] text-gray-600">
+              <p className="text-[13px] sm:text-[14px] text-gray-600">
                 NIM: {mahasiswa?.nim || mahasiswaFromState?.nim || "-"}
               </p>
 
-              <div>
-                <span className="inline-block bg-[#115E59] text-white text-[12px] px-4 py-1.5 rounded-full font-bold shadow-sm">
+              <div className="mt-1">
+                <span className="inline-block bg-[#115E59] text-white text-[11px] sm:text-[12px] px-4 py-1.5 rounded-full font-bold shadow-sm">
                   {batchLabel}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="text-right flex flex-col items-end gap-1 max-w-[320px]">
+          <div className="w-full md:w-auto text-left md:text-right flex flex-col items-start md:items-end gap-1.5 border-t border-gray-100 md:border-none pt-4 md:pt-0">
             <span
               className={`${badgeClass(
                 detailStatus,
-              )} text-white text-[13px] px-6 py-1.5 rounded-full font-bold shadow-sm inline-block`}
+              )} text-[12px] sm:text-[13px] px-5 py-1.5 rounded-full font-bold shadow-sm inline-block`}
             >
               {statusLabel}
             </span>
 
-            <p className="text-[11px] text-gray-500 font-medium">
+            <p className="text-[11px] sm:text-[12px] text-gray-600 font-medium mt-1">
               {detailKeterangan}
             </p>
 
-            <p className="text-[10px] text-gray-400 italic leading-relaxed text-right">
+            <p className="text-[10px] sm:text-[11px] text-gray-400 italic leading-relaxed text-left md:text-right">
               {detailDeskripsi}
             </p>
 
-            {/* 🔥 Tombol ini sekarang HANYA muncul jika dipenuhi dua syarat di atas */}
             {statusLabel === "Terbit" && canViewDocuments && (
               <button
                 onClick={handleLinkDokumenValid}
-                className="flex items-center gap-1.5 text-xs font-semibold text-[#0B4B48] hover:underline mt-2"
+                className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-[#0B4B48] hover:underline mt-2 bg-teal-50 px-3 py-1.5 rounded-md md:bg-transparent md:p-0"
               >
                 <FiExternalLink size={12} />
                 Lihat Dokumen Valid
@@ -444,16 +435,18 @@ const DetailMahasiswa = () => {
           </div>
         </div>
 
+        {/* INFORMASI SECTION - RESPONSIVE FIX */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-            <div className="bg-[#F3F4F6] px-6 py-4 flex items-center gap-2 border-b border-gray-200">
+            <div className="bg-[#F3F4F6] px-4 sm:px-6 py-4 flex items-center gap-2 border-b border-gray-200">
               <FiUser size={16} className="text-gray-800" />
               <h3 className="text-[14px] font-bold text-gray-800">
                 Informasi Pribadi
               </h3>
             </div>
 
-            <div className="p-6 grid grid-cols-2 gap-y-6 gap-x-8 text-[14px]">
+            {/* Ubah grid-cols-2 menjadi grid-cols-1 di mobile, dan grid-cols-2 di layar sm ke atas */}
+            <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-y-4 sm:gap-y-6 gap-x-4 sm:gap-x-8 text-[13px] sm:text-[14px]">
               <InfoItem label="Nama" value={mahasiswa?.nama_mahasiswa} />
               <InfoItem label="NIM" value={mahasiswa?.nim} />
               <InfoItem label="NIK" value={mahasiswa?.nik} />
@@ -470,7 +463,7 @@ const DetailMahasiswa = () => {
                 value={mahasiswa?.jenis_kelamin}
               />
 
-              <InfoItem label="Email" value={mahasiswa?.email} />
+              <InfoItem label="Email" value={mahasiswa?.email} className="break-all" />
               <InfoItem label="No Telepon" value={mahasiswa?.telepon} />
 
               <InfoItem
@@ -483,14 +476,14 @@ const DetailMahasiswa = () => {
           </div>
 
           <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-            <div className="bg-[#F3F4F6] px-6 py-4 flex items-center gap-2 border-b border-gray-200">
+            <div className="bg-[#F3F4F6] px-4 sm:px-6 py-4 flex items-center gap-2 border-b border-gray-200">
               <FiBook size={16} className="text-gray-800" />
               <h3 className="text-[14px] font-bold text-gray-800">
                 Informasi Akademik
               </h3>
             </div>
 
-            <div className="p-6 grid grid-cols-2 gap-y-6 gap-x-8 text-[14px]">
+            <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-y-4 sm:gap-y-6 gap-x-4 sm:gap-x-8 text-[13px] sm:text-[14px]">
               <InfoItem label="Fakultas" value={akademik?.fakultas} />
               <InfoItem label="Program Studi" value={akademik?.program_studi} />
               <InfoItem label="Tahun Masuk" value={akademik?.tahun_masuk} />
@@ -526,28 +519,30 @@ const DetailMahasiswa = () => {
           </div>
         </div>
 
+        {/* TRANSKRIP NILAI SECTION - RESPONSIVE FIX */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-          <div className="bg-[#F3F4F6] px-6 py-4 flex items-center gap-2 border-b border-gray-200">
+          <div className="bg-[#F3F4F6] px-4 sm:px-6 py-4 flex items-center gap-2 border-b border-gray-200">
             <FiFileText size={16} className="text-gray-800" />
-            <h3 className="text-[15px] font-bold text-gray-800">
+            <h3 className="text-[14px] sm:text-[15px] font-bold text-gray-800">
               Transkrip Nilai
             </h3>
           </div>
 
-          <div className="max-h-[500px] overflow-y-auto">
-            <table className="w-full text-[14px] text-gray-800">
-              <thead className="sticky top-0 bg-[#F9FAFB] border-b border-gray-200 text-gray-500">
+          {/* Menambahkan overflow-x-auto agar tabel bisa di-scroll menyamping di HP */}
+          <div className="max-h-[500px] overflow-y-auto overflow-x-auto w-full">
+            <table className="w-full text-[13px] sm:text-[14px] text-gray-800 min-w-[600px]">
+              <thead className="sticky top-0 bg-[#F9FAFB] border-b border-gray-200 text-gray-500 z-10">
                 <tr>
-                  <th className="px-6 py-4 font-bold text-center">Kode</th>
-                  <th className="px-6 py-4 font-bold text-left">
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 font-bold text-center whitespace-nowrap">Kode</th>
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 font-bold text-left whitespace-nowrap">
                     Nama Mata Kuliah
                   </th>
-                  <th className="px-6 py-4 font-bold text-center">SKS</th>
-                  <th className="px-6 py-4 font-bold text-center">
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 font-bold text-center whitespace-nowrap">SKS</th>
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 font-bold text-center whitespace-nowrap">
                     Nilai Mutu
                   </th>
-                  <th className="px-6 py-4 font-bold text-center">Bobot</th>
-                  <th className="px-6 py-4 font-bold text-center">Nilai</th>
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 font-bold text-center whitespace-nowrap">Bobot</th>
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 font-bold text-center whitespace-nowrap">Nilai</th>
                 </tr>
               </thead>
 
@@ -558,23 +553,23 @@ const DetailMahasiswa = () => {
                       key={`${n.kode || "matkul"}-${index}`}
                       className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                     >
-                      <td className="px-6 py-4 font-semibold text-center">
+                      <td className="px-4 sm:px-6 py-3 sm:py-4 font-semibold text-center whitespace-nowrap">
                         {n.kode || "-"}
                       </td>
-                      <td className="px-6 py-4 font-semibold">
+                      <td className="px-4 sm:px-6 py-3 sm:py-4 font-semibold">
                         {n.nama || "-"}
                       </td>
-                      <td className="px-6 py-4 font-semibold text-center">
+                      <td className="px-4 sm:px-6 py-3 sm:py-4 font-semibold text-center whitespace-nowrap">
                         {n.k ?? "-"}
                       </td>
-                      <td className="px-6 py-4 font-semibold text-center">
+                      <td className="px-4 sm:px-6 py-3 sm:py-4 font-semibold text-center whitespace-nowrap">
                         {n.am ?? "-"}
                       </td>
-                      <td className="px-6 py-4 font-semibold text-center">
+                      <td className="px-4 sm:px-6 py-3 sm:py-4 font-semibold text-center whitespace-nowrap">
                         {n.t ?? "-"}
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="inline-block bg-[#115E59] text-white px-4 py-1 rounded-full font-bold text-[12px]">
+                      <td className="px-4 sm:px-6 py-3 sm:py-4 text-center whitespace-nowrap">
+                        <span className="inline-block bg-[#115E59] text-white px-3 sm:px-4 py-1 rounded-full font-bold text-[11px] sm:text-[12px]">
                           {n.hm || "-"}
                         </span>
                       </td>
@@ -599,9 +594,10 @@ const DetailMahasiswa = () => {
   );
 };
 
-const InfoItem = ({ label, value }) => {
+// Modifikasi sedikit pada InfoItem agar kata panjang seperti email tidak tumpah
+const InfoItem = ({ label, value, className = "" }) => {
   return (
-    <div>
+    <div className={className}>
       <p className="text-gray-500 mb-1.5">{label}</p>
       <p className="font-bold text-gray-800">{value ?? "-"}</p>
     </div>

@@ -3,7 +3,6 @@ import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { FiBell, FiUser, FiMenu, FiX } from "react-icons/fi";
 import { useAuth } from "../../pages/context/AuthContext";
 import logo from "../../assets/img/Logo.jpg";
-import { getLatestRejectRevokeNotification } from "../../services/dashboard.api";
 import { getRejectRevokeNotifications } from "../../services/dashboard.api";
 
 const ROLES_WITH_NOTIF = [
@@ -118,7 +117,6 @@ const Navbar = () => {
 
   const activeMenus = menuConfig[userRole] || verifikatorMenu;
 
-  // 🔥 Hitung unread: notif yang id_log-nya belum ada di readIds
   const unreadCount = notifications.filter(
     (n) => !readIds.includes(n.id_log)
   ).length;
@@ -163,7 +161,6 @@ const Navbar = () => {
     return getDashboardPath();
   };
 
-  // 🔥 Buka panel notif → tandai semua sebagai read
   const handleToggleNotif = () => {
     const next = !showNotif;
     setShowNotif(next);
@@ -176,7 +173,6 @@ const Navbar = () => {
     }
   };
 
-  // 🔥 Lihat Lainnya: navigate ke pelaporan, tutup panel
   const handleNotificationClick = () => {
     setShowNotif(false);
     navigate(getNotificationTargetPath());
@@ -225,9 +221,9 @@ const Navbar = () => {
 
   const linkClass = (path) => {
     const isActive = isRouteActive(path);
-    return `px-4 py-2 text-sm font-medium transition-all duration-300 relative
+    return `px-2 lg:px-4 py-2 text-sm font-medium transition-all duration-300 relative whitespace-nowrap
       ${isActive ? "text-[#0B6B63]" : "text-gray-500 hover:text-[#0B6B63]"}
-      ${isActive ? "after:absolute after:left-0 after:-bottom-1 after:w-full after:h-[0.5px] after:bg-[#0B6B63]" : ""}`;
+      ${isActive ? "after:absolute after:left-0 after:-bottom-3 after:w-full after:h-[2px] after:bg-[#0B6B63]" : ""}`;
   };
 
   const mobileLinkClass = (path) => {
@@ -242,7 +238,7 @@ const Navbar = () => {
   const ProfileSubtitle = () => {
     if (!displaySubtitle) return null;
     return (
-      <div className="text-[12px] text-gray-500 font-medium tracking-wide capitalize mt-0.5">
+      <div className="text-[11px] sm:text-[12px] text-gray-500 font-medium tracking-wide capitalize mt-0.5 max-w-[80px] sm:max-w-[120px] truncate">
         {displaySubtitle}
       </div>
     );
@@ -250,23 +246,23 @@ const Navbar = () => {
 
   return (
     <nav className={`w-full bg-white sticky top-0 z-50 border-b border-gray-100 transition-shadow duration-300 ${scrolled ? "shadow-md" : "shadow-sm"}`}>
-      <div className="px-4 md:px-8 py-3 flex items-center justify-between">
+      <div className="px-4 md:px-6 lg:px-8 py-3 flex items-center justify-between gap-2">
 
-        {/* Logo */}
-        <NavLink to={getDashboardPath()} className="flex items-center gap-3 cursor-pointer group">
+        {/* Logo Section */}
+        <NavLink to={getDashboardPath()} className="flex items-center gap-2 sm:gap-3 cursor-pointer group min-w-0 max-w-[60%] sm:max-w-none">
           <img
             src={logo}
             alt="Logo UIKA"
-            className="w-10 h-10 md:w-12 md:h-12 object-contain transition-transform group-hover:scale-105"
+            className="w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-12 object-contain transition-transform group-hover:scale-105 shrink-0"
           />
-          <div className="leading-tight hidden sm:block">
-            <div className="text-black font-semibold text-xs md:text-sm">Universitas</div>
-            <div className="text-[#0B6B63] font-bold text-xs md:text-sm">Ibn Khaldun Bogor</div>
+          <div className="leading-tight flex flex-col justify-center min-w-0">
+            <div className="text-black font-semibold text-[10px] sm:text-[11px] md:text-sm truncate">Universitas</div>
+            <div className="text-[#0B6B63] font-bold text-[10px] sm:text-[11px] md:text-sm truncate">Ibn Khaldun Bogor</div>
           </div>
         </NavLink>
 
-        {/* Desktop Nav */}
-        <div className="hidden md:flex gap-4 lg:gap-8">
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center gap-2 lg:gap-6 overflow-x-auto">
           {activeMenus.map((menu, idx) => (
             <NavLink key={idx} to={menu.path} className={() => linkClass(menu.path)}>
               {menu.name}
@@ -274,10 +270,10 @@ const Navbar = () => {
           ))}
         </div>
 
-        {/* Right Side */}
-        <div className="flex items-center gap-3 md:gap-5">
+        {/* Right Action Elements */}
+        <div className="flex items-center gap-1.5 sm:gap-3 md:gap-4 shrink-0">
 
-          {/* Notifikasi */}
+          {/* Notifikasi Dropdown Panel */}
           {showNotifIcon && (
             <div className="relative" ref={notifRef}>
               <button
@@ -285,38 +281,37 @@ const Navbar = () => {
                 className="relative p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-400 hover:text-[#0B6B63]"
               >
                 <FiBell size={20} />
-                {/* 🔥 Badge hanya tampil jika ada yang unread */}
                 {unreadCount > 0 && (
-                  <span className="absolute -top-0 -right-0 min-w-[8px] h-[8px] px-1 bg-red-500 text-white text-[200px] rounded-full flex items-center justify-center">
-    
-                  </span>
+                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
                 )}
               </button>
 
               {showNotif && (
-                <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-100 shadow-2xl rounded-2xl p-4 z-50">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
-                    Notifikasi
+                // 🔥 SOLUSI FINAL ANTI KEPOTONG: 
+                // Di Mobile: Menggunakan fixed position, menempel aman dari kiri dan kanan layar (left-4 right-4).
+                // Di Desktop (sm+): Kembali menggunakan absolute agar menempel rapi di bawah icon lonceng.
+                <div className="fixed top-[64px] left-4 right-4 sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:w-[360px] md:w-[420px] sm:mt-3 bg-white border border-gray-100 shadow-2xl rounded-2xl p-4 sm:p-5 z-[100]">
+                  <h3 className="text-[11px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 sm:mb-4">
+                    Notifikasi Terbaru
                   </h3>
 
                   {notifications.length > 0 ? (
                     <>
-                      <div className="space-y-2 max-h-80 overflow-y-auto">
+                      <div className="space-y-2.5 sm:space-y-3 max-h-[60vh] sm:max-h-80 overflow-y-auto pr-1">
                         {notifications.map((notif) => {
                           const isRead = readIds.includes(notif.id_log);
                           return (
-                           // SESUDAH
-                              <div
-                                key={notif.id_log}
-                                className={`w-full text-left border rounded-xl p-3 transition-colors ${
-                                  isRead
-                                    ? "border-gray-100 bg-white"
-                                    : "border-green-100 bg-green-50"
-                                }`}
-                              >
-                              <div className="flex items-start gap-3">
+                            <div
+                              key={notif.id_log}
+                              className={`w-full text-left border rounded-xl p-3.5 sm:p-4 transition-colors ${
+                                isRead
+                                  ? "border-gray-50 bg-white"
+                                  : "border-green-100 bg-green-50/70"
+                              }`}
+                            >
+                              <div className="flex items-start gap-3 sm:gap-4">
                                 <span
-                                  className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                                  className={`mt-0.5 flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full text-xs sm:text-sm font-bold ${
                                     notif.type === "reject"
                                       ? "bg-red-50 text-red-600"
                                       : "bg-orange-50 text-orange-600"
@@ -325,23 +320,20 @@ const Navbar = () => {
                                   {notif.type === "reject" ? "R" : "V"}
                                 </span>
 
-                                <div className="min-w-0">
-                                  <p className="text-xs font-semibold text-gray-800">
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-xs sm:text-[13px] font-bold text-gray-800 break-words leading-tight">
                                     {notif.title || "Aktivitas terbaru"}
                                   </p>
-                                  <p className="text-xs text-gray-500 mt-1">
+                                  <p className="text-[11px] sm:text-xs text-gray-600 mt-1.5 break-words leading-relaxed">
                                     {notif.message || "Ada aktivitas reject/revoke terbaru."}
                                   </p>
-                                  {notif.time_label && (
-                                    <p className="text-[11px] text-gray-400 mt-2">
-                                      {notif.time_label} WIB
-                                    </p>
-                                  )}
+                                  <p className="text-[10px] text-gray-400 mt-2 font-medium">
+                                    {notif.time_label} WIB
+                                  </p>
                                 </div>
 
-                                {/* 🔥 Dot unread */}
                                 {!isRead && (
-                                  <span className="mt-1 ml-auto w-2 h-2 rounded-full bg-[#0B6B63] shrink-0" />
+                                  <span className="mt-1 w-2.5 h-2.5 sm:w-2 sm:h-2 rounded-full bg-[#0B6B63] shrink-0" />
                                 )}
                               </div>
                             </div>
@@ -349,54 +341,64 @@ const Navbar = () => {
                         })}
                       </div>
 
-                      {/* 🔥 Lihat Lainnya — satu-satunya yang bisa diklik */}
                       <button
                         type="button"
                         onClick={handleNotificationClick}
-                        className="mt-3 w-full py-2 rounded-xl bg-[#0B6B63] hover:bg-[#0B6B63] text-white text-xs font-bold transition-colors"
+                        className="mt-4 w-full py-2.5 sm:py-3 rounded-xl bg-[#0B6B63] hover:brightness-110 text-white text-[11px] sm:text-xs font-bold transition-all shadow-sm"
                       >
-                        Lihat Lainnya
+                        Lihat Semua Laporan
                       </button>
                     </>
                   ) : (
-                    <p className="text-xs text-gray-500 italic text-center py-2">
-                      Tidak ada notifikasi reject/revoke.
-                    </p>
+                    <div className="flex flex-col items-center justify-center py-6 sm:py-8">
+                      <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                        <FiBell className="text-gray-300 text-xl" />
+                      </div>
+                      <p className="text-xs sm:text-[13px] text-gray-500 font-medium text-center">
+                        Belum ada notifikasi
+                      </p>
+                      <p className="text-[10px] sm:text-[11px] text-gray-400 text-center mt-1">
+                        Aktivitas reject/revoke akan muncul di sini.
+                      </p>
+                    </div>
                   )}
                 </div>
               )}
             </div>
           )}
 
-          {/* Profile */}
+          {/* Profile Controls */}
           <div
-            className="flex items-center gap-3 border-l pl-3 md:pl-4 cursor-pointer group"
+            className="flex items-center gap-2 border-l pl-2 sm:pl-3 md:pl-4 cursor-pointer group min-w-0"
             onClick={handleProfileClick}
           >
-            <div className="text-right leading-tight hidden sm:block">
-              <div className="text-gray-800 font-bold text-sm capitalize">{displayTitle}</div>
+            <div className="text-right leading-tight hidden sm:block min-w-0">
+              <div className="text-gray-800 font-bold text-sm capitalize max-w-[80px] sm:max-w-[120px] truncate">
+                {displayTitle}
+              </div>
               <ProfileSubtitle />
             </div>
-            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-[#0B6B63] flex items-center justify-center text-[#0B6B63] bg-gray-50 group-hover:bg-[#0B6B63] group-hover:text-white transition-all duration-300">
-              <FiUser size={18} />
+            <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-full border-2 border-[#0B6B63] flex items-center justify-center text-[#0B6B63] bg-gray-50 group-hover:bg-[#0B6B63] group-hover:text-white transition-all duration-300 shrink-0 shadow-sm">
+              <FiUser size={16} className="sm:w-[18px] sm:h-[18px]" />
             </div>
           </div>
 
-          {/* Hamburger */}
-          <div className="md:hidden" ref={mobileMenuRef}>
+          {/* Mobile Hamburger Menu Toggle Button */}
+          <div className="md:hidden flex items-center" ref={mobileMenuRef}>
             <button
               onClick={() => setOpenMenu(!openMenu)}
-              className="p-2 rounded-xl hover:bg-gray-100 transition-colors text-gray-600 hover:text-[#0B6B63]"
+              className="p-1.5 sm:p-2 rounded-xl hover:bg-gray-100 transition-colors text-gray-600 hover:text-[#0B6B63]"
+              aria-label="Toggle Menu"
             >
-              {openMenu ? <FiX size={22} /> : <FiMenu size={22} />}
+              {openMenu ? <FiX size={20} /> : <FiMenu size={20} />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Menu */}
-      <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${openMenu ? "max-h-screen opacity-100" : "max-h-0 opacity-0"}`}>
-        <div className="px-4 pb-4 pt-1 border-t border-gray-100 bg-white space-y-1">
+      {/* Mobile Drawer Menu Block */}
+      <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${openMenu ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}>
+        <div className="px-4 pb-4 pt-1 border-t border-gray-100 bg-white space-y-1 shadow-inner">
           {activeMenus.map((menu, idx) => (
             <NavLink
               key={idx}
@@ -412,11 +414,11 @@ const Navbar = () => {
             className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-gray-50 rounded-xl transition-colors"
             onClick={() => { handleProfileClick(); setOpenMenu(false); }}
           >
-            <div className="w-8 h-8 rounded-full border-2 border-[#0B6B63] flex items-center justify-center text-[#0B6B63] bg-gray-50">
+            <div className="w-8 h-8 rounded-full border-2 border-[#0B6B63] flex items-center justify-center text-[#0B6B63] bg-gray-50 shrink-0">
               <FiUser size={16} />
             </div>
-            <div>
-              <div className="text-gray-800 font-bold text-sm capitalize">{displayTitle}</div>
+            <div className="min-w-0">
+              <div className="text-gray-800 font-bold text-sm capitalize truncate max-w-[180px]">{displayTitle}</div>
               <ProfileSubtitle />
             </div>
           </div>

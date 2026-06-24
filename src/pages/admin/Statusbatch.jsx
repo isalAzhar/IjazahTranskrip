@@ -124,6 +124,50 @@ const getBadgeLabel = (status) => {
 };
 
 // ==========================================
+// KOMPONEN KARTU MAHASISWA (Mobile View)
+// ==========================================
+const MahasiswaCard = ({ mhs, index, onDetail }) => (
+  <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+    <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start gap-3 flex-1 min-w-0">
+        <span className="text-xs font-bold text-gray-400 mt-0.5 shrink-0">{index + 1}.</span>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-gray-900 text-sm leading-tight truncate">{mhs.nama || "-"}</p>
+          <p className="text-xs text-gray-500 mt-0.5">{mhs.nim || "-"}</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => onDetail(mhs)}
+        className="shrink-0 w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-100 transition"
+        aria-label="Lihat detail"
+      >
+        <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>
+      </button>
+    </div>
+
+    <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+      <div>
+        <span className="text-gray-400 uppercase tracking-wide font-semibold text-[10px]">Program Studi</span>
+        <p className="text-gray-800 font-medium mt-0.5 leading-tight">{mhs.prodi || "-"}</p>
+      </div>
+      <div>
+        <span className="text-gray-400 uppercase tracking-wide font-semibold text-[10px]">Tahun Lulus</span>
+        <p className="text-gray-800 font-semibold mt-0.5">{mhs.tahun || mhs.tahun_lulus || "-"}</p>
+      </div>
+      <div className="col-span-2">
+        <span className="text-gray-400 uppercase tracking-wide font-semibold text-[10px]">Status</span>
+        <div className="mt-1">
+          <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${getBadgeColor(mhs.status)}`}>
+            {getBadgeLabel(mhs.status)}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// ==========================================
 // KOMPONEN UTAMA
 // ==========================================
 const Statusbatch = () => {
@@ -283,7 +327,6 @@ const Statusbatch = () => {
     return [...mahasiswa].sort((a, b) => (a.nama || "").localeCompare(b.nama || ""));
   }, [mahasiswa]);
 
-  // 🔥 UPDATE: Fungsi navigasi yang kebal peluru dan menyertakan source dokumen_valid
   const handleDetailMahasiswa = (item) => {
     const mahasiswaCode =
       item.mahasiswa_code ||
@@ -311,7 +354,6 @@ const Statusbatch = () => {
       batch: item.batch || batchData?.nama_batch,
     };
 
-    // State navigasi lengkap menyertakan source
     const navState = { 
       state: { 
         mahasiswa: formattedMahasiswa, 
@@ -343,99 +385,143 @@ const Statusbatch = () => {
 
   return (
     <DashboardLayout>
-      <div className="w-full pb-10">
-        
+      <div className="w-full pb-10 px-0 sm:px-0">
+
         {/* HEADER TITLE */}
-        <div className="mb-6">
-          <h1 className="text-[28px] font-bold text-gray-900 tracking-tight capitalize">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-[22px] sm:text-[28px] font-bold text-gray-900 tracking-tight capitalize">
             Detail Batch {displayLabel}
           </h1>
-          <p className="text-[#9CA3AF] text-[14px] font-medium capitalize mt-1">
+          <p className="text-[#9CA3AF] text-[13px] sm:text-[14px] font-medium capitalize mt-1">
             Daftar Mahasiswa dengan Status {displayLabel}
           </p>
-          {apiError && <p className="text-sm text-red-500 font-semibold mt-2">{apiError}</p>}
+          {apiError && (
+            <p className="text-sm text-red-500 font-semibold mt-2">{apiError}</p>
+          )}
         </div>
 
-        {/* HEADER INFO */}
-        <div className="mb-6 px-6 py-4 bg-white border border-gray-200 rounded-xl flex flex-wrap items-center gap-x-12 gap-y-4 shadow-sm relative overflow-hidden">
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#117065]"></div>
-          
-          <div className="flex flex-col">
-            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">No Batch</span>
-            <span className="text-[14px] font-bold text-gray-800">{batchData.nama_batch}</span>
+        {/* HEADER INFO — scroll horizontal di mobile, grid di tablet+ */}
+        <div className="mb-5 sm:mb-6 px-4 sm:px-6 py-4 bg-white border border-gray-200 rounded-xl shadow-sm relative overflow-hidden">
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#117065] rounded-l-xl"></div>
+
+          {/* Mobile: 2-kolom grid rapi */}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:hidden pl-2">
+            <InfoItem label="No Batch" value={batchData.nama_batch} />
+            <InfoItem label="Tahun Lulus" value={batchData.tahun_lulus} />
+            <InfoItem label="Fakultas" value={batchData.fakultas} wide />
+            <InfoItem label="Periode" value={batchData.periode_label} />
+            <div className="col-span-2">
+              <InfoItem label="Total Record" value={batchData.total_record_label} highlight />
+            </div>
           </div>
 
-          <div className="flex flex-col max-w-md">
-            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Fakultas</span>
-            <span className="text-[14px] font-bold text-gray-800 break-words">{batchData.fakultas}</span>
-          </div>
-
-          <div className="flex flex-col">
-            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Tahun Lulus</span>
-            <span className="text-[14px] font-bold text-gray-800">{batchData.tahun_lulus}</span>
-          </div>
-
-          <div className="flex flex-col">
-            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Periode</span>
-            <span className="text-[14px] font-bold text-gray-800">{batchData.periode_label}</span>
-          </div>
-
-          <div className="flex flex-col">
-            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Total Record</span>
-            <span className="text-[14px] font-bold text-[#117065] bg-teal-50 px-2 py-0.5 rounded-md inline-block text-center w-fit">
-              {batchData.total_record_label}
-            </span>
+          {/* Tablet/Desktop: flex row seperti semula */}
+          <div className="hidden sm:flex flex-wrap items-center gap-x-12 gap-y-4 pl-2">
+            <InfoItem label="No Batch" value={batchData.nama_batch} />
+            <InfoItem label="Fakultas" value={batchData.fakultas} wide />
+            <InfoItem label="Tahun Lulus" value={batchData.tahun_lulus} />
+            <InfoItem label="Periode" value={batchData.periode_label} />
+            <InfoItem label="Total Record" value={batchData.total_record_label} highlight />
           </div>
         </div>
 
-        {/* TABEL MAHASISWA */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-          <table className="w-full text-sm text-left whitespace-nowrap">
-            <thead className="bg-[#F9FAFB] text-gray-500 font-bold border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-4 text-center w-16">No</th>
-                <th className="px-6 py-4 text-left">Nama</th>
-                <th className="px-6 py-4 text-center">NIM</th>
-                <th className="px-6 py-4 text-center">Program Studi</th>
-                <th className="px-6 py-4 text-center">Tahun Lulus</th>
-                <th className="px-6 py-4 text-center">Status</th>
-                <th className="px-6 py-4 text-center w-20">Detail</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedMahasiswa.length > 0 ? (
-                sortedMahasiswa.map((mhs, i) => (
-                  <tr key={mhs.id || mhs.id_mahasiswa || i} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-center font-bold text-gray-800">{i + 1}.</td>
-                    <td className="px-6 py-4 font-bold text-gray-900">{mhs.nama || "-"}</td>
-                    <td className="px-6 py-4 text-center text-gray-800">{mhs.nim || "-"}</td>
-                    <td className="px-6 py-4 text-center text-gray-800">{mhs.prodi || "-"}</td>
-                    <td className="px-6 py-4 text-center font-semibold text-gray-700">{mhs.tahun || mhs.tahun_lulus || "-"}</td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`inline-block min-w-[86px] px-4 py-1.5 rounded-full text-xs font-bold ${getBadgeColor(mhs.status)}`}>
-                        {getBadgeLabel(mhs.status)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <button type="button" onClick={() => handleDetailMahasiswa(mhs)} className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition">
-                        <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>
-                      </button>
+        {/* TABEL — hanya tampil di md ke atas */}
+        <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+          {/* Wrapper scroll horizontal untuk layar sedang */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left" style={{ minWidth: "640px" }}>
+              <thead className="bg-[#F9FAFB] text-gray-500 font-bold border-b border-gray-200">
+                <tr>
+                  <th className="px-4 lg:px-6 py-4 text-center w-12 lg:w-16">No</th>
+                  <th className="px-4 lg:px-6 py-4 text-left">Nama</th>
+                  <th className="px-4 lg:px-6 py-4 text-center">NIM</th>
+                  <th className="px-4 lg:px-6 py-4 text-center">Program Studi</th>
+                  <th className="px-4 lg:px-6 py-4 text-center">Tahun Lulus</th>
+                  <th className="px-4 lg:px-6 py-4 text-center">Status</th>
+                  <th className="px-4 lg:px-6 py-4 text-center w-16 lg:w-20">Detail</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedMahasiswa.length > 0 ? (
+                  sortedMahasiswa.map((mhs, i) => (
+                    <tr
+                      key={mhs.id || mhs.id_mahasiswa || i}
+                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-4 lg:px-6 py-4 text-center font-bold text-gray-800">{i + 1}.</td>
+                      <td className="px-4 lg:px-6 py-4 font-bold text-gray-900 max-w-[200px] lg:max-w-none truncate">{mhs.nama || "-"}</td>
+                      <td className="px-4 lg:px-6 py-4 text-center text-gray-800 whitespace-nowrap">{mhs.nim || "-"}</td>
+                      <td className="px-4 lg:px-6 py-4 text-center text-gray-800">{mhs.prodi || "-"}</td>
+                      <td className="px-4 lg:px-6 py-4 text-center font-semibold text-gray-700 whitespace-nowrap">{mhs.tahun || mhs.tahun_lulus || "-"}</td>
+                      <td className="px-4 lg:px-6 py-4 text-center">
+                        <span className={`inline-block min-w-[80px] lg:min-w-[86px] px-3 lg:px-4 py-1.5 rounded-full text-xs font-bold ${getBadgeColor(mhs.status)}`}>
+                          {getBadgeLabel(mhs.status)}
+                        </span>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 text-center">
+                        <button
+                          type="button"
+                          onClick={() => handleDetailMahasiswa(mhs)}
+                          className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition"
+                        >
+                          <div className="w-3 h-3 border-t-2 border-b-2 border-gray-500"></div>
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="7" className="px-6 py-8 text-center text-gray-400 capitalize">
+                      Data mahasiswa {currentStatus} tidak ditemukan.
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="7" className="px-6 py-8 text-center text-gray-400 capitalize">
-                    Data mahasiswa {currentStatus} tidak ditemukan.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
+
+        {/* KARTU LIST — hanya tampil di bawah md (mobile & small tablet) */}
+        <div className="md:hidden space-y-3">
+          {sortedMahasiswa.length > 0 ? (
+            sortedMahasiswa.map((mhs, i) => (
+              <MahasiswaCard
+                key={mhs.id || mhs.id_mahasiswa || i}
+                mhs={mhs}
+                index={i}
+                onDetail={handleDetailMahasiswa}
+              />
+            ))
+          ) : (
+            <div className="bg-white border border-gray-200 rounded-xl px-6 py-8 text-center text-gray-400 capitalize shadow-sm">
+              Data mahasiswa {currentStatus} tidak ditemukan.
+            </div>
+          )}
+        </div>
+
       </div>
     </DashboardLayout>
   );
 };
+
+// ==========================================
+// HELPER KOMPONEN INFO ITEM
+// ==========================================
+const InfoItem = ({ label, value, wide = false, highlight = false }) => (
+  <div className={wide ? "col-span-2 sm:col-span-1" : ""}>
+    <span className="text-[10px] sm:text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5 block">
+      {label}
+    </span>
+    {highlight ? (
+      <span className="text-[13px] sm:text-[14px] font-bold text-[#117065] bg-teal-50 px-2 py-0.5 rounded-md inline-block text-center w-fit">
+        {value}
+      </span>
+    ) : (
+      <span className="text-[13px] sm:text-[14px] font-bold text-gray-800 break-words">
+        {value}
+      </span>
+    )}
+  </div>
+);
 
 export default Statusbatch;

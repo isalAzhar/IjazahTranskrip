@@ -110,7 +110,6 @@ const StatusIjazah = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // 🔥 1. EFFECT BARU: Khusus mengambil opsi Dropdown secara global (tanpa filter tahun/search)
   useEffect(() => {
     const fetchGlobalOptions = async () => {
       try {
@@ -120,7 +119,6 @@ const StatusIjazah = () => {
         });
         const rows = Array.isArray(result?.data) ? result.data : [];
         
-        // Daftarkan ke state agar dropdown tidak berubah-ubah nilainya
         setFakultasList(buildFakultasOptions(rows));
         setYears(buildYearOptions(rows));
       } catch (error) {
@@ -149,7 +147,6 @@ const StatusIjazah = () => {
     return text.includes(keyword);
   };
 
-  // 2. EFFECT UTAMA: Tetap digunakan untuk fetch data tabel yang dinamis
   useEffect(() => {
     const fetchIjazahData = async () => {
       try {
@@ -205,7 +202,6 @@ const StatusIjazah = () => {
         });
 
         setBatchData(finalData);
-        // 🔥 BARIS setFakultasList DAN setYears SUDAH DIHAPUS DARI SINI AGAR TIDAK OVERWRITE DROPDOWN
 
         if (debouncedSearch.trim()) {
           const keyword = debouncedSearch.toLowerCase().trim();
@@ -292,31 +288,30 @@ const StatusIjazah = () => {
           ? item.status_email === statusEmail
           : true;
 
-    return (
-      matchSearch && matchesFakultas && matchesTahun && matchesStatusEmail
-    );
-  })
-  .sort((a, b) => {
-    const batchA = String(
-      a.batch ||
-        a.nomor_batch_upload ||
-        a.raw?.nomor_batch_upload ||
-        "",
-    ).trim();
+      return (
+        matchSearch && matchesFakultas && matchesTahun && matchesStatusEmail
+      );
+    })
+    .sort((a, b) => {
+      const batchA = String(
+        a.batch ||
+          a.nomor_batch_upload ||
+          a.raw?.nomor_batch_upload ||
+          "",
+      ).trim();
 
-    const batchB = String(
-      b.batch ||
-        b.nomor_batch_upload ||
-        b.raw?.nomor_batch_upload ||
-        "",
-    ).trim();
+      const batchB = String(
+        b.batch ||
+          b.nomor_batch_upload ||
+          b.raw?.nomor_batch_upload ||
+          "",
+      ).trim();
 
-    return batchA.localeCompare(batchB, "id", {
-      numeric: true,
-      sensitivity: "base",
+      return batchA.localeCompare(batchB, "id", {
+        numeric: true,
+        sensitivity: "base",
+      });
     });
-  });
-
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginatedData = filtered.slice(
@@ -353,42 +348,42 @@ const StatusIjazah = () => {
       },
     });
   };
+
   const getRolePath = (role) => {
-  const normalizedRole = String(role || "").toLowerCase();
+    const normalizedRole = String(role || "").toLowerCase();
 
-  if (normalizedRole.includes("rektor")) return "rektor";
-  if (normalizedRole.includes("operator")) return "operator";
-  if (normalizedRole.includes("verifikator")) return "verifikator";
-  if (normalizedRole.includes("admin")) return "admin";
+    if (normalizedRole.includes("rektor")) return "rektor";
+    if (normalizedRole.includes("operator")) return "operator";
+    if (normalizedRole.includes("verifikator")) return "verifikator";
+    if (normalizedRole.includes("admin")) return "admin";
 
-  return "operator";
-};
+    return "operator";
+  };
 
   const handleGoDetailMahasiswa = (student) => {
-  const mahasiswaCode =
-    student.mahasiswa_code ||
-    student.mahasiswaCode ||
-    student.uuid ||
-    student.mahasiswa_uuid ||
-    student.raw?.mahasiswa_code ||
-    student.raw?.uuid;
+    const mahasiswaCode =
+      student.mahasiswa_code ||
+      student.mahasiswaCode ||
+      student.uuid ||
+      student.mahasiswa_uuid ||
+      student.raw?.mahasiswa_code ||
+      student.raw?.uuid;
 
-  if (!mahasiswaCode) {
-    console.error("Kode mahasiswa tidak ditemukan:", student);
-    alert("Kode mahasiswa tidak ditemukan pada data ini.");
-    return;
-  }
+    if (!mahasiswaCode) {
+      console.error("Kode mahasiswa tidak ditemukan:", student);
+      alert("Kode mahasiswa tidak ditemukan pada data ini.");
+      return;
+    }
 
-  const safeCode = encodeURIComponent(mahasiswaCode);
-  const rolePath = getRolePath(userRole);
+    const safeCode = encodeURIComponent(mahasiswaCode);
+    const rolePath = getRolePath(userRole);
 
-  navigate(`/${rolePath}/detail-mahasiswa/${safeCode}`, {
-    state: {
-      mahasiswa: student,
-     
-    },
-  });
-};
+    navigate(`/${rolePath}/detail-mahasiswa/${safeCode}`, {
+      state: {
+        mahasiswa: student,
+      },
+    });
+  };
 
   const renderPaginationButtons = () => {
     const pages = [];
@@ -409,7 +404,7 @@ const StatusIjazah = () => {
         type="button"
         onClick={() => typeof page === "number" && handlePageChange(page)}
         disabled={page === "..."}
-        className={`w-8 h-8 flex items-center justify-center rounded text-xs font-bold shadow-sm transition-colors ${
+        className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded text-xs font-bold shadow-sm transition-colors ${
           page === currentPage
             ? "bg-[#117065] text-white"
             : page === "..."
@@ -435,8 +430,8 @@ const StatusIjazah = () => {
   return (
     <DashboardLayout>
       <div className="w-full">
-        <div className="mb-6">
-          <h1 className="text-[26px] font-bold text-gray-900 capitalize">
+        <div className="mb-6 px-1 sm:px-0">
+          <h1 className="text-xl sm:text-[26px] font-bold text-gray-900 capitalize">
             List Ijazah {displayLabel}
           </h1>
           <p className="text-[#9CA3AF] text-sm mt-1 capitalize">
@@ -449,10 +444,12 @@ const StatusIjazah = () => {
           )}
         </div>
 
-        {/* FILTER BOX */}
+        {/* FILTER BOX RESPONSIVE & EDGE FIX */}
         <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm mb-6">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-            <div className="w-full lg:max-w-md">
+          <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 xl:gap-6">
+            
+            {/* Search Input */}
+            <div className="w-full xl:max-w-md shrink-0">
               <div className="flex items-center bg-white border border-gray-300 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
                 <FiSearch className="text-gray-400 text-lg mr-3 flex-shrink-0" />
                 <input
@@ -468,8 +465,10 @@ const StatusIjazah = () => {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-              <div className="relative w-full sm:w-80">
+            {/* Dropdown Filters */}
+            <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full xl:w-auto justify-start xl:justify-end">
+              
+              <div className="relative w-full sm:w-auto sm:flex-1 md:flex-none xl:w-56 shrink-0">
                 <select
                   value={fakultas}
                   onChange={(e) => setFakultas(e.target.value)}
@@ -485,7 +484,7 @@ const StatusIjazah = () => {
                 <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
               </div>
 
-              <div className="relative w-full sm:w-40">
+              <div className="relative w-full sm:w-auto sm:flex-1 md:flex-none xl:w-40 shrink-0">
                 <select
                   value={tahun}
                   onChange={(e) => setTahun(e.target.value)}
@@ -502,7 +501,7 @@ const StatusIjazah = () => {
               </div>
 
               {currentStatus === "terbit" && (
-                <div className="relative w-full sm:w-52">
+                <div className="relative w-full sm:w-auto sm:flex-1 md:flex-none xl:w-48 shrink-0">
                   <select
                     value={statusEmail}
                     onChange={(e) => setStatusEmail(e.target.value)}
@@ -543,17 +542,17 @@ const StatusIjazah = () => {
                     setDebouncedSearch("");
                     handleGoDetailMahasiswa(mhs);
                   }}
-                  className={`px-6 py-4 flex flex-col gap-1 hover:bg-gray-50 cursor-pointer transition-colors ${
+                  className={`px-4 sm:px-6 py-4 flex flex-col gap-1 hover:bg-gray-50 cursor-pointer transition-colors ${
                     index !== mahasiswaSearchResults.length - 1
                       ? "border-b border-gray-100"
                       : ""
                   }`}
                 >
-                  <div className="font-bold text-gray-900 text-[15px]">
+                  <div className="font-bold text-gray-900 text-[14px] sm:text-[15px] break-words">
                     {mhs.nama || mhs.nama_mahasiswa || "-"}
                   </div>
                   
-                  <div className="text-sm text-gray-500 font-medium">
+                  <div className="text-xs sm:text-sm text-gray-500 font-medium break-words">
                     {mhs.nim || "-"} • {mhs.prodi || mhs.program_studi || mhs.nama_prodi || "-"}
                   </div>
                 </div>
@@ -562,115 +561,117 @@ const StatusIjazah = () => {
           </div>
         )}
 
-        {/* TABLE SECTION */}
+        {/* TABLE SECTION RESPONSIVE FIX */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <table className="w-full table-fixed text-sm">
-            <colgroup>
-              <col className="w-[5%]" />
-              <col className="w-[20%]" />
-              <col className="w-[20%]" />
-              <col className="w-[10%]" />
-              <col className="w-[15%]" />
-              <col className="w-[8%]" />
-              {currentStatus === "terbit" && <col className="w-[12%]" />}
-              <col className="w-[10%]" />
-            </colgroup>
-            <thead className="bg-[#F7F7F7] text-gray-500 border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-4 text-center">No</th>
-                <th className="px-4 py-4 text-left">List Batch</th>
-                <th className="px-4 py-4 text-center">Fakultas</th>
-                <th className="px-4 py-4 text-center">Tahun Lulus</th>
-                <th className="px-4 py-4 text-center">Periode</th>
-                <th className="px-4 py-4 text-center">Total</th>
-
-                {currentStatus === "terbit" && (
-                  <th className="px-4 py-4 text-center">Status Email</th>
-                )}
-
-                <th className="px-4 py-4 text-center">Detail</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedData.length > 0 ? (
-                paginatedData.map((item, i) => {
-                  const actualIndex = (currentPage - 1) * itemsPerPage + i + 1;
-                  return (
-                    <tr
-                      key={item.id || i}
-                      className="h-[70px] border-t border-gray-200 hover:bg-gray-50"
-                    >
-                      <td className="px-4 py-4 text-center align-middle">
-                        {actualIndex}
-                      </td>
-                      <td className="px-4 py-4 font-bold text-gray-900 align-middle">
-                        {item.batch}
-                      </td>
-                      <td className="py-4 px-4 text-center font-medium align-middle">
-                        {item.fakultas}
-                      </td>
-                      <td className="px-4 py-4 text-center font-semibold align-middle">
-                        {item.tahun}
-                      </td>
-                      <td className="px-4 py-4 text-center font-semibold align-middle">
-                        {item.periode}
-                      </td>
-                      <td className="px-4 py-4 text-center font-semibold align-middle">
-                        {item.total}
-                      </td>
-
-                      {currentStatus === "terbit" && (
-                        <td className="px-4 py-4 text-center align-middle">
-                          <span
-                            className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-md text-xs font-bold ${
-                              item.status_email === "Terkirim"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-orange-100 text-orange-700"
-                            }`}
-                          >
-                            {item.status_email}
-                          </span>
-                        </td>
-                      )}
-
-                      <td className="px-4 py-3 text-center align-middle">
-                        <button
-                          type="button"
-                          onClick={() => handleDetailBatch(item)}
-                          className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-100 transition"
-                          title="Lihat detail batch"
-                        >
-                          <div className="w-3 h-3 border-t-2 border-b-2 border-gray-400" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
+          <div className="overflow-x-auto w-full">
+            <table className="w-full min-w-[900px] table-fixed text-sm">
+              <colgroup>
+                <col className="w-[5%]" />
+                <col className="w-[20%]" />
+                <col className="w-[20%]" />
+                <col className="w-[10%]" />
+                <col className="w-[15%]" />
+                <col className="w-[8%]" />
+                {currentStatus === "terbit" && <col className="w-[12%]" />}
+                <col className="w-[10%]" />
+              </colgroup>
+              <thead className="bg-[#F7F7F7] text-gray-500 border-b border-gray-200">
                 <tr>
-                  <td
-                    colSpan={currentStatus === "terbit" ? "8" : "7"}
-                    className="px-4 py-8 text-center text-gray-400"
-                  >
-                    Data {displayLabel} tidak ditemukan.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  <th className="px-4 py-4 text-center whitespace-nowrap">No</th>
+                  <th className="px-4 py-4 text-left whitespace-nowrap">List Batch</th>
+                  <th className="px-4 py-4 text-center whitespace-nowrap">Fakultas</th>
+                  <th className="px-4 py-4 text-center whitespace-nowrap">Tahun Lulus</th>
+                  <th className="px-4 py-4 text-center whitespace-nowrap">Periode</th>
+                  <th className="px-4 py-4 text-center whitespace-nowrap">Total</th>
 
-          {/* PAGINATION */}
-          <div className="p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-gray-100">
-            <p className="text-xs text-gray-400">
+                  {currentStatus === "terbit" && (
+                    <th className="px-4 py-4 text-center whitespace-nowrap">Status Email</th>
+                  )}
+
+                  <th className="px-4 py-4 text-center whitespace-nowrap">Detail</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedData.length > 0 ? (
+                  paginatedData.map((item, i) => {
+                    const actualIndex = (currentPage - 1) * itemsPerPage + i + 1;
+                    return (
+                      <tr
+                        key={item.id || i}
+                        className="h-[70px] border-t border-gray-200 hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="px-4 py-4 text-center align-middle font-semibold text-gray-700">
+                          {actualIndex}
+                        </td>
+                        <td className="px-4 py-4 font-bold text-gray-900 align-middle truncate">
+                          {item.batch}
+                        </td>
+                        <td className="py-4 px-4 text-center font-medium align-middle truncate text-gray-600">
+                          {item.fakultas}
+                        </td>
+                        <td className="px-4 py-4 text-center font-semibold align-middle text-gray-700">
+                          {item.tahun}
+                        </td>
+                        <td className="px-4 py-4 text-center font-semibold align-middle text-gray-700">
+                          {item.periode}
+                        </td>
+                        <td className="px-4 py-4 text-center font-semibold align-middle text-gray-700">
+                          {item.total}
+                        </td>
+
+                        {currentStatus === "terbit" && (
+                          <td className="px-4 py-4 text-center align-middle">
+                            <span
+                              className={`inline-block whitespace-nowrap px-3 py-1.5 rounded-md text-[11px] font-bold shadow-sm ${
+                                item.status_email === "Terkirim"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-orange-100 text-orange-700"
+                              }`}
+                            >
+                              {item.status_email}
+                            </span>
+                          </td>
+                        )}
+
+                        <td className="px-4 py-3 text-center align-middle">
+                          <button
+                            type="button"
+                            onClick={() => handleDetailBatch(item)}
+                            className="w-8 h-8 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-100 hover:border-gray-400 transition"
+                            title="Lihat detail batch"
+                          >
+                            <div className="w-3.5 h-3.5 border-t-2 border-b-2 border-gray-500" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={currentStatus === "terbit" ? "8" : "7"}
+                      className="px-4 py-12 text-center text-gray-400 font-medium"
+                    >
+                      Data {displayLabel} tidak ditemukan.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* PAGINATION RESPONSIVE */}
+          <div className="p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-gray-100">
+            <p className="text-xs sm:text-[13px] text-gray-500 font-medium text-center sm:text-left">
               Menampilkan {paginatedData.length} dari {filtered.length} Data
             </p>
             {totalPages > 1 && (
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap justify-center items-center gap-1.5 sm:gap-2">
                 <button
                   type="button"
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50"
+                  className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50 transition-colors"
                 >
                   {"<"}
                 </button>
@@ -679,7 +680,7 @@ const StatusIjazah = () => {
                   type="button"
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50"
+                  className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50 transition-colors"
                 >
                   {">"}
                 </button>

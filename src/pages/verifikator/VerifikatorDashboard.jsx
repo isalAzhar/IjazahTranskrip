@@ -151,7 +151,6 @@ const mapSummaryStats = (summary) => {
   };
 };
 
-
 const Dashboard = () => {
   const navigate = useNavigate();
   const { token, logout } = useAuth();
@@ -161,17 +160,17 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState("");
 
-const [summaryStats, setSummaryStats] = useState({
-  totalIjazahTerbit: 0,
-  permintaanVerifikasi: 0,
-  dataReject: 0,
-  dataRevoke: 0,
+  const [summaryStats, setSummaryStats] = useState({
+    totalIjazahTerbit: 0,
+    permintaanVerifikasi: 0,
+    dataReject: 0,
+    dataRevoke: 0,
 
-  terbitMingguIni: 0,
-  prosesMingguIni: 0,
-  rejectMingguIni: 0,
-  revokeMingguIni: 0,
-});
+    terbitMingguIni: 0,
+    prosesMingguIni: 0,
+    rejectMingguIni: 0,
+    revokeMingguIni: 0,
+  });
 
   // ==================== STATE FILTER DINAMIS ====================
   const [searchQuery, setSearchQuery] = useState("");
@@ -207,16 +206,16 @@ const [summaryStats, setSummaryStats] = useState({
           }).catch(() => ({ data: [] })),
 
           getStatistics().catch(() => ({
-  totalIjazahTerbit: 0,
-  permintaanVerifikasi: 0,
-  dataReject: 0,
-  dataRevoke: 0,
+            totalIjazahTerbit: 0,
+            permintaanVerifikasi: 0,
+            dataReject: 0,
+            dataRevoke: 0,
 
-  terbitMingguIni: 0,
-  prosesMingguIni: 0,
-  rejectMingguIni: 0,
-  revokeMingguIni: 0,
-})),
+            terbitMingguIni: 0,
+            prosesMingguIni: 0,
+            rejectMingguIni: 0,
+            revokeMingguIni: 0,
+          })),
         ]);
 
         const rows = Array.isArray(latestValidations.data)
@@ -224,10 +223,7 @@ const [summaryStats, setSummaryStats] = useState({
           : [];
 
         setTableData(rows);
-        console.log("SUMMARY RAW:", summary);
-console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
         setSummaryStats(mapSummaryStats(summary));
-        
 
         // 🔥 BUILD DROPDOWN DINAMIS BERDASARKAN DATA TABEL
         // Ekstrak Fakultas Unik
@@ -296,7 +292,6 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
   }, [searchQuery, selectedFakultas, selectedStatus, selectedTahun]);
 
   // ==================== 🔥 SINKRONISASI STATISTIK (DARI TABEL) 🔥 ====================
-  // Kita pakai filteredData supaya kalau dropdown diganti, angkanya juga ikut ganti!
   const dynamicStats = {
     terbit: filteredData.filter((d) => normalizeStatus(d.status) === "terbit")
       .length,
@@ -350,7 +345,7 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
         type="button"
         onClick={() => typeof page === "number" && setCurrentPage(page)}
         disabled={page === "..."}
-        className={`w-8 h-8 flex items-center justify-center rounded text-xs font-bold shadow-sm transition-colors ${
+        className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded text-xs font-bold shadow-sm transition-colors ${
           page === currentPage
             ? "bg-[#117065] text-white"
             : page === "..."
@@ -375,8 +370,8 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">
+      <div className="mb-6 px-1 sm:px-0">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
           Ringkasan Statistik
         </h1>
         {apiError && (
@@ -384,16 +379,15 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
         )}
       </div>
 
-      {/* 🔥 STAT CARD DINAMIS MENGIKUTI TABEL */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-       <StatCard
-         title="Jumlah Ijazah Terbit"
-         value={summaryStats.totalIjazahTerbit}
-         sub={`${summaryStats.terbitMingguIni} Terbit Minggu ini`}
-         subColor="text-[#27AE60]"
-        icon={Icons.Badge}
-       onClick={() => navigate("/ijazah/terbit")}
-       />
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+        <StatCard
+          title="Jumlah Ijazah Terbit"
+          value={summaryStats.totalIjazahTerbit}
+          sub={`${summaryStats.terbitMingguIni} Terbit Minggu ini`}
+          subColor="text-[#27AE60]"
+          icon={Icons.Badge}
+          onClick={() => navigate("/ijazah/terbit")}
+        />
 
         <StatCard
           title="Jumlah Ijazah di Proses"
@@ -407,7 +401,7 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
         <StatCard
           title="Jumlah Ijazah di Reject"
           value={summaryStats.dataReject}
-         sub={`${summaryStats.rejectMingguIni} di Reject Minggu ini`}
+          sub={`${summaryStats.rejectMingguIni} di Reject Minggu ini`}
           subColor="text-[#F97316]"
           icon={Icons.Close}
           onClick={() => navigate("/ijazah/reject")}
@@ -417,40 +411,45 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
           title="Jumlah Ijazah di Revoke"
           value={summaryStats.dataRevoke}
           sub={
-          summaryStats.revokeMingguIni > 0 ? `${summaryStats.revokeMingguIni} di Revoke Minggu ini`  : "di Revoke Minggu ini" }
+            summaryStats.revokeMingguIni > 0
+              ? `${summaryStats.revokeMingguIni} di Revoke Minggu ini`
+              : "di Revoke Minggu ini"
+          }
           subColor="text-[#F59E0B]"
           icon={Icons.List}
           onClick={() => navigate("/ijazah/revoke")}
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="font-bold text-gray-800 mb-6 text-lg">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+        <div className="xl:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+          <h2 className="font-bold text-gray-800 mb-6 text-base sm:text-lg">
             Statistik Penerbitan Ijazah Tahunan
           </h2>
           <IssuanceChart />
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="font-bold text-gray-800 mb-4 text-lg">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+          <h2 className="font-bold text-gray-800 mb-4 text-base sm:text-lg">
             Status Data Ijazah Tahun{" "}
             {selectedTahun === "Semua Tahun"
               ? new Date().getFullYear()
               : selectedTahun}
           </h2>
-          {/* 🔥 DONUT CHART DINAMIS MENGIKUTI TABEL */}
           <VerificationStatusChart chartData={verificationChartData} />
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-        <div className="p-6 border-b border-gray-100">
-          <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-            <h2 className="text-xl font-bold text-gray-800">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-8">
+        {/* 🔥 PERBAIKAN RESPONSIVE HEADER & FILTER */}
+        <div className="p-4 sm:p-6 border-b border-gray-100">
+          <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 xl:gap-6">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800 shrink-0">
               Aktivitas Verifikasi
             </h2>
-            <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto xl:justify-end">
-              <div className="relative w-full sm:w-80">
+            
+            <div className="flex flex-col lg:flex-row gap-3 w-full xl:w-auto xl:justify-end">
+              {/* Kolom Pencarian */}
+              <div className="relative w-full lg:w-72 xl:w-80 shrink-0">
                 <FiSearch
                   className="absolute left-3 top-2.5 text-gray-400"
                   size={16}
@@ -464,9 +463,9 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
                 />
               </div>
 
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:ml-auto">
-                {/* 🔥 DROPDOWN FAKULTAS DIKEMBALIKAN */}
-                <div className="relative w-full sm:w-75">
+              {/* Tiga Kolom Dropdown Filter */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 md:flex items-center gap-3 w-full lg:w-auto">
+                <div className="relative w-full md:w-48 lg:w-56">
                   <select
                     className="w-full appearance-none bg-white text-gray-800 text-sm py-2 pl-4 pr-10 rounded-lg outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] cursor-pointer transition-colors shadow-sm"
                     value={selectedFakultas}
@@ -483,7 +482,7 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
                   </div>
                 </div>
 
-                <div className="relative w-full sm:w-44">
+                <div className="relative w-full md:w-36 lg:w-40">
                   <select
                     className="w-full appearance-none bg-white text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] cursor-pointer transition-colors shadow-sm"
                     value={selectedStatus}
@@ -500,7 +499,7 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
                   </div>
                 </div>
 
-                <div className="relative w-full sm:w-40">
+                <div className="relative w-full md:w-32 lg:w-36">
                   <select
                     className="w-full appearance-none bg-white text-gray-800 text-sm py-2 pl-4 pr-10 rounded-md outline-none border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] cursor-pointer transition-colors shadow-sm"
                     value={selectedTahun}
@@ -521,8 +520,10 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
           </div>
         </div>
 
-        <div className="overflow-x-auto min-h-[700px]">
-          <table className="w-full table-fixed text-sm">
+        {/* 🔥 PERBAIKAN RESPONSIVE TABEL (ANTI TERPOTONG / MENGECIL) */}
+        {/* min-w-[1000px] memaksa ukuran tabel agar tidak dipenyet layar HP, melainkan di-scroll */}
+        <div className="overflow-x-auto w-full min-h-[500px]">
+          <table className="w-full min-w-[1000px] table-fixed text-sm">
             <colgroup>
               <col className="w-[6%]" />
               <col className="w-[20%]" />
@@ -534,13 +535,13 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
             </colgroup>
             <thead className="bg-[#f3f4f6] text-gray-500 border-b border-gray-200">
               <tr>
-                <th className="px-4 py-4 text-center">No.</th>
-                <th className="px-4 py-4 text-left">Nama</th>
-                <th className="px-4 py-4 text-center">NIM</th>
-                <th className="px-4 py-4 text-center">Fakultas</th>
-                <th className="px-4 py-4 text-center">Program Studi</th>
-                <th className="px-4 py-4 text-center">Tahun Lulus</th>
-                <th className="px-4 py-4 text-center">Status</th>
+                <th className="px-4 py-4 text-center whitespace-nowrap">No.</th>
+                <th className="px-4 py-4 text-left whitespace-nowrap">Nama</th>
+                <th className="px-4 py-4 text-center whitespace-nowrap">NIM</th>
+                <th className="px-4 py-4 text-center whitespace-nowrap">Fakultas</th>
+                <th className="px-4 py-4 text-center whitespace-nowrap">Program Studi</th>
+                <th className="px-4 py-4 text-center whitespace-nowrap">Tahun Lulus</th>
+                <th className="px-4 py-4 text-center whitespace-nowrap">Status</th>
               </tr>
             </thead>
             <tbody className="text-gray-700">
@@ -548,7 +549,7 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
                 currentData.map((row, i) => (
                   <tr
                     key={row.id || row.id_mahasiswa || i}
-                    className="border-t border-gray-200 hover:bg-gray-50"
+                    className="border-t border-gray-200 hover:bg-gray-50 transition-colors"
                   >
                     <td className="px-4 py-4 text-center font-semibold">
                       {indexOfFirstItem + i + 1}.
@@ -564,7 +565,7 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
                     <td className="px-4 py-4 text-center font-semibold text-gray-700 truncate">
                       {row.nim || "-"}
                     </td>
-                    <td className="px-4 py-4 text-center text-gray-600 font-semibold whitespace-nowrap truncate">
+                    <td className="px-4 py-4 text-center text-gray-600 font-semibold truncate">
                       {row.fakultas || "-"}
                     </td>
                     <td className="px-4 py-4 text-center text-gray-600 font-semibold truncate">
@@ -575,7 +576,7 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
                     </td>
                     <td className="px-4 py-4 text-center">
                       <span
-                        className={`inline-block min-w-[86px] px-4 py-1.5 rounded-full text-xs font-bold ${getBadgeColor(row.status)}`}
+                        className={`inline-block min-w-[86px] px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold shadow-sm ${getBadgeColor(row.status)}`}
                       >
                         {getBadgeLabel(row.status)}
                       </span>
@@ -586,7 +587,7 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
                 <tr>
                   <td
                     colSpan="7"
-                    className="px-4 py-8 text-center text-gray-400"
+                    className="px-4 py-12 text-center text-gray-400 font-medium"
                   >
                     Data tidak ditemukan.
                   </td>
@@ -596,17 +597,18 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
           </table>
         </div>
 
-        <div className="p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-gray-100">
-          <p className="text-xs text-gray-400">
+        {/* 🔥 PERBAIKAN RESPONSIVE PAGINATION */}
+        <div className="p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-gray-100">
+          <p className="text-xs sm:text-[13px] text-gray-500 font-medium text-center sm:text-left">
             Menampilkan {currentData.length} dari {filteredData.length} Data
           </p>
           {totalPages > 1 && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap justify-center items-center gap-1.5 sm:gap-2">
               <button
                 type="button"
                 onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50"
+                className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50 transition-colors"
               >
                 {"<"}
               </button>
@@ -617,7 +619,7 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
                   setCurrentPage((prev) => Math.min(prev + 1, totalPages))
                 }
                 disabled={currentPage === totalPages}
-                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50"
+                className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-gray-400 hover:text-black font-bold disabled:opacity-50 transition-colors"
               >
                 {">"}
               </button>
