@@ -7,6 +7,14 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  const getLoginUrl = () => {
+  const baseUrl = import.meta.env.BASE_URL || "/";
+  return `${window.location.origin}${baseUrl}#/login`;
+};
+
+const isLoginPage = () => {
+  return window.location.hash === "#/login";
+};
 
   // 🔥 Blokir cache browser di level meta tag
   useEffect(() => {
@@ -29,9 +37,9 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const blockBack = () => {
       const token = localStorage.getItem("authToken");
-      if (!token && window.location.pathname !== "/login") {
-        window.location.replace("/login");
-      }
+     if (!token && !isLoginPage()) {
+  window.location.replace(getLoginUrl());
+}
     };
 
     window.history.pushState(null, "", window.location.href);
@@ -41,7 +49,7 @@ export const AuthProvider = ({ children }) => {
       if (e.persisted) {
         const token = localStorage.getItem("authToken");
         if (!token) {
-          window.location.replace("/login");
+          window.location.replace(getLoginUrl());
         } else {
           window.location.reload();
         }
@@ -89,13 +97,13 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
-  const logout = () => {
-    sessionStorage.clear();
-    localStorage.clear();
-    setUser(null);
-    setToken(null);
-    window.location.replace("/login");
-  };
+ const logout = () => {
+  sessionStorage.clear();
+  localStorage.clear();
+  setUser(null);
+  setToken(null);
+  window.location.replace(getLoginUrl());
+};
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout, loading, isAuthenticated: !!user }}>
