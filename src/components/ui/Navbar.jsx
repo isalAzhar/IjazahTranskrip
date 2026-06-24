@@ -183,8 +183,17 @@ const getValidText = (value) => {
 // Teks atas: ambil nama dari response
 // Teks atas: ambil nama depan dari response
 const getFirstName = (name) => {
-  const text = getValidText(name);
-  return text ? text.split(/\s+/)[0] : "";
+  let text = getValidText(name);
+  if (!text) return "";
+
+  // Hapus gelar depan seperti Dr., Prof., Ir., Drs., Dra., H., Hj.
+  const frontTitleRegex = /^(prof|dr|drs|dra|ir|h|hj)\.?\s+/i;
+
+  while (frontTitleRegex.test(text)) {
+    text = text.replace(frontTitleRegex, "").trim();
+  }
+
+  return text.split(/\s+/)[0] || "";
 };
 
 const isAdminRole = ["admin", "admin_sistem"].includes(userRole);
