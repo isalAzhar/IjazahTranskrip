@@ -301,7 +301,8 @@ const DaftarUnit = () => {
     prodiForm.namaEn?.trim() &&
     prodiForm.sk?.trim() &&
     prodiForm.ketua?.trim() &&
-    prodiForm.nidn?.trim();
+    prodiForm.nidn?.trim() &&
+    prodiForm.file;
 
   const triggerSuccess = (msg) => {
     setSuccessMessage(msg);
