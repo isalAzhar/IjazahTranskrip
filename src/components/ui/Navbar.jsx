@@ -181,12 +181,21 @@ const getValidText = (value) => {
 };
 
 // Teks atas: ambil nama dari response
-const displayTitle =
-  getValidText(activeUser?.nama) ||
-  getValidText(activeUser?.name) ||
-  getValidText(activeUser?.fullname) ||
-  getValidText(activeUser?.username) ||
-  fallbackName;
+// Teks atas: ambil nama depan dari response
+const getFirstName = (name) => {
+  const text = getValidText(name);
+  return text ? text.split(/\s+/)[0] : "";
+};
+
+const isAdminRole = ["admin", "admin_sistem"].includes(userRole);
+
+const displayTitle = isAdminRole
+  ? "Admin"
+  : getFirstName(activeUser?.nama) ||
+    getFirstName(activeUser?.name) ||
+    getFirstName(activeUser?.fullname) ||
+    getFirstName(activeUser?.username) ||
+    fallbackName;
 
 // Teks bawah: ambil role dari response
 const displaySubtitle = formatRoleLabel(userRole);
