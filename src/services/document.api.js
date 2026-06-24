@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://103.158.196.32:8010";
+// const API_BASE_URL = import.meta.env.VITE_API_URL || "http://103.158.196.32:8010"; 
+const API_BASE_URL = import.meta.env.VITE_API_URL || ""; //server
+
 
 const getAuthToken = () => {
   return (

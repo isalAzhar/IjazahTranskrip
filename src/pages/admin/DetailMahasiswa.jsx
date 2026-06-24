@@ -86,8 +86,8 @@ const getImageUrl = (imagePath) => {
   }
 
   const baseUrl =
-    import.meta.env.VITE_API_PUBLIC_URL || "http://localhost:3000";
-
+    // import.meta.env.VITE_API_PUBLIC_URL || "http://localhost:3000";
+  import.meta.env.VITE_API_PUBLIC_URL || "http://103.158.196.32:8010"; //server
   if (imagePath.startsWith("/")) return `${baseUrl}${imagePath}`;
 
   return `${baseUrl}/${imagePath}`;

@@ -859,15 +859,7 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
               <option value="" className="text-gray-400">
                 Pilih Tahun Lulus
               </option>
-              <option value="2021" className="text-gray-900">
-                2021
-              </option>
-              <option value="2022" className="text-gray-900">
-                2022
-              </option>
-              <option value="2023" className="text-gray-900">
-                2023
-              </option>
+              
               <option value="2024" className="text-gray-900">
                 2024
               </option>
