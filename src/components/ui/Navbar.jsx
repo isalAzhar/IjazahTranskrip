@@ -49,252 +49,267 @@ const Navbar = () => {
   const location = useLocation();
   const { user } = useAuth();
   const profileCacheKey = `navbar_profile_user_${
-  user?.id_user || user?.id || user?.email || "guest"
-}`;
+    user?.id_user || user?.id || user?.email || "guest"
+  }`;
 
   const [openMenu, setOpenMenu] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
-  const [notifications, setNotifications] = useState([]);  
+  const [notifications, setNotifications] = useState([]);
   const [readIds, setReadIds] = useState(getReadIds);
   const [profileUser, setProfileUser] = useState(() =>
-  getCachedProfileUser(profileCacheKey), );
+    getCachedProfileUser(profileCacheKey),
+  );
   const [scrolled, setScrolled] = useState(false);
-
-
 
   const notifRef = useRef(null);
   const mobileMenuRef = useRef(null);
 
   useEffect(() => {
-  const cachedProfile = getCachedProfileUser(profileCacheKey);
-  if (cachedProfile) {
-    setProfileUser(cachedProfile);
-  }
-}, [profileCacheKey]);
-
-useEffect(() => {
-  const token =
-    localStorage.getItem("authToken") ||
-    localStorage.getItem("access_token") ||
-    localStorage.getItem("token");
-
-  if (!token) return;
-
-  let isMounted = true;
-
-  const loadProfile = async () => {
-    try {
-      const response = await fetch("/api/profile/me", {
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const result = await response.json().catch(() => ({}));
-
-      if (isMounted && response.ok && result?.data) {
-        setProfileUser(result.data);
-        saveCachedProfileUser(profileCacheKey, result.data);
-      }
-    } catch (error) {
-      console.error("Gagal mengambil profile user:", error);
+    const cachedProfile = getCachedProfileUser(profileCacheKey);
+    if (cachedProfile) {
+      setProfileUser(cachedProfile);
     }
-  };
-
-  loadProfile();
-
-  return () => {
-    isMounted = false;
-  };
-}, [profileCacheKey]);
+  }, [profileCacheKey]);
 
   useEffect(() => {
-  const token =
-    localStorage.getItem("authToken") ||
-    localStorage.getItem("access_token") ||
-    localStorage.getItem("token");
+    const token =
+      localStorage.getItem("authToken") ||
+      localStorage.getItem("access_token") ||
+      localStorage.getItem("token");
 
-  if (!token) return;
+    if (!token) return;
 
-  let isMounted = true;
+    let isMounted = true;
 
-  const loadProfile = async () => {
-    try {
-      const response = await fetch("/api/profile/me", {
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+    const loadProfile = async () => {
+      try {
+        const response = await fetch("/api/profile/me", {
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-      const result = await response.json().catch(() => ({}));
+        const result = await response.json().catch(() => ({}));
 
-      if (isMounted && response.ok && result?.data) {
-        setProfileUser(result.data);
+        if (isMounted && response.ok && result?.data) {
+          setProfileUser(result.data);
+          saveCachedProfileUser(profileCacheKey, result.data);
+        }
+      } catch (error) {
+        console.error("Gagal mengambil profile user:", error);
       }
-    } catch (error) {
-      console.error("Gagal mengambil profile user:", error);
-    }
+    };
+
+    loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [profileCacheKey]);
+
+  useEffect(() => {
+    const token =
+      localStorage.getItem("authToken") ||
+      localStorage.getItem("access_token") ||
+      localStorage.getItem("token");
+
+    if (!token) return;
+
+    let isMounted = true;
+
+    const loadProfile = async () => {
+      try {
+        const response = await fetch("/api/profile/me", {
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const result = await response.json().catch(() => ({}));
+
+        if (isMounted && response.ok && result?.data) {
+          setProfileUser(result.data);
+        }
+      } catch (error) {
+        console.error("Gagal mengambil profile user:", error);
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id_user, user?.id]);
+
+  const activeUser = profileUser || user || {};
+
+  const userRole = String(activeUser?.role || user?.role || "")
+    .toLowerCase()
+    .trim();
+
+  const fallbackName =
+    activeUser?.email || user?.email
+      ? String(activeUser?.email || user?.email).split("@")[0]
+      : "User";
+
+  const formatRoleLabel = (role) => {
+    const labels = {
+      admin: "Admin",
+      admin_sistem: "Admin",
+      operator: "Operator",
+      operator_data: "Operator",
+      tu_fakultas: "TU Fakultas",
+      wakil_dekan_1: "Wakil Dekan",
+      wakil_dekan: "Wakil Dekan",
+      dekan: "Dekan",
+      tu_rektorat: "TU Rektorat",
+      wakil_rektor_1: "Wakil Rektor",
+      wakil_rektor: "Wakil Rektor",
+      rektor: "Rektor",
+    };
+
+    return labels[role] || role || "-";
   };
 
-  loadProfile();
-
-  return () => {
-    isMounted = false;
-  };
-}, [user?.id_user, user?.id]);
-
- const activeUser = profileUser || user || {};
-
-const userRole = String(activeUser?.role || user?.role || "")
-  .toLowerCase()
-  .trim();
-
-const fallbackName =
-  activeUser?.email || user?.email
-    ? String(activeUser?.email || user?.email).split("@")[0]
-    : "User";
-
-const formatRoleLabel = (role) => {
-  const labels = {
-    admin: "Admin",
-    admin_sistem: "Admin",
-    operator: "Operator",
-    operator_data: "Operator",
-    tu_fakultas: "TU Fakultas",
-    wakil_dekan_1: "Wakil Dekan",
-    wakil_dekan: "Wakil Dekan",
-    dekan: "Dekan",
-    tu_rektorat: "TU Rektorat",
-    wakil_rektor_1: "Wakil Rektor",
-    wakil_rektor: "Wakil Rektor",
-    rektor: "Rektor",
+  const getValidText = (value) => {
+    const text = String(value || "").trim();
+    return text && text !== "-" ? text : "";
   };
 
-  return labels[role] || role || "-";
-};
+  const isAdminRole = ["admin", "admin_sistem"].includes(userRole);
 
-const getValidText = (value) => {
-  const text = String(value || "").trim();
-  return text && text !== "-" ? text : "";
-};
+  const displayTitle = isAdminRole
+    ? "Admin"
+    : getValidText(activeUser?.nama) ||
+      getValidText(activeUser?.name) ||
+      getValidText(activeUser?.fullname) ||
+      getValidText(activeUser?.username) ||
+      fallbackName;
 
-// Teks atas: ambil nama dari response
-// Teks atas: ambil nama depan dari response
-const getFirstName = (name) => {
-  let text = getValidText(name);
-  if (!text) return "";
+  const displaySubtitle = formatRoleLabel(userRole);
 
-  // Hapus gelar depan seperti Dr., Prof., Ir., Drs., Dra., H., Hj.
-  const frontTitleRegex = /^(prof|dr|drs|dra|ir|h|hj)\.?\s+/i;
-
-  while (frontTitleRegex.test(text)) {
-    text = text.replace(frontTitleRegex, "").trim();
-  }
-
-  return text.split(/\s+/)[0] || "";
-};
-
-const isAdminRole = ["admin", "admin_sistem"].includes(userRole);
-
-const displayTitle = isAdminRole
-  ? "Admin"
-  : getFirstName(activeUser?.nama) ||
-    getFirstName(activeUser?.name) ||
-    getFirstName(activeUser?.fullname) ||
-    getFirstName(activeUser?.username) ||
-    fallbackName;
-
-// Teks bawah: ambil role dari response
-const displaySubtitle = formatRoleLabel(userRole);
-
-const showNotifIcon = ROLES_WITH_NOTIF.includes(userRole);
+  const showNotifIcon = ROLES_WITH_NOTIF.includes(userRole);
 
   const adminMenu = [
-    { name: "Dashboard",       path: "/admin/dashboard" },
-    { name: "Template",        path: "/admin/template" },
-    { name: "Daftar Batch",    path: "/admin/data-mahasiswa" },
-    { name: "Daftar Unit",     path: "/admin/daftar-unit" },
+    { name: "Dashboard", path: "/admin/dashboard" },
+    { name: "Template", path: "/admin/template" },
+    { name: "Daftar Batch", path: "/admin/data-mahasiswa" },
+    { name: "Daftar Unit", path: "/admin/daftar-unit" },
     { name: "Daftar Pengguna", path: "/admin/daftar-pengguna" },
   ];
 
   const operatorMenu = [
-    { name: "Dashboard",     path: "/operator/dashboard" },
-    { name: "Upload Data",   path: "/operator/upload-data" },
-    { name: "Pelaporan",     path: "/operator/pelaporan" },
+    { name: "Dashboard", path: "/operator/dashboard" },
+    { name: "Upload Data", path: "/operator/upload-data" },
+    { name: "Pelaporan", path: "/operator/pelaporan" },
     { name: "Dokumen Valid", path: "/operator/dokumen-valid" },
   ];
 
   const verifikatorMenu = [
-    { name: "Dashboard",    path: "/verifikator/dashboard" },
+    { name: "Dashboard", path: "/verifikator/dashboard" },
     { name: "Daftar Batch", path: "/verifikator/daftar-batch" },
-    { name: "Pelaporan",    path: "/verifikator/pelaporan" },
+    { name: "Pelaporan", path: "/verifikator/pelaporan" },
   ];
 
   const rektorMenu = [
-    { name: "Dashboard",     path: "/rektor/dashboard" },
-    { name: "Daftar Batch",  path: "/rektor/daftar-batch" },
-    { name: "Pelaporan",     path: "/rektor/pelaporan" },
+    { name: "Dashboard", path: "/rektor/dashboard" },
+    { name: "Daftar Batch", path: "/rektor/daftar-batch" },
+    { name: "Pelaporan", path: "/rektor/pelaporan" },
     { name: "Dokumen Valid", path: "/rektor/dokumen-valid" },
   ];
 
   const menuConfig = {
-    admin:          adminMenu,
-    admin_sistem:   adminMenu,
-    operator:       operatorMenu,
-    operator_data:  operatorMenu,
-    rektor:         rektorMenu,
-    tu_rektorat:    verifikatorMenu,
+    admin: adminMenu,
+    admin_sistem: adminMenu,
+    operator: operatorMenu,
+    operator_data: operatorMenu,
+    rektor: rektorMenu,
+    tu_rektorat: verifikatorMenu,
     wakil_rektor_1: verifikatorMenu,
-    tu_fakultas:    verifikatorMenu,
-    wakil_dekan_1:  verifikatorMenu,
-    dekan:          verifikatorMenu,
+    tu_fakultas: verifikatorMenu,
+    wakil_dekan_1: verifikatorMenu,
+    dekan: verifikatorMenu,
   };
 
   const activeMenus = menuConfig[userRole] || verifikatorMenu;
 
   const unreadCount = notifications.filter(
-    (n) => !readIds.includes(n.id_log)
+    (n) => !readIds.includes(n.id_log),
   ).length;
 
   const isRouteActive = (path) => {
-    if (path === "/admin/data-mahasiswa" && location.pathname.startsWith("/admin/data-mahasiswa")) return true;
-    if (path === "/operator/detail-mahasiswa" && location.pathname.startsWith("/operator/detail-mahasiswa")) return true;
-    if (path.includes("/daftar-batch") && location.pathname.includes("/detail-batch")) return true;
-    if (path.includes("/dokumen-valid") && location.pathname.includes("/detail-dokumen-valid")) return true;
+    if (
+      path === "/admin/data-mahasiswa" &&
+      location.pathname.startsWith("/admin/data-mahasiswa")
+    )
+      return true;
+    if (
+      path === "/operator/detail-mahasiswa" &&
+      location.pathname.startsWith("/operator/detail-mahasiswa")
+    )
+      return true;
+    if (
+      path.includes("/daftar-batch") &&
+      location.pathname.includes("/detail-batch")
+    )
+      return true;
+    if (
+      path.includes("/dokumen-valid") &&
+      location.pathname.includes("/detail-dokumen-valid")
+    )
+      return true;
     return location.pathname === path;
   };
 
   const handleProfileClick = () => {
     switch (userRole) {
       case "admin":
-      case "admin_sistem": return navigate("/admin/profile");
+      case "admin_sistem":
+        return navigate("/admin/profile");
       case "operator":
-      case "operator_data": return navigate("/operator/profile");
-      case "rektor": return navigate("/rektor/profile");
-      default: return navigate("/verifikator/profile");
+      case "operator_data":
+        return navigate("/operator/profile");
+      case "rektor":
+        return navigate("/rektor/profile");
+      default:
+        return navigate("/verifikator/profile");
     }
   };
 
   const getDashboardPath = () => {
     switch (userRole) {
       case "admin":
-      case "admin_sistem": return "/admin/dashboard";
+      case "admin_sistem":
+        return "/admin/dashboard";
       case "operator":
-      case "operator_data": return "/operator/dashboard";
-      case "rektor": return "/rektor/dashboard";
-      default: return "/verifikator/dashboard";
+      case "operator_data":
+        return "/operator/dashboard";
+      case "rektor":
+        return "/rektor/dashboard";
+      default:
+        return "/verifikator/dashboard";
     }
   };
 
   const getNotificationTargetPath = () => {
-    if (["operator", "operator_data"].includes(userRole)) return "/operator/pelaporan";
+    if (["operator", "operator_data"].includes(userRole))
+      return "/operator/pelaporan";
     if (["rektor"].includes(userRole)) return "/rektor/pelaporan";
-    if ([
-      "tu_fakultas", "wakil_dekan_1", "wakil_dekan", "dekan",
-      "tu_rektorat", "wakil_rektor_1", "wakil_rektor",
-    ].includes(userRole)) return "/verifikator/pelaporan";
+    if (
+      [
+        "tu_fakultas",
+        "wakil_dekan_1",
+        "wakil_dekan",
+        "dekan",
+        "tu_rektorat",
+        "wakil_rektor_1",
+        "wakil_rektor",
+      ].includes(userRole)
+    )
+      return "/verifikator/pelaporan";
     return getDashboardPath();
   };
 
@@ -323,8 +338,10 @@ const showNotifIcon = ROLES_WITH_NOTIF.includes(userRole);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotif(false);
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target)) setOpenMenu(false);
+      if (notifRef.current && !notifRef.current.contains(e.target))
+        setShowNotif(false);
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target))
+        setOpenMenu(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -382,34 +399,45 @@ const showNotifIcon = ROLES_WITH_NOTIF.includes(userRole);
   };
 
   return (
-    <nav className={`w-full bg-white sticky top-0 z-50 border-b border-gray-100 transition-shadow duration-300 ${scrolled ? "shadow-md" : "shadow-sm"}`}>
+    <nav
+      className={`w-full bg-white sticky top-0 z-50 border-b border-gray-100 transition-shadow duration-300 ${scrolled ? "shadow-md" : "shadow-sm"}`}
+    >
       <div className="px-4 md:px-6 lg:px-8 py-3 flex items-center justify-between gap-2">
-
         {/* Logo Section */}
-        <NavLink to={getDashboardPath()} className="flex items-center gap-2 sm:gap-3 cursor-pointer group min-w-0 max-w-[60%] sm:max-w-none">
+        <NavLink
+          to={getDashboardPath()}
+          className="flex items-center gap-2 sm:gap-3 cursor-pointer group min-w-0 max-w-[60%] sm:max-w-none"
+        >
           <img
             src={logo}
             alt="Logo UIKA"
             className="w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-12 object-contain transition-transform group-hover:scale-105 shrink-0"
           />
           <div className="leading-tight flex flex-col justify-center min-w-0">
-            <div className="text-black font-semibold text-[10px] sm:text-[11px] md:text-sm truncate">Universitas</div>
-            <div className="text-[#0B6B63] font-bold text-[10px] sm:text-[11px] md:text-sm truncate">Ibn Khaldun Bogor</div>
+            <div className="text-black font-semibold text-[10px] sm:text-[11px] md:text-sm truncate">
+              Universitas
+            </div>
+            <div className="text-[#0B6B63] font-bold text-[10px] sm:text-[11px] md:text-sm truncate">
+              Ibn Khaldun Bogor
+            </div>
           </div>
         </NavLink>
 
         {/* Desktop Navigation */}
-       <div className="hidden md:flex items-center gap-2 lg:gap-6">
-  {activeMenus.map((menu, idx) => (
-    <NavLink key={idx} to={menu.path} className={() => linkClass(menu.path)}>
-      {menu.name}
-    </NavLink>
-  ))}
-</div>
+        <div className="hidden md:flex items-center gap-2 lg:gap-6">
+          {activeMenus.map((menu, idx) => (
+            <NavLink
+              key={idx}
+              to={menu.path}
+              className={() => linkClass(menu.path)}
+            >
+              {menu.name}
+            </NavLink>
+          ))}
+        </div>
 
         {/* Right Action Elements */}
         <div className="flex items-center gap-1.5 sm:gap-3 md:gap-4 shrink-0">
-
           {/* Notifikasi Dropdown Panel */}
           {showNotifIcon && (
             <div className="relative" ref={notifRef}>
@@ -424,7 +452,7 @@ const showNotifIcon = ROLES_WITH_NOTIF.includes(userRole);
               </button>
 
               {showNotif && (
-                // 🔥 SOLUSI FINAL ANTI KEPOTONG: 
+                // 🔥 SOLUSI FINAL ANTI KEPOTONG:
                 // Di Mobile: Menggunakan fixed position, menempel aman dari kiri dan kanan layar (left-4 right-4).
                 // Di Desktop (sm+): Kembali menggunakan absolute agar menempel rapi di bawah icon lonceng.
                 <div className="fixed top-[64px] left-4 right-4 sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:w-[360px] md:w-[420px] sm:mt-3 bg-white border border-gray-100 shadow-2xl rounded-2xl p-4 sm:p-5 z-[100]">
@@ -462,7 +490,8 @@ const showNotifIcon = ROLES_WITH_NOTIF.includes(userRole);
                                     {notif.title || "Aktivitas terbaru"}
                                   </p>
                                   <p className="text-[11px] sm:text-xs text-gray-600 mt-1.5 break-words leading-relaxed">
-                                    {notif.message || "Ada aktivitas reject/revoke terbaru."}
+                                    {notif.message ||
+                                      "Ada aktivitas reject/revoke terbaru."}
                                   </p>
                                   <p className="text-[10px] text-gray-400 mt-2 font-medium">
                                     {notif.time_label} WIB
@@ -510,9 +539,13 @@ const showNotifIcon = ROLES_WITH_NOTIF.includes(userRole);
             onClick={handleProfileClick}
           >
             <div className="text-right leading-tight hidden sm:block min-w-0">
-              <div className="text-gray-800 font-bold text-sm capitalize max-w-[80px] sm:max-w-[120px] truncate">
+              <div
+                className="text-gray-800 font-bold text-sm capitalize truncate max-w-[240px]"
+                title={displayTitle}
+              >
                 {displayTitle}
               </div>
+
               <ProfileSubtitle />
             </div>
             <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-full border-2 border-[#0B6B63] flex items-center justify-center text-[#0B6B63] bg-gray-50 group-hover:bg-[#0B6B63] group-hover:text-white transition-all duration-300 shrink-0 shadow-sm">
@@ -534,7 +567,9 @@ const showNotifIcon = ROLES_WITH_NOTIF.includes(userRole);
       </div>
 
       {/* Mobile Drawer Menu Block */}
-      <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${openMenu ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}>
+      <div
+        className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${openMenu ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}
+      >
         <div className="px-4 pb-4 pt-1 border-t border-gray-100 bg-white space-y-1 shadow-inner">
           {activeMenus.map((menu, idx) => (
             <NavLink
@@ -549,13 +584,18 @@ const showNotifIcon = ROLES_WITH_NOTIF.includes(userRole);
 
           <div
             className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-gray-50 rounded-xl transition-colors"
-            onClick={() => { handleProfileClick(); setOpenMenu(false); }}
+            onClick={() => {
+              handleProfileClick();
+              setOpenMenu(false);
+            }}
           >
             <div className="w-8 h-8 rounded-full border-2 border-[#0B6B63] flex items-center justify-center text-[#0B6B63] bg-gray-50 shrink-0">
               <FiUser size={16} />
             </div>
             <div className="min-w-0">
-              <div className="text-gray-800 font-bold text-sm capitalize truncate max-w-[180px]">{displayTitle}</div>
+              <div className="text-gray-800 font-bold text-sm capitalize truncate max-w-[180px]">
+                {displayTitle}
+              </div>
               <ProfileSubtitle />
             </div>
           </div>
