@@ -3,6 +3,7 @@ import { createHashRouter, RouterProvider, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./pages/context/AuthContext";
 import ProtectedRoute from "./components/shared/ProtectedRoute";
 import StudentDownloadPage from "./pages/public/StudentDownloadPage";
+import { getAuthToken } from "./services/auth.api";
 
 // Public
 import Login from "./pages/context/login";
@@ -51,11 +52,12 @@ import RektorDaftarBatch from "./pages/verifikator/DaftarBatch";
 import RektorPelaporan from "./pages/verifikator/PelaporanVerifikator";
 import RektorDokumenValid from "./pages/rektor/DokumenValid";
 import RektorDetailDokumenValid from "./pages/rektor/DetailDokumenValid";
+import DetailMahasiswaValidRektor from "./pages/rektor/DetailMahasiswaValid.jsx";
 
 const RoleBasedRedirect = () => {
   const { user, loading } = useAuth();
 
-  const localToken = localStorage.getItem("authToken");
+  const localToken = getAuthToken();
   if (!localToken) return <Navigate to="/login" replace />;
 
   if (loading) return (
@@ -126,7 +128,7 @@ const router = createHashRouter([
   { path: "/rektor/dokumen-valid", element: <ProtectedRoute allowedGroup="REKTOR"><RektorDokumenValid /></ProtectedRoute> },
   { path: "/rektor/detail-dokumen-valid/:batchCode", element: <ProtectedRoute allowedGroup="REKTOR"><RektorDetailDokumenValid /></ProtectedRoute> },
   { path: "/rektor/detail-mahasiswa/:mahasiswaCode", element: <ProtectedRoute allowedGroup="REKTOR"><DetailMahasiswa /></ProtectedRoute> },
-
+ { path: "/rektor/detail-mahasiswa-valid/:mahasiswaCode", element: <ProtectedRoute allowedGroup="REKTOR"><DetailMahasiswaValid /></ProtectedRoute> },
   // SHARED ROUTES
   { path: "/ijazah/:status", element: <ProtectedRoute allowedGroup="ALL"><StatusIjazah /></ProtectedRoute> },
   { path: "/batch/:status/:batchCode", element: <ProtectedRoute allowedGroup="ALL"><Statusbatch /></ProtectedRoute> },

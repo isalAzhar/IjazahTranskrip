@@ -4,7 +4,7 @@ import { FiBell, FiUser, FiMenu, FiX } from "react-icons/fi";
 import { useAuth } from "../../pages/context/AuthContext";
 import logo from "../../assets/img/Logo.jpg";
 import { getRejectRevokeNotifications } from "../../services/dashboard.api";
-
+import { getAuthToken } from "../../services/auth.api";
 const ROLES_WITH_NOTIF = [
   "operator",
   "operator_data",
@@ -73,12 +73,12 @@ const Navbar = () => {
 }, [profileCacheKey]);
 
 useEffect(() => {
-  const token =
-    localStorage.getItem("authToken") ||
-    localStorage.getItem("access_token") ||
-    localStorage.getItem("token");
+  const token = getAuthToken();
 
-  if (!token) return;
+  if (!token) {
+    setProfileUser(null);
+    return;
+  }
 
   let isMounted = true;
 
@@ -107,43 +107,9 @@ useEffect(() => {
   return () => {
     isMounted = false;
   };
-}, [profileCacheKey]);
+}, [profileCacheKey, user?.id_user, user?.id]);
 
-  useEffect(() => {
-  const token =
-    localStorage.getItem("authToken") ||
-    localStorage.getItem("access_token") ||
-    localStorage.getItem("token");
 
-  if (!token) return;
-
-  let isMounted = true;
-
-  const loadProfile = async () => {
-    try {
-      const response = await fetch("/api/profile/me", {
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const result = await response.json().catch(() => ({}));
-
-      if (isMounted && response.ok && result?.data) {
-        setProfileUser(result.data);
-      }
-    } catch (error) {
-      console.error("Gagal mengambil profile user:", error);
-    }
-  };
-
-  loadProfile();
-
-  return () => {
-    isMounted = false;
-  };
-}, [user?.id_user, user?.id]);
 
  const activeUser = profileUser || user || {};
 
@@ -182,15 +148,29 @@ const getValidText = (value) => {
 
 const isAdminRole = ["admin", "admin_sistem"].includes(userRole);
 
-const displayTitle = isAdminRole
-  ? "Admin"
-  : getValidText(activeUser?.nama) ||
+const getNavbarSubtitleByRole = (role) => {
+  const normalizedRole = String(role || "").toLowerCase().trim();
+
+  if (["admin", "admin_sistem"].includes(normalizedRole)) {
+    return "Sistem";
+  }
+
+  if (["operator", "operator_data"].includes(normalizedRole)) {
+    return "Data";
+  }
+
+  return (
+    getValidText(activeUser?.nama) ||
     getValidText(activeUser?.name) ||
     getValidText(activeUser?.fullname) ||
     getValidText(activeUser?.username) ||
-    fallbackName;
+    fallbackName
+  );
+};
 
-const displaySubtitle = formatRoleLabel(userRole);
+const displayTitle = formatRoleLabel(userRole);
+
+const displaySubtitle = getNavbarSubtitleByRole(userRole);
 
 const showNotifIcon = ROLES_WITH_NOTIF.includes(userRole);
 

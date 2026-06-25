@@ -1,31 +1,8 @@
-const RAW_API_BASE_URL = "/api";
-const API_BASE_URL = RAW_API_BASE_URL.replace(/\/$/, "");
+// src/services/dashboard.api.js
 
-const DASHBOARD_API = `${API_BASE_URL}/dashboard`;
+import { apiJson } from "./apiClient";
 
-// ==================== HELPER ====================
-
-export const getToken = () => {
-  return (
-    localStorage.getItem("authToken") ||
-    localStorage.getItem("access_token") ||
-    localStorage.getItem("token")
-  );
-};
-
-const getHeaders = () => {
-  const token = getToken();
-
-  const headers = {
-    "Content-Type": "application/json",
-  };
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  return headers;
-};
+const DASHBOARD_API = "/dashboard";
 
 const toNumber = (value) => {
   const numberValue = Number(value);
@@ -37,7 +14,7 @@ const buildQueryParams = (params = {}) => {
 
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== "") {
-      queryParams.append(key, value);
+      queryParams.append(key, String(value));
     }
   });
 
@@ -45,24 +22,7 @@ const buildQueryParams = (params = {}) => {
 };
 
 const fetchJSON = async (url, options = {}) => {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...getHeaders(),
-      ...(options.headers || {}),
-    },
-  });
-
-  const result = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const error = new Error(result.message || "Request gagal");
-    error.status = response.status;
-    error.response = result;
-    throw error;
-  }
-
-  return result;
+  return apiJson(url, options);
 };
 
 const isAuthError = (error) => {
@@ -130,6 +90,7 @@ const getDefaultVerificationStatus = () => {
 };
 
 // ==================== 1. CARD STATISTIK ATAS ====================
+
 export const getStatistics = async () => {
   try {
     const result = await fetchJSON(`${DASHBOARD_API}/summary`);
@@ -159,6 +120,7 @@ export const getStatistics = async () => {
           data.total_revoked ??
           0,
       ),
+
       terbitMingguIni: toNumber(
         data.terbitMingguIni ?? data.terbit_minggu_ini ?? 0,
       ),
@@ -178,12 +140,15 @@ export const getStatistics = async () => {
       totalMahasiswa: toNumber(
         data.totalMahasiswa ?? data.total_mahasiswa ?? 0,
       ),
+
       perubahanBulanTerakhir: toNumber(
         data.perubahanBulanTerakhir ?? data.perubahan_bulan_terakhir ?? 0,
       ),
+
       permintaanBaruHariIni: toNumber(
         data.permintaanBaruHariIni ?? data.permintaan_baru_hari_ini ?? 0,
       ),
+
       perubahanHariIni: toNumber(
         data.perubahanHariIni ?? data.perubahan_hari_ini ?? 0,
       ),
@@ -197,6 +162,7 @@ export const getStatistics = async () => {
 };
 
 // ==================== 2. CHART BULANAN / TAHUNAN ====================
+
 export const getMonthlyIssuance = async () => {
   try {
     const result = await fetchJSON(`${DASHBOARD_API}/statistik/tahunan`);
@@ -236,14 +202,17 @@ export const getMonthlyIssuance = async () => {
 };
 
 // ==================== 3. DONUT CHART STATUS VALIDASI ====================
+
 export const getVerificationStatus = async (
   year = new Date().getFullYear(),
 ) => {
   try {
     const queryParams = buildQueryParams({ year });
+
     const result = await fetchJSON(
       `${DASHBOARD_API}/statistik/validasi?${queryParams}`,
     );
+
     const data = result.data || {};
 
     const chartData = [
@@ -287,6 +256,7 @@ export const getVerificationStatus = async (
 };
 
 // ==================== 4. TABEL STATUS VERIFIKASI TERBARU ====================
+
 export const getIjazahList = async (params = {}) => {
   try {
     const page = params.page || 1;
@@ -305,6 +275,7 @@ export const getIjazahList = async (params = {}) => {
     const result = await fetchJSON(
       `${DASHBOARD_API}/validations/latest?${queryParams}`,
     );
+
     const list = Array.isArray(result.data) ? result.data : [];
     const pagination = result.pagination || {};
 
@@ -316,7 +287,9 @@ export const getIjazahList = async (params = {}) => {
           item.uuid ||
           item.id ||
           item.id_mahasiswa,
+
         id_mahasiswa: item.id_mahasiswa,
+
         mahasiswa_code:
           item.mahasiswa_code ||
           item.mahasiswaCode ||
@@ -325,6 +298,7 @@ export const getIjazahList = async (params = {}) => {
           item.mahasiswa?.mahasiswa_code ||
           item.mahasiswa?.uuid ||
           null,
+
         batch_code:
           item.batch_code ||
           item.batchCode ||
@@ -333,9 +307,11 @@ export const getIjazahList = async (params = {}) => {
           item.batch_upload?.uuid ||
           item.mahasiswa?.batch_upload?.uuid ||
           null,
+
         nama: item.nama ?? item.nama_mahasiswa ?? item.mahasiswa?.nama ?? "-",
         nim: item.nim ?? item.mahasiswa?.nim ?? "-",
         npm: item.nim ?? item.mahasiswa?.nim ?? "-",
+
         fakultas:
           item.fakultas ??
           item.nama_fakultas ??
@@ -343,43 +319,51 @@ export const getIjazahList = async (params = {}) => {
           item.unit?.nama_unit ??
           item.mahasiswa?.prodi?.unit?.nama_unit ??
           "-",
+
         prodi:
           item.prodi ??
           item.nama_prodi ??
           item.program_studi ??
           item.mahasiswa?.prodi?.nama_prodi ??
           "-",
+
         tahunLulus:
           item.tahun_lulus ??
           item.tahunLulus ??
           item.tahun ??
           item.mahasiswa?.tahun_lulus ??
           "-",
+
         tahun_lulus:
           item.tahun_lulus ??
           item.tahunLulus ??
           item.tahun ??
           item.mahasiswa?.tahun_lulus ??
           "-",
+
         periode:
           item.periode ??
           item.periode_lulus ??
           item.batch_upload?.periode ??
           item.mahasiswa?.batch_upload?.periode ??
           "-",
+
         status:
           item.status ??
           item.status_dashboard ??
           item.status_validasi ??
           "proses",
+
         batch:
           item.batch ??
           item.nomor_batch_upload ??
           item.batch_upload?.nomor_batch_upload ??
           item.mahasiswa?.batch_upload?.nomor_batch_upload ??
           "-",
+
         raw: item,
       })),
+
       total: toNumber(pagination.total_data ?? pagination.total ?? 0),
       page: toNumber(pagination.page ?? page),
       totalPages: toNumber(pagination.total_page ?? pagination.totalPages ?? 1),
@@ -388,6 +372,7 @@ export const getIjazahList = async (params = {}) => {
     };
   } catch (error) {
     if (isAuthError(error)) throw error;
+
     return {
       data: [],
       total: 0,
@@ -400,11 +385,13 @@ export const getIjazahList = async (params = {}) => {
 };
 
 // ==================== 5. FILTER: FAKULTAS & TAHUN ====================
+
 export const getFacultiesData = async () => {
   try {
     const result = await fetchJSON(`${DASHBOARD_API}/faculties`);
     return Array.isArray(result.data) ? result.data : [];
   } catch (error) {
+    if (isAuthError(error)) throw error;
     return [];
   }
 };
@@ -414,6 +401,7 @@ export const getYearsData = async () => {
     const result = await fetchJSON(`${DASHBOARD_API}/years`);
     return Array.isArray(result.data) ? result.data : [];
   } catch (error) {
+    if (isAuthError(error)) throw error;
     return [];
   }
 };
@@ -421,14 +409,15 @@ export const getYearsData = async () => {
 // ==================== FUNGSI LAINNYA ====================
 
 export const getDetailIjazah = async (idMahasiswa) => {
-  try {
-    const result = await fetchJSON(
-      `${DASHBOARD_API}/batches/mahasiswa/${idMahasiswa}`,
-    );
-    return result.data;
-  } catch (error) {
-    throw error;
+  if (!idMahasiswa) {
+    throw new Error("ID mahasiswa tidak ditemukan.");
   }
+
+  const result = await fetchJSON(
+    `${DASHBOARD_API}/batches/mahasiswa/${encodeURIComponent(idMahasiswa)}`,
+  );
+
+  return result.data;
 };
 
 export const getBatchList = async (params = {}) => {
@@ -441,58 +430,64 @@ export const getBatchList = async (params = {}) => {
       periode: params.periode || "",
       status: params.status || "",
     });
+
     return await fetchJSON(`${DASHBOARD_API}/batches?${queryParams}`);
   } catch (error) {
     if (isAuthError(error)) throw error;
+
     return {
       success: false,
       data: [],
-      pagination: { page: 1, limit: 10, total_data: 0, total_page: 1 },
+      pagination: {
+        page: 1,
+        limit: 10,
+        total_data: 0,
+        total_page: 1,
+      },
     };
   }
 };
 
-// 🔥 FUNGSI DETAIL BATCH YANG SUDAH BERSIH DARI "batches/batch"
+// ==================== DETAIL BATCH ====================
+
 export const getDetailBatch = async (batchCode, status = "") => {
-  try {
-    if (!batchCode) throw new Error("Kode batch tidak ditemukan.");
-
-    const queryParams = buildQueryParams({
-      status,
-    });
-
-    const response = await fetchJSON(
-      `${DASHBOARD_API}/batch/${encodeURIComponent(batchCode)}${
-        queryParams ? `?${queryParams}` : ""
-      }`,
-    );
-
-    return response;
-  } catch (error) {
-    throw error;
+  if (!batchCode) {
+    throw new Error("Kode batch tidak ditemukan.");
   }
+
+  const queryParams = buildQueryParams({
+    status,
+  });
+
+  const query = queryParams ? `?${queryParams}` : "";
+
+  return fetchJSON(
+    `${DASHBOARD_API}/batch/${encodeURIComponent(batchCode)}${query}`,
+  );
 };
 
-// 🔥 FUNGSI VERIFY IJAZAH YANG SEKARANG SUDAH BALIK LAGI!
+// ==================== VERIFY IJAZAH ====================
+
 export const verifyIjazah = async (npm) => {
-  try {
-    return await fetchJSON(`${API_BASE_URL}/approval/verify/${npm}`, {
-      method: "POST",
-    });
-  } catch (error) {
-    throw error;
+  if (!npm) {
+    throw new Error("NPM/NIM tidak ditemukan.");
   }
+
+  return fetchJSON(`/approval/verify/${encodeURIComponent(npm)}`, {
+    method: "POST",
+  });
 };
 
 export const searchIjazah = async (query) => {
-  try {
-    return await getIjazahList({ page: 1, limit: 10, search: query });
-  } catch (error) {
-    throw error;
-  }
+  return getIjazahList({
+    page: 1,
+    limit: 10,
+    search: query,
+  });
 };
 
-// 🔥 FUNGSI LIST BATCH DASHBOARD YANG SUDAH BERSIH DARI "batches/batch"
+// ==================== LIST BATCH DASHBOARD ====================
+
 export const getDashboardBatches = async (params = {}) => {
   try {
     const queryParams = buildQueryParams({
@@ -501,7 +496,7 @@ export const getDashboardBatches = async (params = {}) => {
       search: params.search || "",
       tahun_lulus: params.tahun_lulus || params.tahun || "",
       periode: params.periode || "",
-      status: params.status || "", // Filter status jalan
+      status: params.status || "",
     });
 
     const response = await fetchJSON(`${DASHBOARD_API}/batch?${queryParams}`);
@@ -548,6 +543,7 @@ export const getDashboardBatches = async (params = {}) => {
           raw: item,
         };
       }),
+
       pagination: response?.pagination || {},
     };
   } catch (error) {
@@ -557,6 +553,7 @@ export const getDashboardBatches = async (params = {}) => {
 };
 
 // ==================== NOTIFIKASI TERBARU: REJECT / REVOKE ====================
+
 export const getLatestRejectRevokeNotification = async () => {
   try {
     const result = await fetchJSON(`${DASHBOARD_API}/notifications/latest`);
@@ -566,6 +563,22 @@ export const getLatestRejectRevokeNotification = async () => {
     return null;
   }
 };
+
+export const getRejectRevokeNotifications = async (limit = 5) => {
+  try {
+    const queryParams = buildQueryParams({ limit });
+
+    const result = await fetchJSON(
+      `${DASHBOARD_API}/notifications/latest?${queryParams}`,
+    );
+
+    return Array.isArray(result.data) ? result.data : [];
+  } catch (error) {
+    if (isAuthError(error)) throw error;
+    return [];
+  }
+};
+
 
 // ==================== ALIAS EXPORT & DEFAULT ====================
 
@@ -591,19 +604,6 @@ export default {
   getLatestValidations,
   getFacultiesData,
   getYearsData,
-};
-
-export const getRejectRevokeNotifications = async (limit = 5) => {
-  try {
-    const queryParams = buildQueryParams({ limit });
-
-    const result = await fetchJSON(
-      `${DASHBOARD_API}/notifications/latest?${queryParams}`,
-    );
-
-    return Array.isArray(result.data) ? result.data : [];
-  } catch (error) {
-    if (isAuthError(error)) throw error;
-    return [];
-  }
+  getLatestRejectRevokeNotification,
+  getRejectRevokeNotifications,
 };

@@ -9,9 +9,12 @@ import {
   FiExternalLink,
   FiFile,
   FiDownload,
+  FiX,
 } from "react-icons/fi";
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { getAkademikProfile } from "@/services/api";
+import { useAuth } from "../../pages/context/AuthContext";
+import { getAuthToken } from "../../services/auth.api";
 
 const getGoogleDriveFileId = (url) => {
   if (!url) return null;
@@ -38,7 +41,6 @@ const getGoogleDriveImageUrl = (url, size = 500) => {
   return `https://drive.google.com/thumbnail?id=${fileId}&sz=w${size}`;
 };
 
-
 const badgeClass = (status) => {
   const map = {
     Proses: "bg-[#3B82F6] text-white",
@@ -50,37 +52,61 @@ const badgeClass = (status) => {
   return map[status] || "bg-gray-400 text-white";
 };
 
+const getBaseUrl = () => {
+  return (
+    import.meta.env.VITE_API_PUBLIC_URL || "http://localhost:5173/"
+  ).replace(/\/$/, "");
+};
+
+const getApiUrl = (path) => {
+  const baseUrl = getBaseUrl();
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+  if (baseUrl.endsWith("/api")) {
+    return `${baseUrl}${cleanPath.replace(/^\/api/, "")}`;
+  }
+
+  return `${baseUrl}${cleanPath}`;
+};
+
 const getImageUrl = (imagePath) => {
   if (!imagePath) return null;
 
-  if (imagePath.includes("drive.google.com")) {
-    return getGoogleDriveImageUrl(imagePath, 500);
+  const cleanPath = String(imagePath).trim();
+
+  if (!cleanPath) return null;
+
+  if (cleanPath.includes("drive.google.com")) {
+    return getGoogleDriveImageUrl(cleanPath, 500);
   }
 
-  if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-    return imagePath;
+  if (cleanPath.startsWith("http://") || cleanPath.startsWith("https://")) {
+    return cleanPath;
   }
 
-  const baseUrl = import.meta.env.VITE_API_PUBLIC_URL || "http://103.158.196.32:8010";
-  // import.meta.env.VITE_API_PUBLIC_URL || "http://localhost:3000";
+  const baseUrl = getBaseUrl();
 
-  if (imagePath.startsWith("/")) return `${baseUrl}${imagePath}`;
+  if (cleanPath.startsWith("/")) return `${baseUrl}${cleanPath}`;
 
-  return `${baseUrl}/${imagePath}`;
+  return `${baseUrl}/${cleanPath}`;
 };
 
 const getFileUrl = (filePath) => {
   if (!filePath) return null;
 
-  if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
-    return filePath;
+  const cleanPath = String(filePath).trim();
+
+  if (!cleanPath) return null;
+
+  if (cleanPath.startsWith("http://") || cleanPath.startsWith("https://")) {
+    return cleanPath;
   }
 
-  const baseUrl = import.meta.env.VITE_API_PUBLIC_URL || "http://localhost:3000";
+  const baseUrl = getBaseUrl();
 
-  if (filePath.startsWith("/")) return `${baseUrl}${filePath}`;
+  if (cleanPath.startsWith("/")) return `${baseUrl}${cleanPath}`;
 
-  return `${baseUrl}/${filePath}`;
+  return `${baseUrl}/${cleanPath}`;
 };
 
 const formatTanggal = (value) => {
@@ -97,20 +123,56 @@ const formatTanggal = (value) => {
   });
 };
 
-const DetailPelaporan= () => {
+const normalizeRole = (role) => {
+  return String(role || "").toLowerCase().trim();
+};
+
+const isDownloaderRole = (role) => {
+  return ["admin", "admin_sistem", "operator", "operator_data"].includes(
+    normalizeRole(role),
+  );
+};
+
+const getDocumentPreviewUrl = (kodeQr) => {
+  return getApiUrl(`/api/document/preview/${encodeURIComponent(kodeQr)}`);
+};
+
+const getDocumentDownloadUrl = (kodeQr) => {
+  return getApiUrl(`/api/document/download/${encodeURIComponent(kodeQr)}`);
+};
+
+const getSafeFileName = (title) => {
+  return `${String(title || "dokumen")
+    .toLowerCase()
+    .replace(/\s+/g, "-")}.pdf`;
+};
+
+const DetailMahasiswaValid = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { mahasiswaCode, id } = useParams();
+  const { user } = useAuth();
 
   const mahasiswaFromState = location.state?.mahasiswa || {};
-
   const currentMahasiswaCode = decodeURIComponent(mahasiswaCode || id || "");
+
+  const userRole = normalizeRole(user?.role);
+  const canDownloadDocument = isDownloaderRole(userRole);
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadingPdf, setLoadingPdf] = useState(false);
   const [error, setError] = useState("");
   const [imageError, setImageError] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
+
+  const [pdfViewer, setPdfViewer] = useState({
+    open: false,
+    url: "",
+    title: "",
+    kodeQr: "",
+    fallbackUrl: "",
+  });
 
   const fetchProfile = async () => {
     try {
@@ -125,7 +187,7 @@ const DetailPelaporan= () => {
       setError(
         err?.message ||
           err?.response?.data?.message ||
-          "Gagal mengambil detail mahasiswa."
+          "Gagal mengambil detail mahasiswa.",
       );
     } finally {
       setLoading(false);
@@ -137,6 +199,14 @@ const DetailPelaporan= () => {
       fetchProfile();
     }
   }, [currentMahasiswaCode]);
+
+  useEffect(() => {
+    return () => {
+      if (pdfViewer.url?.startsWith("blob:")) {
+        URL.revokeObjectURL(pdfViewer.url);
+      }
+    };
+  }, [pdfViewer.url]);
 
   const mahasiswa = profile?.mahasiswa;
   const akademik = profile?.akademik;
@@ -164,58 +234,206 @@ const DetailPelaporan= () => {
     approval?.deskripsi ||
     "Data sedang dalam proses verifikasi. Mohon menunggu hingga proses validasi selesai.";
 
+  const ijazahDokumen =
+    mahasiswaFromState?.ijazah ||
+    profile?.ijazah ||
+    profile?.dokumen?.ijazah ||
+    mahasiswa?.ijazah ||
+    {};
+
+  const transkripDokumen =
+    mahasiswaFromState?.transkrip ||
+    profile?.transkrip_dokumen ||
+    profile?.dokumen?.transkrip ||
+    mahasiswa?.transkrip ||
+    {};
+
+  const ijazahKodeQr =
+    ijazahDokumen?.kode_qr ||
+    ijazahDokumen?.kodeQr ||
+    ijazahDokumen?.qr_code ||
+    ijazahDokumen?.document_code ||
+    ijazahDokumen?.uuid ||
+    "";
+
+  const transkripKodeQr =
+    transkripDokumen?.kode_qr ||
+    transkripDokumen?.kodeQr ||
+    transkripDokumen?.qr_code ||
+    transkripDokumen?.document_code ||
+    transkripDokumen?.uuid ||
+    "";
+
   const ijazahUrl = getFileUrl(
-    mahasiswaFromState?.ijazah?.file_pdf_url ||
-      mahasiswaFromState?.ijazah?.file_url ||
-      mahasiswaFromState?.ijazah?.url ||
-      profile?.ijazah?.file_pdf_url ||
-      profile?.ijazah?.file_url ||
-      profile?.ijazah?.url ||
-      profile?.dokumen?.ijazah?.file_pdf_url ||
-      profile?.dokumen?.ijazah?.file_url ||
-      profile?.dokumen?.ijazah?.url ||
-      mahasiswa?.ijazah?.file_pdf_url ||
-      mahasiswa?.ijazah?.file_url ||
-      mahasiswa?.ijazah?.url
+    ijazahDokumen?.file_pdf_url ||
+      ijazahDokumen?.file_url ||
+      ijazahDokumen?.url ||
+      ijazahDokumen?.file_pdf_final ||
+      ijazahDokumen?.file_pdf,
   );
 
   const transkripUrl = getFileUrl(
-    mahasiswaFromState?.transkrip?.file_pdf_url ||
-      mahasiswaFromState?.transkrip?.file_url ||
-      mahasiswaFromState?.transkrip?.url ||
-      profile?.transkrip_dokumen?.file_pdf_url ||
-      profile?.transkrip_dokumen?.file_url ||
-      profile?.transkrip_dokumen?.url ||
-      profile?.dokumen?.transkrip?.file_pdf_url ||
-      profile?.dokumen?.transkrip?.file_url ||
-      profile?.dokumen?.transkrip?.url ||
-      mahasiswa?.transkrip?.file_pdf_url ||
-      mahasiswa?.transkrip?.file_url ||
-      mahasiswa?.transkrip?.url
+    transkripDokumen?.file_pdf_url ||
+      transkripDokumen?.file_url ||
+      transkripDokumen?.url ||
+      transkripDokumen?.file_pdf_final ||
+      transkripDokumen?.file_pdf,
   );
 
-  const openPdf = (url, title) => {
-    if (!url) {
+  const openPdf = async ({ kodeQr, fallbackUrl, title }) => {
+    if (!kodeQr && !fallbackUrl) {
       alert(`Dokumen ${title} belum tersedia.`);
       return;
     }
 
-    window.open(url, "_blank", "noopener,noreferrer");
+    try {
+      setLoadingPdf(true);
+
+      if (pdfViewer.url?.startsWith("blob:")) {
+        URL.revokeObjectURL(pdfViewer.url);
+      }
+
+      const token = getAuthToken();
+
+      if (kodeQr && token) {
+        const response = await fetch(getDocumentPreviewUrl(kodeQr), {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/pdf",
+          },
+        });
+
+        if (!response.ok) {
+          const result = await response.json().catch(() => ({}));
+          throw new Error(result.message || "Gagal membuka preview dokumen.");
+        }
+
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        setPdfViewer({
+          open: true,
+          url: blobUrl,
+          title,
+          kodeQr,
+          fallbackUrl: fallbackUrl || "",
+        });
+
+        return;
+      }
+
+      setPdfViewer({
+        open: true,
+        url: fallbackUrl,
+        title,
+        kodeQr: kodeQr || "",
+        fallbackUrl: fallbackUrl || "",
+      });
+    } catch (err) {
+      console.error("Gagal membuka dokumen:", err);
+      alert(err?.message || "Gagal membuka dokumen.");
+    } finally {
+      setLoadingPdf(false);
+    }
+  };
+
+  const downloadPdf = async ({ kodeQr, fallbackUrl, title }) => {
+    if (!canDownloadDocument) {
+      alert("Role Anda tidak diizinkan mengunduh dokumen.");
+      return;
+    }
+
+    if (!kodeQr && !fallbackUrl) {
+      alert(`Dokumen ${title} belum tersedia.`);
+      return;
+    }
+
+    try {
+      setLoadingPdf(true);
+
+      const token = getAuthToken();
+
+      if (kodeQr && token) {
+        const response = await fetch(getDocumentDownloadUrl(kodeQr), {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/pdf",
+          },
+        });
+
+        if (!response.ok) {
+          const result = await response.json().catch(() => ({}));
+          throw new Error(result.message || "Gagal download dokumen.");
+        }
+
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = getSafeFileName(title);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        URL.revokeObjectURL(blobUrl);
+        return;
+      }
+
+      const link = document.createElement("a");
+      link.href = fallbackUrl;
+      link.download = getSafeFileName(title);
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error("Gagal download dokumen:", err);
+      alert(err?.message || "Gagal download dokumen.");
+    } finally {
+      setLoadingPdf(false);
+    }
+  };
+
+  const handleOpenIjazah = () => {
+    closePdfModal();
+
+    openPdf({
+      kodeQr: ijazahKodeQr,
+      fallbackUrl: ijazahUrl,
+      title: "Ijazah",
+    });
+  };
+
+  const handleOpenTranskrip = () => {
+    closePdfModal();
+
+    openPdf({
+      kodeQr: transkripKodeQr,
+      fallbackUrl: transkripUrl,
+      title: "Transkrip Nilai",
+    });
   };
 
   const handleLinkDokumenValid = () => {
-    if (ijazahUrl && transkripUrl) {
+    const hasIjazah = Boolean(ijazahKodeQr || ijazahUrl);
+    const hasTranskrip = Boolean(transkripKodeQr || transkripUrl);
+
+    if (hasIjazah && hasTranskrip) {
       setShowPdfModal(true);
       return;
     }
 
-    if (ijazahUrl) {
-      openPdf(ijazahUrl, "Ijazah");
+    if (hasIjazah) {
+      handleOpenIjazah();
       return;
     }
 
-    if (transkripUrl) {
-      openPdf(transkripUrl, "Transkrip Nilai");
+    if (hasTranskrip) {
+      handleOpenTranskrip();
       return;
     }
 
@@ -224,6 +442,20 @@ const DetailPelaporan= () => {
 
   const closePdfModal = () => {
     setShowPdfModal(false);
+  };
+
+  const closePdfViewer = () => {
+    if (pdfViewer.url?.startsWith("blob:")) {
+      URL.revokeObjectURL(pdfViewer.url);
+    }
+
+    setPdfViewer({
+      open: false,
+      url: "",
+      title: "",
+      kodeQr: "",
+      fallbackUrl: "",
+    });
   };
 
   if (loading) {
@@ -275,18 +507,16 @@ const DetailPelaporan= () => {
                   Pilih Dokumen
                 </h3>
                 <p className="text-xs text-gray-500 mt-1">
-                  Pilih dokumen yang ingin Anda lihat
+                  Pilih dokumen yang ingin Anda lihat.
                 </p>
               </div>
 
               <div className="space-y-3">
-                {ijazahUrl && (
+                {(ijazahKodeQr || ijazahUrl) && (
                   <button
-                    onClick={() => {
-                      closePdfModal();
-                      openPdf(ijazahUrl, "Ijazah");
-                    }}
-                    className="w-full flex items-center justify-between gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                    onClick={handleOpenIjazah}
+                    disabled={loadingPdf}
+                    className="w-full flex items-center justify-between gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-60 transition"
                   >
                     <div className="flex items-center gap-2">
                       <FiFile className="text-green-600" />
@@ -294,17 +524,15 @@ const DetailPelaporan= () => {
                         Ijazah
                       </span>
                     </div>
-                    <FiDownload className="text-gray-400 text-sm" />
+                    <FiExternalLink className="text-gray-400 text-sm" />
                   </button>
                 )}
 
-                {transkripUrl && (
+                {(transkripKodeQr || transkripUrl) && (
                   <button
-                    onClick={() => {
-                      closePdfModal();
-                      openPdf(transkripUrl, "Transkrip Nilai");
-                    }}
-                    className="w-full flex items-center justify-between gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                    onClick={handleOpenTranskrip}
+                    disabled={loadingPdf}
+                    className="w-full flex items-center justify-between gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-60 transition"
                   >
                     <div className="flex items-center gap-2">
                       <FiFile className="text-blue-600" />
@@ -312,32 +540,73 @@ const DetailPelaporan= () => {
                         Transkrip Nilai
                       </span>
                     </div>
-                    <FiDownload className="text-gray-400 text-sm" />
+                    <FiExternalLink className="text-gray-400 text-sm" />
                   </button>
                 )}
               </div>
 
               <button
-  onClick={closePdfModal}
-  className="
-    w-full
-    mt-4
-    h-11
-    rounded-lg
-    bg-[#117065]
-    text-white
-    font-semibold
-    text-sm
-    shadow-md
-    hover:bg-[#0D5A51]
-    hover:shadow-lg
-    active:scale-[0.98]
-    transition-all
-    duration-200
-  "
->
-  Batal
-</button>
+                onClick={closePdfModal}
+                className="w-full mt-4 h-11 rounded-lg bg-[#117065] text-white font-semibold text-sm shadow-md hover:bg-[#0D5A51] hover:shadow-lg active:scale-[0.98] transition-all duration-200"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        )}
+
+        {pdfViewer.open && (
+          <div className="fixed inset-0 z-[10000] bg-black/60 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl w-full max-w-6xl h-[90vh] shadow-xl overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-200">
+                <div>
+                  <h3 className="text-base font-bold text-gray-800">
+                    Pratinjau {pdfViewer.title}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {canDownloadDocument
+                      ? "Anda dapat melihat dan mengunduh dokumen ini."
+                      : "Anda hanya dapat melihat dokumen ini."}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {canDownloadDocument && (
+                    <button
+                      onClick={() =>
+                        downloadPdf({
+                          kodeQr: pdfViewer.kodeQr,
+                          fallbackUrl: pdfViewer.fallbackUrl,
+                          title: pdfViewer.title,
+                        })
+                      }
+                      disabled={loadingPdf}
+                      className="px-4 py-2 rounded-lg bg-[#117065] hover:bg-[#0D5A51] disabled:opacity-60 text-white text-sm font-semibold flex items-center gap-2"
+                    >
+                      <FiDownload size={15} />
+                      Download
+                    </button>
+                  )}
+
+                  <button
+                    onClick={closePdfViewer}
+                    className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold flex items-center gap-2"
+                  >
+                    <FiX size={15} />
+                    Tutup
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 bg-gray-100">
+                <iframe
+                  src={`${pdfViewer.url}#toolbar=${
+                    canDownloadDocument ? "1" : "0"
+                  }&navpanes=0&scrollbar=1`}
+                  title={`Preview ${pdfViewer.title}`}
+                  className="w-full h-full border-0"
+                />
+              </div>
             </div>
           </div>
         )}
@@ -383,7 +652,7 @@ const DetailPelaporan= () => {
           <div className="text-right flex flex-col items-end gap-1 max-w-[320px]">
             <span
               className={`${badgeClass(
-                detailStatus
+                detailStatus,
               )} text-white text-[13px] px-6 py-1.5 rounded-full font-bold shadow-sm inline-block`}
             >
               {detailStatus}
@@ -400,10 +669,11 @@ const DetailPelaporan= () => {
             {detailStatus === "Terbit" && (
               <button
                 onClick={handleLinkDokumenValid}
-                className="flex items-center gap-1.5 text-xs font-semibold text-[#0B4B48] hover:underline mt-2"
+                disabled={loadingPdf}
+                className="flex items-center gap-1.5 text-xs font-semibold text-[#0B4B48] hover:underline mt-2 disabled:opacity-60"
               >
                 <FiExternalLink size={12} />
-                Lihat Dokumen Valid
+                {loadingPdf ? "Membuka dokumen..." : "Lihat Dokumen Valid"}
               </button>
             )}
           </div>
@@ -425,10 +695,13 @@ const DetailPelaporan= () => {
               <InfoItem
                 label="Tempat, Tanggal Lahir"
                 value={`${mahasiswa?.tempat_lahir || "-"}, ${formatTanggal(
-                  mahasiswa?.tanggal_lahir
+                  mahasiswa?.tanggal_lahir,
                 )}`}
               />
-              <InfoItem label="Jenis Kelamin" value={mahasiswa?.jenis_kelamin} />
+              <InfoItem
+                label="Jenis Kelamin"
+                value={mahasiswa?.jenis_kelamin}
+              />
               <InfoItem label="Email" value={mahasiswa?.email} />
               <InfoItem label="No Telepon" value={mahasiswa?.telepon} />
               <InfoItem
@@ -512,7 +785,7 @@ const DetailPelaporan= () => {
                 {transkrip.length > 0 ? (
                   transkrip.map((n, index) => (
                     <tr
-                      key={index}
+                      key={`${n.kode || "matkul"}-${index}`}
                       className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-6 py-4 font-semibold text-center">
@@ -563,4 +836,4 @@ const InfoItem = ({ label, value }) => (
   </div>
 );
 
-export default DetailPelaporan;
+export default DetailMahasiswaValid;

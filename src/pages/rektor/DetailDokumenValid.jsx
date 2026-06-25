@@ -170,10 +170,9 @@ const DetailDokumenValidRektor = () => {
     const safeCode = encodeURIComponent(mahasiswaCode);
 
     // 4. Lakukan navigasi dengan menyertakan state lengkap (termasuk source)
-    navigate(`/rektor/detail-mahasiswa/${safeCode}`, {
+   navigate(`/rektor/detail-mahasiswa-valid/${encodeURIComponent(mahasiswaCode)}`, {
       state: {
         mahasiswa: student,
-        source: "dokumen_valid", // 🔥 Penting: agar tombol dokumen valid muncul di halaman tujuan
       },
     });
   };

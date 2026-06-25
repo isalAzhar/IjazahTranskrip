@@ -11,30 +11,34 @@ import {
   FiXCircle, // 🔥 Tambahan icon untuk notifikasi error
 } from "react-icons/fi";
 import DashboardLayout from "../../components/ui/DashboardLayout";
-import { getUnitsData, getPersonilByRole, getFakultasList } from "./DaftarUnit";
-
-// 🔥 IMPORT BRANKAS TOKEN
-import { useAuth } from "../context/AuthContext";
-
+import {
+  getUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+  getUnits,
+  getFakultasList,
+  getPersonilByRole,
+} from "../../services/master-data.api";
 // ==================== FUNGSI VALIDASI EMAIL ====================
 // ==================== FUNGSI FORMAT ROLE (UI) ====================
 const formatRoleUI = (role) => {
   if (!role) return "-";
-  
+
   // Kamus terjemahan dari format database ke format tampilan
   const roleMap = {
-    "admin": "Admin",
-    "operator": "Operator",
-    "rektor": "Rektor",
-    "wakil_rektor_1": "Wakil Rektor",
-    "tu_rektorat": "TU Rektorat",
-    "dekan": "Dekan",
-    "wakil_dekan_1": "Wakil Dekan",
-    "tu_fakultas": "TU Fakultas"
+    admin: "Admin",
+    operator: "Operator",
+    rektor: "Rektor",
+    wakil_rektor_1: "Wakil Rektor",
+    tu_rektorat: "TU Rektorat",
+    dekan: "Dekan",
+    wakil_dekan_1: "Wakil Dekan",
+    tu_fakultas: "TU Fakultas",
   };
 
   // Cocokkan data, jika tidak ada di kamus, tampilkan aslinya
-  return roleMap[role.toLowerCase()] || role; 
+  return roleMap[role.toLowerCase()] || role;
 };
 // ===============================================================
 const isValidEmail = (email) => {
@@ -45,15 +49,14 @@ const isValidEmail = (email) => {
 
 const DaftarPengguna = () => {
   // 🔥 STATE TOKEN DARI AUTH CONTEXT
-  const { token } = useAuth();
-
+  const [users, setUsers] = useState([]);
+  const [units, setUnits] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [openTambah, setOpenTambah] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [openHapus, setOpenHapus] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
-  const [users, setUsers] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   // 🔥 STATE UNTUK MODAL NOTIFIKASI (Menggantikan alert bawaan browser)
   const [notif, setNotif] = useState({
@@ -66,91 +69,61 @@ const DaftarPengguna = () => {
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/user/getAllUser", {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
 
-      const result = await response.json();
-      
-      if (response.ok && result.data) {
-        const data = result.data; 
-        
-        const formattedUsers = data.map(u => {
-          const namaPejabat = u.unit ? (
-            u.role === "rektor" ? u.unit.rektor : 
-            u.role === "dekan" ? u.unit.dekan : 
-            u.role === "wakil_rektor_1" ? u.unit.wakil_rektor_1 :
-            u.role === "wakil_dekan_1" ? u.unit.wakil_dekan_1 :
-            u.role === "tu_rektorat" ? u.unit.tu_rektorat :
-            u.role === "tu_fakultas" ? u.unit.tu_fakultas : "-"
-          ) : "-";
+      const data = await getUsers();
 
-          const nidnPejabat = u.unit ? (
-            u.role === "rektor" ? (u.unit.nidnRektor || u.unit.nidn_rektor) : 
-            u.role === "dekan" ? (u.unit.nidnDekan || u.unit.nidn_dekan) : 
-            u.role === "wakil_rektor_1" ? (u.unit.nidnWakilRektor || u.unit.nidn_wakil_rektor_1) :
-            u.role === "wakil_dekan_1" ? (u.unit.nidnWakilDekan || u.unit.nidn_wakil_dekan_1) :
-            u.role === "tu_rektorat" ? u.unit.nidn_tu_rektorat :
-            u.role === "tu_fakultas" ? "" : ""
-          ) : "";
-
-          return {
-            id: u.id || u.id_user || u.uuid,
-            role: u.role || "-",
-            email: u.email || "-",
-            nama: namaPejabat,
-            nidn: nidnPejabat,
-            unit: u.unit?.nama_unit || "-"
-          };
-        });
-
-        setUsers(formattedUsers);
-      }
+      setUsers(data);
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error fetch users:", error);
+
+      setNotif({
+        show: true,
+        title: "Gagal Memuat Data",
+        message:
+          error?.message ||
+          error?.response?.message ||
+          "Gagal mengambil daftar pengguna.",
+        type: "error",
+      });
     } finally {
       setIsLoading(false);
     }
   };
+  const fetchUnits = async () => {
+    try {
+      const data = await getUnits();
+      setUnits(data);
+    } catch (error) {
+      console.error("Error fetch units:", error);
+    }
+  };
 
   useEffect(() => {
-    if (token) fetchUsers();
-  }, [token]);
-
+    fetchUsers();
+    fetchUnits();
+  }, []);
   const handleAddUser = async (newUser) => {
     try {
-      const response = await fetch("/api/user/createUser", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(newUser),
-      });
+      await createUser(newUser);
 
-      if (response.ok) {
-        fetchUsers(); 
-        setOpenTambah(false);
-        setNotif({
-          show: true,
-          title: "Berhasil Menyimpan",
-          message: "Data pengguna baru telah berhasil ditambahkan ke sistem.",
-          type: "success",
-        });
-      } else {
-        const errorData = await response.json();
-        setNotif({
-          show: true,
-          title: "Gagal Menyimpan",
-          message: errorData.message || "Terjadi kesalahan pada server.",
-          type: "error",
-        });
-      }
+      await fetchUsers();
+
+      setOpenTambah(false);
+
+      setNotif({
+        show: true,
+        title: "Berhasil Menyimpan",
+        message: "Data pengguna baru telah berhasil ditambahkan ke sistem.",
+        type: "success",
+      });
     } catch (error) {
       setNotif({
         show: true,
-        title: "Error Koneksi",
-        message: "Gagal terhubung ke server saat menambah pengguna.",
+        title: "Gagal Menyimpan",
+        message:
+          error?.message ||
+          error?.response?.message ||
+          "Terjadi kesalahan pada server.",
         type: "error",
       });
     }
@@ -158,38 +131,32 @@ const DaftarPengguna = () => {
 
   const handleEditUser = async (updatedUser) => {
     try {
-      const response = await fetch(`/api/user/editUser/${updatedUser.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(updatedUser),
-      });
+      const userId = updatedUser?.id_user || updatedUser?.id;
 
-      if (response.ok) {
-        fetchUsers(); 
-        setOpenEdit(false);
-        setNotif({
-          show: true,
-          title: "Berhasil Diperbarui",
-          message: "Data pengguna telah berhasil diperbarui.",
-          type: "success",
-        });
-      } else {
-        const errorData = await response.json();
-        setNotif({
-          show: true,
-          title: "Gagal Memperbarui",
-          message: errorData.message || "Terjadi kesalahan pada server.",
-          type: "error",
-        });
+      if (!userId) {
+        throw new Error("ID pengguna tidak ditemukan.");
       }
+
+      await updateUser(userId, updatedUser);
+
+      await fetchUsers();
+
+      setOpenEdit(false);
+
+      setNotif({
+        show: true,
+        title: "Berhasil Diperbarui",
+        message: "Data pengguna telah berhasil diperbarui.",
+        type: "success",
+      });
     } catch (error) {
       setNotif({
         show: true,
-        title: "Error Koneksi",
-        message: "Gagal terhubung ke server saat memperbarui pengguna.",
+        title: "Gagal Memperbarui",
+        message:
+          error?.message ||
+          error?.response?.message ||
+          "Terjadi kesalahan pada server.",
         type: "error",
       });
     }
@@ -197,6 +164,7 @@ const DaftarPengguna = () => {
 
   const handleHapusUser = async () => {
     const userId = selectedUser?.id_user || selectedUser?.id;
+
     if (!userId) {
       setNotif({
         show: true,
@@ -208,37 +176,26 @@ const DaftarPengguna = () => {
     }
 
     try {
-      const response = await fetch(`/api/user/deleteUser/${userId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await deleteUser(userId);
 
-      if (response.ok) {
-        setOpenHapus(false);
-        await fetchUsers();
-        setSelectedUser(null); 
-        setNotif({
-          show: true,
-          title: "Berhasil Dihapus",
-          message: "Akses pengguna telah berhasil dihapus dari sistem.",
-          type: "success",
-        });
-      } else {
-        const errorData = await response.json();
-        setNotif({
-          show: true,
-          title: "Gagal Menghapus",
-          message: errorData.message || "Terjadi kesalahan pada server.",
-          type: "error",
-        });
-      }
+      setOpenHapus(false);
+      await fetchUsers();
+      setSelectedUser(null);
+
+      setNotif({
+        show: true,
+        title: "Berhasil Dihapus",
+        message: "Akses pengguna telah berhasil dihapus dari sistem.",
+        type: "success",
+      });
     } catch (error) {
       setNotif({
         show: true,
-        title: "Error Koneksi",
-        message: "Gagal terhubung ke server saat menghapus pengguna.",
+        title: "Gagal Menghapus",
+        message:
+          error?.message ||
+          error?.response?.message ||
+          "Terjadi kesalahan pada server.",
         type: "error",
       });
     }
@@ -278,39 +235,69 @@ const DaftarPengguna = () => {
           <tbody className="text-gray-700">
             {isLoading ? (
               <tr>
-                <td colSpan="6" className="py-10 text-center">Memuat data...</td>
+                <td colSpan="6" className="py-10 text-center">
+                  Memuat data...
+                </td>
               </tr>
             ) : users && users.length > 0 ? (
               users.map((user, index) => {
                 let namaTampil = user.nama || "-";
-                if (user.unit && typeof user.unit === 'object') {
+                if (user.unit && typeof user.unit === "object") {
                   const r = (user.role || "").trim();
                   if (r === "rektor") namaTampil = user.unit.rektor;
                   else if (r === "dekan") namaTampil = user.unit.dekan;
-                  else if (r === "wakil_rektor_1") namaTampil = user.unit.wakil_rektor_1;
-                  else if (r === "wakil_dekan_1") namaTampil = user.unit.wakil_dekan_1;
-                  else if (r === "tu_rektorat") namaTampil = user.unit.tu_rektorat;
-                  else if (r === "tu_fakultas") namaTampil = user.unit.tu_fakultas;
+                  else if (r === "wakil_rektor_1")
+                    namaTampil = user.unit.wakil_rektor_1;
+                  else if (r === "wakil_dekan_1")
+                    namaTampil = user.unit.wakil_dekan_1;
+                  else if (r === "tu_rektorat")
+                    namaTampil = user.unit.tu_rektorat;
+                  else if (r === "tu_fakultas")
+                    namaTampil = user.unit.tu_fakultas;
                   if (!namaTampil) namaTampil = "-";
                 }
 
-                const unitTampil = typeof user.unit === 'object' && user.unit !== null 
-                                   ? (user.unit.nama_unit || "-") 
-                                   : (user.unit || "-");
+                const unitTampil =
+                  typeof user.unit === "object" && user.unit !== null
+                    ? user.unit.nama_unit || "-"
+                    : user.unit || "-";
 
                 return (
-                  <tr key={user.id || index} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-4 px-4 text-center font-bold">{index + 1}.</td>
-                    <td className="py-4 px-4 font-bold">{formatRoleUI(user.role) }</td>
+                  <tr
+                    key={user.id || index}
+                    className="border-b border-gray-100 hover:bg-gray-50"
+                  >
+                    <td className="py-4 px-4 text-center font-bold">
+                      {index + 1}.
+                    </td>
+                    <td className="py-4 px-4 font-bold">
+                      {formatRoleUI(user.role)}
+                    </td>
                     <td className="py-4 px-4 text-center">{namaTampil}</td>
                     <td className="py-4 px-4 text-center">{unitTampil}</td>
-                    <td className="py-4 px-4 text-center">{user.email || "-"}</td>
+                    <td className="py-4 px-4 text-center">
+                      {user.email || "-"}
+                    </td>
                     <td className="py-4 px-4">
                       <div className="flex justify-center gap-3">
-                        <button type="button" className="text-gray-400 hover:text-[#1F7A6E] hover:bg-[#E8F5E9]" onClick={() => { setSelectedUser(user); setOpenEdit(true); }}>
+                        <button
+                          type="button"
+                          className="text-gray-400 hover:text-[#1F7A6E] hover:bg-[#E8F5E9]"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setOpenEdit(true);
+                          }}
+                        >
                           <FiEdit2 size={18} />
                         </button>
-                        <button type="button" className="text-gray-400 hover:text-red-500 hover:bg-red-50" onClick={() => { setSelectedUser(user); setOpenHapus(true); }}>
+                        <button
+                          type="button"
+                          className="text-gray-400 hover:text-red-500 hover:bg-red-50"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setOpenHapus(true);
+                          }}
+                        >
                           <FiTrash2 size={18} />
                         </button>
                       </div>
@@ -320,7 +307,9 @@ const DaftarPengguna = () => {
               })
             ) : (
               <tr>
-                <td colSpan="6" className="py-8 text-center text-gray-400">Belum ada data.</td>
+                <td colSpan="6" className="py-8 text-center text-gray-400">
+                  Belum ada data.
+                </td>
               </tr>
             )}
           </tbody>
@@ -334,7 +323,15 @@ const DaftarPengguna = () => {
               onSave={handleAddUser}
               onClose={() => setOpenTambah(false)}
               users={users}
-              onError={(msg) => setNotif({ show: true, title: "Peringatan", message: msg, type: "error" })}
+              units={units}
+              onError={(msg) =>
+                setNotif({
+                  show: true,
+                  title: "Peringatan",
+                  message: msg,
+                  type: "error",
+                })
+              }
             />
           </div>
         </div>
@@ -379,30 +376,28 @@ const DaftarPengguna = () => {
           <div className="bg-white w-[400px] rounded-2xl shadow-xl overflow-hidden transform transition-all scale-100">
             <div className="p-8 flex flex-col items-center text-center gap-4">
               {/* Icon berubah dinamis tergantung tipe (success / error) */}
-              <div className={`w-16 h-16 mx-auto flex items-center justify-center rounded-full shadow-md ${
-                notif.type === "success" ? "bg-[#0B4B48]" : "bg-red-500"
-              }`}>
+              <div
+                className={`w-16 h-16 mx-auto flex items-center justify-center rounded-full shadow-md ${
+                  notif.type === "success" ? "bg-[#0B4B48]" : "bg-red-500"
+                }`}
+              >
                 {notif.type === "success" ? (
                   <FiCheckCircle size={36} className="text-white" />
                 ) : (
                   <FiXCircle size={36} className="text-white" />
                 )}
               </div>
-              <h2 className="text-xl font-bold text-gray-800">
-                {notif.title}
-              </h2>
-              <p className="text-sm text-gray-500">
-                {notif.message}
-              </p>
+              <h2 className="text-xl font-bold text-gray-800">{notif.title}</h2>
+              <p className="text-sm text-gray-500">{notif.message}</p>
             </div>
             <div className="flex justify-center px-8 py-5 bg-gray-50 border-t border-gray-100">
               <button
                 type="button"
                 onClick={() => setNotif({ ...notif, show: false })}
                 className={`w-full py-2.5 rounded-xl shadow-md font-semibold text-white transition ${
-                  notif.type === "success" 
-                  ? "bg-[#0B4B48] hover:bg-[#083c3a]" 
-                  : "bg-red-500 hover:bg-red-600"
+                  notif.type === "success"
+                    ? "bg-[#0B4B48] hover:bg-[#083c3a]"
+                    : "bg-red-500 hover:bg-red-600"
                 }`}
               >
                 Tutup
@@ -416,7 +411,7 @@ const DaftarPengguna = () => {
 };
 
 // ==================== FORM TAMBAH ====================
-const AddUserForm = ({ onSave, onClose, users = [], onError }) => {
+const AddUserForm = ({ onSave, onClose, users = [], units = [], onError }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [jenisUnit, setJenisUnit] = useState("");
   const [namaUnit, setNamaUnit] = useState("");
@@ -428,9 +423,7 @@ const AddUserForm = ({ onSave, onClose, users = [], onError }) => {
     email: "",
     password: "",
   });
-
-  const units = getUnitsData();
-  const fakultasList = getFakultasList();
+  const fakultasList = getFakultasList(units);
 
   const universitasList = units.filter((u) => u.jenis === "Universitas");
 
@@ -455,10 +448,10 @@ const AddUserForm = ({ onSave, onClose, users = [], onError }) => {
     if (!jenisUnit || !role || !namaUnit) return null;
 
     try {
-      const hasilData = getPersonilByRole(jenisUnit, role, namaUnit);
+      const hasilData = getPersonilByRole(jenisUnit, role, namaUnit, units);
       return hasilData || null;
     } catch (error) {
-      console.error("🚨 CRASH DICEGAH: Gagal mengambil data personil", error);
+      console.error("Gagal mengambil data personil:", error);
       return null;
     }
   };
@@ -532,17 +525,21 @@ const AddUserForm = ({ onSave, onClose, users = [], onError }) => {
 
   const handleSubmit = () => {
     if (!isValidEmail(form.email)) {
-      onError("Format email yang diinputkan tidak valid. Gunakan format @domain.com");
+      onError(
+        "Format email yang diinputkan tidak valid. Gunakan format @domain.com",
+      );
       return;
     }
 
     if (isSubmitDisabled()) {
-      onError("Harap pastikan semua field mandatory telah terisi dengan benar.");
+      onError(
+        "Harap pastikan semua field mandatory telah terisi dengan benar.",
+      );
       return;
     }
-    
+
     const selectedUnitObj = units.find(
-      (u) => u.nama === namaUnit || u.nama_unit === namaUnit
+      (u) => u.nama === namaUnit || u.nama_unit === namaUnit,
     );
 
     const idUnitReal = selectedUnitObj ? selectedUnitObj.id : null;
@@ -817,12 +814,13 @@ const EditUserForm = ({ userData, onSave, onClose }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({
     nama: userData.nama || "",
-    nidn: userData.nidn|| "",
+    nidn: userData.nidn || "",
     email: userData.email || "",
     password: "",
   });
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
 
   return (
     <>
@@ -837,50 +835,85 @@ const EditUserForm = ({ userData, onSave, onClose }) => {
         {/* Baris Nama & NIDN */}
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <label className="text-sm font-semibold text-gray-500 mb-1 block">Nama</label>
-            <input name="nama" value={form.nama} readOnly className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 text-gray-700" />
+            <label className="text-sm font-semibold text-gray-500 mb-1 block">
+              Nama
+            </label>
+            <input
+              name="nama"
+              value={form.nama}
+              readOnly
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 text-gray-700"
+            />
           </div>
           <div>
-            <label className="text-sm font-semibold text-gray-500 mb-1 block">NIDN</label>
-            <input name="nidn" value={form.nidn} readOnly className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 text-gray-700" />
+            <label className="text-sm font-semibold text-gray-500 mb-1 block">
+              NIDN
+            </label>
+            <input
+              name="nidn"
+              value={form.nidn}
+              readOnly
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 text-gray-700"
+            />
           </div>
         </div>
 
         {/* Baris Email */}
         <div>
-          <label className="text-sm font-semibold text-gray-500 mb-1 block">Email *</label>
-          <input 
-            name="email" type="email" value={form.email} onChange={handleChange} 
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#0B4B48] outline-none" 
+          <label className="text-sm font-semibold text-gray-500 mb-1 block">
+            Email *
+          </label>
+          <input
+            name="email"
+            type="email"
+            value={form.email}
+            onChange={handleChange}
+            className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#0B4B48] outline-none"
           />
         </div>
 
         {/* Baris Password */}
         <div>
-          <label className="text-sm font-semibold text-gray-500 mb-1 block">Password</label>
+          <label className="text-sm font-semibold text-gray-500 mb-1 block">
+            Password
+          </label>
           <div className="relative">
-            <input 
-              name="password" 
-              type={showPassword ? "text" : "password"} 
-              value={form.password} 
+            <input
+              name="password"
+              type={showPassword ? "text" : "password"}
+              value={form.password}
               onChange={handleChange}
-              placeholder="••••••••" 
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 pr-12 focus:ring-2 focus:ring-[#0B4B48] outline-none" 
+              placeholder="••••••••"
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 pr-12 focus:ring-2 focus:ring-[#0B4B48] outline-none"
             />
-            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600">
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600"
+            >
               {showPassword ? <FiEye size={20} /> : <FiEyeOff size={20} />}
             </button>
           </div>
           <p className="text-xs text-gray-400 mt-2">
             *Kosongkan kolom ini jika tidak ingin mengubah password lama.
           </p>
-        </div> 
+        </div>
       </div>
 
       {/* Footer Tombol */}
       <div className="flex justify-end gap-3 px-8 py-6 bg-gray-50 rounded-b-2xl">
-        <button onClick={onClose} className="px-6 py-2.5 rounded-xl bg-white border border-gray-300 font-semibold hover:bg-gray-100 transition">Batal</button>
-        <button onClick={() => onSave({ ...userData, ...form })} className="px-6 py-2.5 rounded-xl bg-[#0B4B48] text-white font-semibold hover:bg-[#083c3a] transition">Simpan</button>
+        <button
+          onClick={onClose}
+          className="px-6 py-2.5 rounded-xl bg-white border border-gray-300 font-semibold hover:bg-gray-100 transition"
+        >
+          Batal
+        </button>
+        <button
+          onClick={() => onSave({ ...userData, ...form })}
+          className="px-6 py-2.5 rounded-xl bg-[#0B4B48] text-white font-semibold hover:bg-[#083c3a] transition"
+        >
+          Simpan
+        </button>
       </div>
     </>
   );

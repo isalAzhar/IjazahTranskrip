@@ -1,28 +1,38 @@
 // AuthContext.jsx
-import React, { createContext, useState, useContext, useEffect } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import {
+  clearAuthSession,
+  getAuthToken,
+  getRefreshToken,
+  getStoredUser,
+  logout as logoutRequest,
+  refreshAccessToken,
+  saveAuthSession,
+} from "../../services/auth.api";
 
 const AuthContext = createContext(null);
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const getLoginUrl = () => {
+const getLoginUrl = () => {
   const baseUrl = import.meta.env.BASE_URL || "/";
   return `${window.location.origin}${baseUrl}#/login`;
 };
 
-const isLoginPage = () => {
-  return window.location.hash === "#/login";
-};
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
+  const [refreshToken, setRefreshToken] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // 🔥 Blokir cache browser di level meta tag
   useEffect(() => {
     const metas = [
-      { httpEquiv: "Cache-Control", content: "no-cache, no-store, must-revalidate" },
+      {
+        httpEquiv: "Cache-Control",
+        content: "no-cache, no-store, must-revalidate",
+      },
       { httpEquiv: "Pragma", content: "no-cache" },
       { httpEquiv: "Expires", content: "0" },
     ];
+
     const addedMetas = metas.map(({ httpEquiv, content }) => {
       const el = document.createElement("meta");
       el.httpEquiv = httpEquiv;
@@ -30,55 +40,32 @@ const isLoginPage = () => {
       document.head.appendChild(el);
       return el;
     });
+
     return () => addedMetas.forEach((el) => document.head.removeChild(el));
-  }, []);
-
-  // 🔥 Blokir tombol Back browser
-  useEffect(() => {
-    const blockBack = () => {
-      const token = localStorage.getItem("authToken");
-     if (!token && !isLoginPage()) {
-  window.location.replace(getLoginUrl());
-}
-    };
-
-    window.history.pushState(null, "", window.location.href);
-
-    window.addEventListener("popstate", blockBack);
-    window.addEventListener("pageshow", (e) => {
-      if (e.persisted) {
-        const token = localStorage.getItem("authToken");
-        if (!token) {
-          window.location.replace(getLoginUrl());
-        } else {
-          window.location.reload();
-        }
-      }
-    });
-
-    return () => {
-      window.removeEventListener("popstate", blockBack);
-    };
   }, []);
 
   useEffect(() => {
     const restoreSession = () => {
       try {
-        const savedToken = localStorage.getItem("authToken");
-        const userDataRaw = localStorage.getItem("user");
+        const savedToken = getAuthToken();
+        const savedRefreshToken = getRefreshToken();
+        const savedUser = getStoredUser();
 
-        if (savedToken && userDataRaw && userDataRaw !== "undefined" && userDataRaw !== "null") {
-          const parsedUser = JSON.parse(userDataRaw);
-          setUser(parsedUser);
+        if (savedToken && savedUser) {
+          setUser(savedUser);
           setToken(savedToken);
+          setRefreshToken(savedRefreshToken);
         } else {
+          clearAuthSession();
           setUser(null);
           setToken(null);
+          setRefreshToken(null);
         }
       } catch {
-        localStorage.clear();
+        clearAuthSession();
         setUser(null);
         setToken(null);
+        setRefreshToken(null);
       } finally {
         setLoading(false);
       }
@@ -87,27 +74,71 @@ const isLoginPage = () => {
     restoreSession();
   }, []);
 
-  const login = (userData, accessToken) => {
-    return new Promise((resolve) => {
-      localStorage.setItem("authToken", accessToken);
-      localStorage.setItem("user", JSON.stringify(userData));
-      setUser(userData);
-      setToken(accessToken);
-      resolve();
+  const login = async (userData, accessToken, newRefreshToken) => {
+    saveAuthSession({
+      accessToken,
+      refreshToken: newRefreshToken,
+      user: userData,
     });
+
+    setUser(userData);
+    setToken(accessToken);
+    setRefreshToken(newRefreshToken || null);
   };
 
- const logout = () => {
-  sessionStorage.clear();
-  localStorage.clear();
-  setUser(null);
-  setToken(null);
-  window.location.replace(getLoginUrl());
-};
+  const refreshSession = async () => {
+    const currentRefreshToken = refreshToken || getRefreshToken();
+
+    if (!currentRefreshToken) {
+      throw new Error("Refresh token tidak ditemukan.");
+    }
+
+    const result = await refreshAccessToken(currentRefreshToken);
+    const newAccessToken = result.access_token;
+
+    if (!newAccessToken) {
+      throw new Error("Access token baru tidak dikirim auth-service.");
+    }
+
+    saveAuthSession({
+      accessToken: newAccessToken,
+      refreshToken: currentRefreshToken,
+      user,
+    });
+
+    setToken(newAccessToken);
+
+    return newAccessToken;
+  };
+
+  const logout = async () => {
+    try {
+      await logoutRequest();
+    } catch (error) {
+      console.warn("Logout auth-service gagal, sesi lokal tetap dihapus:", error);
+      clearAuthSession();
+    } finally {
+      setUser(null);
+      setToken(null);
+      setRefreshToken(null);
+      window.location.replace(getLoginUrl());
+    }
+  };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading, isAuthenticated: !!user }}>
-      {children} {/* ✅ Hapus !loading — biarkan ProtectedRoute yang handle */}
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        refreshToken,
+        login,
+        logout,
+        refreshSession,
+        loading,
+        isAuthenticated: Boolean(user && token),
+      }}
+    >
+      {children}
     </AuthContext.Provider>
   );
 };

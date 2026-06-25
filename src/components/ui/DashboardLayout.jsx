@@ -3,11 +3,12 @@ import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../pages/context/AuthContext";
 import Navbar from "./Navbar";
+import { getAuthToken } from "../../services/auth.api";
 
 const DashboardLayout = ({ children, title, allowedRoles = [] }) => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const token = localStorage.getItem("authToken");
+  const token = getAuthToken();
 
   // Cek autentikasi
   useEffect(() => {
@@ -23,10 +24,12 @@ const DashboardLayout = ({ children, title, allowedRoles = [] }) => {
   useEffect(() => {
     if (!loading && user && allowedRoles.length > 0) {
       if (!allowedRoles.includes(user.role)) {
-        console.log(`[DashboardLayout] Role ${user.role} not allowed, redirecting`);
+        console.log(
+          `[DashboardLayout] Role ${user.role} not allowed, redirecting`,
+        );
         const role = user.role;
         let target = "/login";
-        
+
         if (role === "admin_sistem") {
           target = "/admin/dashboard";
         } else if (role === "operator") {
@@ -36,7 +39,7 @@ const DashboardLayout = ({ children, title, allowedRoles = [] }) => {
         } else if (role === "rektor") {
           target = "/rektor/dashboard";
         }
-        
+
         navigate(target, { replace: true });
       }
     }
@@ -66,11 +69,9 @@ const DashboardLayout = ({ children, title, allowedRoles = [] }) => {
   return (
     <div className="min-h-screen w-full bg-gray-50">
       <Navbar />
-      
+
       <main className="w-full px-4 md:px-8 py-6">
-        <div className="w-full max-w-[1400px] mx-auto">
-          {children}
-        </div>
+        <div className="w-full max-w-[1400px] mx-auto">{children}</div>
       </main>
     </div>
   );

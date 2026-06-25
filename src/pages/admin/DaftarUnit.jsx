@@ -4,93 +4,15 @@ import DashboardLayout from "../../components/ui/DashboardLayout";
 import { FiChevronDown, FiEdit2, FiTrash2, FiPlus } from "react-icons/fi";
 import { HiCheckCircle } from "react-icons/hi";
 import { HiOutlineExclamationTriangle } from "react-icons/hi2";
-
-// 🔥 IMPORT BRANKAS TOKEN
-import { useAuth } from "../context/AuthContext";
-
-// ==================== FUNGSI HELPER ====================
-export const getUnitsData = () => {
-  const saved = localStorage.getItem("units");
-  return saved ? JSON.parse(saved) : [];
-};
-
-// Di dalam file DaftarUnit.jsx / .js
-export const getPersonilByRole = (jenisUnit, role, namaUnit) => {
-  const semuaUnit = getUnitsData();
-  const unitData = semuaUnit.find(
-    (u) => u.nama === namaUnit || u.nama_unit === namaUnit,
-  );
-  console.log("🔍 CEK ISI DATA UNIT UNTUK NIDN:", unitData);
-
-  if (!unitData) return null;
-
-  let namaPejabat = "";
-  let nidnPejabat = "";
-
-  // 🔥 SAMAKAN PERSIS DENGAN DATABASE (Huruf Kecil Semua)
-  switch (role) {
-    case "rektor":
-      namaPejabat = unitData.rektor;
-      nidnPejabat = unitData.nidn_rektor || unitData.nidn_rektor;
-      break;
-    case "wakil_rektor_1":
-      namaPejabat =
-        unitData.wakil_rektor_1 || unitData.wakilRektor || unitData.wakil;
-      nidnPejabat = unitData.nidnWakilRektor || unitData.nidn_wakil_rektor_1;
-      break;
-    case "tu_rektorat":
-      namaPejabat = unitData.tu_rektorat || unitData.katu;
-      nidnPejabat = unitData.nidn_tu_rektorat || "";
-      break;
-
-    case "dekan":
-      namaPejabat = unitData.dekan;
-      nidnPejabat = unitData.nidnDekan; // <-- Tadi salah karena nidn_dekan
-      break;
-
-    case "wakil_dekan_1":
-      namaPejabat = unitData.wakil; // <-- Tadi salah karena wakil_dekan_1
-      nidnPejabat = unitData.nidnWakil; // <-- Tadi salah karena nidn_wakil_dekan_1
-      break;
-
-    case "tu_fakultas":
-      namaPejabat = unitData.katu; // <-- Tadi salah karena tu_fakultas
-      nidnPejabat = ""; // TU biasanya tidak wajib NIDN
-      break;
-
-    default:
-      return null;
-  }
-
-  if (!namaPejabat) return null;
-
-  return {
-    nama: namaPejabat,
-    nidn: nidnPejabat || "",
-  };
-};
-
-export const getFakultasList = () => {
-  const units = getUnitsData();
-  return units
-    .filter((u) => u.jenis?.toLowerCase() === "fakultas")
-    .map((u) => u.nama);
-};
-
-export const isRoleTerisi = (unitName, role) => {
-  const users = JSON.parse(localStorage.getItem("users") || "[]");
-  return users.some((u) => u.unit === unitName && u.role === role);
-};
-
-export const isFakultasLengkap = (fakultasName) => {
-  const users = JSON.parse(localStorage.getItem("users") || "[]");
-  const usersInFakultas = users.filter((u) => u.unit === fakultasName);
-  const requiredRoles = ["Dekan", "Wakil Dekan", "TU Fakultas"];
-  return requiredRoles.every((role) =>
-    usersInFakultas.some((u) => u.role === role),
-  );
-};
-// ==================== AKHIR FUNGSI HELPER ====================
+import {
+  getUnits,
+  createUnit,
+  updateUnit,
+  deleteUnit,
+  createProdi,
+  updateProdi,
+  deleteProdi,
+} from "../../services/master-data.api";
 
 // ==================== CONSTANTS & VALIDASI ====================
 const emptyForm = {
@@ -148,7 +70,6 @@ const ActionIconButton = ({
 
 const DaftarUnit = () => {
   // 🔥 STATE TOKEN & API
-  const { token, logout } = useAuth();
   const [units, setUnits] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState("");
@@ -172,97 +93,33 @@ const DaftarUnit = () => {
 
   const [form, setForm] = useState(emptyForm);
 
-  // 🔥 FETCH DATA DARI API
-  useEffect(() => {
-    const fetchUnits = async () => {
-      try {
-        setIsLoading(true);
-        setApiError("");
+  const fetchUnitsData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setApiError("");
 
-        const response = await fetch("/api/unit/getAllUnit", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
+      const data = await getUnits();
 
-        const result = await response.json();
+      setUnits(data);
+    } catch (error) {
+      console.error("Error fetch units:", error);
 
-        if (response.ok) {
-          const rawData = Array.isArray(result) ? result : result.data || [];
-          const formattedData = rawData.map((item) => {
-            const jenisRaw = item.jenis_unit
-              ? item.jenis_unit.toLowerCase()
-              : "";
-            const isUni = jenisRaw === "universitas";
-
-            const mappedProdi = Array.isArray(item.prodi)
-              ? item.prodi
-                  .map((p) => ({
-                    id: p.id_prodi, // Tangkap ID Prodi jika nanti mau dipakai untuk Edit/Delete
-                    nama: p.nama_prodi || "-",
-                    namaEn: p.nama_prodi_en || "",
-                    ketua: p.kaprodi || "-",
-                    nidn: p.nidn_kaprodi || "-",
-                    sk: p.no_sk_akreditasi || "-",
-                    fileLama: p.file_paraf_kaprodi || null, // Catat nama file jika sudah ada
-                  }))
-                  .sort((a, b) => {
-                    // Mengurutkan Prodi sesuai abjad (A-Z)
-                    const namaA = a.nama || "";
-                    const namaB = b.nama || "";
-                    return namaA.localeCompare(namaB);
-                  })
-              : [];
-
-            return {
-              id: item.id_unit,
-              jenis: isUni ? "Universitas" : "Fakultas",
-              nama: item.nama_unit || "-",
-              en: item.nama_unit_en || "-",
-
-              dekan: isUni ? item.rektor : item.dekan,
-              nidnDekan: isUni ? item.nidn_rektor : item.nidn_dekan,
-              wakil: isUni ? item.wakil_rektor_1 : item.wakil_dekan_1,
-              nidnWakil: isUni
-                ? item.nidn_wakil_rektor_1
-                : item.nidn_wakil_dekan_1,
-              katu: isUni ? item.tu_rektorat : item.tu_fakultas,
-
-              fileTtd: isUni ? item.file_ttd_rektor : item.file_ttd_dekan,
-              fileParafWakil: isUni
-                ? item.file_paraf_warek
-                : item.file_paraf_wadek,
-              fileParafKatu: isUni
-                ? item.file_paraf_tu_rektorat
-                : item.file_paraf_tu_fakultas,
-              fileStempel: isUni
-                ? item.file_stempel_universitas
-                : item.file_stempel_fakultas,
-
-              prodi: mappedProdi,
-            };
-          });
-          setUnits(formattedData);
-          localStorage.setItem("units", JSON.stringify(formattedData));
-        } else {
-          setApiError(result.message || "Gagal mengambil data unit.");
-        }
-      } catch (err) {
-        setApiError("Gagal terhubung ke server backend.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (token) fetchUnits();
-  }, [token, logout]);
-
-  useEffect(() => {
-    if (units.length > 0) {
-      localStorage.setItem("units", JSON.stringify(units));
+      setApiError(
+        error?.message ||
+          error?.response?.message ||
+          "Gagal mengambil data unit.",
+      );
+    } finally {
+      setIsLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    fetchUnitsData();
+  }, [fetchUnitsData]);
+
+  useEffect(() => {
+    localStorage.setItem("units", JSON.stringify(units));
   }, [units]);
 
   // VARIABEL UI DINAMIS
@@ -296,13 +153,15 @@ const DaftarUnit = () => {
       ? true
       : form.ttdDekan && form.parafWakil && form.parafKatu && form.stempel);
 
+  const isEditingProdi = prodiForm.editIndex !== undefined;
+
   const isProdiFormValid =
     prodiForm.nama?.trim() &&
     prodiForm.namaEn?.trim() &&
     prodiForm.sk?.trim() &&
     prodiForm.ketua?.trim() &&
     prodiForm.nidn?.trim() &&
-    prodiForm.file;
+    (isEditingProdi ? true : prodiForm.file);
 
   const triggerSuccess = (msg) => {
     setSuccessMessage(msg);
@@ -385,81 +244,95 @@ const DaftarUnit = () => {
       formData.append("wakil_rektor_1", form.wakil || "");
       formData.append("nidn_wakil_rektor_1", form.nidnWakil || "");
       formData.append("tu_rektorat", form.katu || "");
+
+      if (form.ttdDekan) {
+        formData.append("file_ttd_rektor", form.ttdDekan);
+      }
+
+      if (form.parafWakil) {
+        formData.append("file_paraf_warek", form.parafWakil);
+      }
+
+      if (form.parafKatu) {
+        formData.append("file_paraf_tu_rektorat", form.parafKatu);
+      }
+
+      if (form.stempel) {
+        formData.append("file_stempel_universitas", form.stempel);
+      }
     } else {
       formData.append("dekan", form.dekan || "");
       formData.append("nidn_dekan", form.nidnDekan || "");
       formData.append("wakil_dekan_1", form.wakil || "");
       formData.append("nidn_wakil_dekan_1", form.nidnWakil || "");
       formData.append("tu_fakultas", form.katu || "");
+
+      if (form.ttdDekan) {
+        formData.append("file_ttd_dekan", form.ttdDekan);
+      }
+
+      if (form.parafWakil) {
+        formData.append("file_paraf_wadek", form.parafWakil);
+      }
+
+      if (form.parafKatu) {
+        formData.append("file_paraf_tu_fakultas", form.parafKatu);
+      }
+
+      if (form.stempel) {
+        formData.append("file_stempel_fakultas", form.stempel);
+      }
     }
 
-    if (form.ttdDekan) formData.append("file_ttd_dekan", form.ttdDekan);
-    if (form.parafWakil) formData.append("file_paraf_wadek", form.parafWakil);
-    if (form.parafKatu)
-      formData.append("file_paraf_tu_fakultas", form.parafKatu);
-    if (form.stempel) formData.append("file_stempel_fakultas", form.stempel);
     try {
-      const url = editId
-        ? `/api/unit/editUnit/${editId}`
-        : "/api/unit/createUnit";
-      const method = editId ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method: method,
-        headers: { Authorization: `Bearer ${token}` }, // TANPA CONTENT-TYPE
-        body: formData,
-      });
-
-      const result = await response.json();
-      if (response.ok) {
-        setOpenModal(false);
-        triggerSuccess(
-          editId ? "Unit berhasil diupdate!" : "Unit berhasil ditambahkan!",
-        );
+      if (editId) {
+        await updateUnit(editId, formData);
       } else {
-        alert("Error Backend: " + JSON.stringify(result));
+        await createUnit(formData);
       }
-    } catch (err) {
-      alert("Error Koneksi.");
+
+      setOpenModal(false);
+
+      await fetchUnitsData();
+
+      triggerSuccess(
+        editId ? "Unit berhasil diupdate!" : "Unit berhasil ditambahkan!",
+      );
+    } catch (error) {
+      console.error("Error save unit:", error);
+
+      alert(
+        error?.message ||
+          error?.response?.message ||
+          "Gagal menyimpan data unit.",
+      );
     }
   };
 
-  // 🔥 FUNGSI HAPUS UNIT (Menembak API DELETE)
   const handleDelete = async (id) => {
     try {
-      // 🎯 Sesuaikan rute ini dengan rute delete di Backend Komandan
-      // Misalnya: "/api/unit/deleteUnit/${id}" atau "/api/unit/${id}"
-      const response = await fetch(`/api/unit/deleteUnit/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      await deleteUnit(id);
 
-      if (response.ok) {
-        // Jika backend merespon sukses, hapus dari tampilan Frontend
-        setUnits((prev) => prev.filter((u) => u.id !== id));
-        triggerSuccess("Unit berhasil dihapus dari database!");
-      } else {
-        const errorData = await response.json();
-        alert(
-          `Gagal menghapus unit: ${errorData.message || "Kesalahan Server"}`,
-        );
-      }
+      setUnits((prev) => prev.filter((unit) => unit.id !== id));
+
+      triggerSuccess("Unit berhasil dihapus dari database!");
     } catch (error) {
       console.error("Error menghapus unit:", error);
-      alert("Terjadi kesalahan koneksi saat menghapus unit.");
+
+      alert(
+        error?.message ||
+          error?.response?.message ||
+          "Terjadi kesalahan saat menghapus unit.",
+      );
     }
   };
 
-  // 🔥 TOMBOL SELESAI DI KLIK
   const handleSelesai = () => {
     setLoadingDone(true);
+
     setTimeout(() => {
       setLoadingDone(false);
       setShowSuccess(false);
-      window.location.reload(); // Refresh untuk menarik data terbaru dari DB
     }, 500);
   };
 
@@ -480,35 +353,28 @@ const DaftarUnit = () => {
 
   const handleDeleteProdi = async (prodiId, unitId) => {
     try {
-      const response = await fetch(`/api/unit/deleteProdi/${prodiId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      await deleteProdi(prodiId);
 
-      const result = await response.json().catch(() => ({}));
+      setUnits((prev) =>
+        prev.map((unit) => {
+          if (unit.id !== unitId) return unit;
 
-      if (response.ok) {
-        setUnits((prev) =>
-          prev.map((u) => {
-            if (u.id !== unitId) return u;
+          return {
+            ...unit,
+            prodi: unit.prodi.filter((prodi) => prodi.id !== prodiId),
+          };
+        }),
+      );
 
-            return {
-              ...u,
-              prodi: u.prodi.filter((p) => p.id !== prodiId),
-            };
-          }),
-        );
-
-        triggerSuccess("Prodi berhasil dihapus");
-      } else {
-        alert(`Gagal menghapus prodi: ${result.message || "Kesalahan Server"}`);
-      }
+      triggerSuccess("Prodi berhasil dihapus");
     } catch (error) {
       console.error("Error menghapus prodi:", error);
-      alert("Terjadi kesalahan koneksi saat menghapus prodi.");
+
+      alert(
+        error?.message ||
+          error?.response?.message ||
+          "Terjadi kesalahan saat menghapus prodi.",
+      );
     }
   };
 
@@ -516,55 +382,43 @@ const DaftarUnit = () => {
   const saveProdi = async () => {
     if (!isProdiFormValid) return;
 
-    // 1. Bungkus data ke dalam FormData agar file foto bisa ikut terkirim
     const formData = new FormData();
-    formData.append("id_unit", activeUnitId); // ID Fakultas/Universitas tempat Prodi ini bernaung
+
+    formData.append("id_unit", activeUnitId);
     formData.append("nama_prodi", prodiForm.nama);
     formData.append("nama_prodi_en", prodiForm.namaEn || "");
     formData.append("kaprodi", prodiForm.ketua || "");
     formData.append("nidn_kaprodi", prodiForm.nidn || "");
     formData.append("no_sk_akreditasi", prodiForm.sk || "");
 
-    // Jika ada file stempel/paraf prodi yang dipilih, masukkan ke form
     if (prodiForm.file) {
       formData.append("file_paraf_kaprodi", prodiForm.file);
     }
 
     try {
-      // 2. Tentukan apakah ini mode Edit atau Tambah Baru
       const isEdit = prodiForm.editIndex !== undefined;
 
-      // 🎯 CATATAN KOMANDAN: Sesuaikan rute URL ini dengan rute di Backend!
-      const url = isEdit
-        ? `/api/unit/editProdi/${prodiForm.id}` // Jika update
-        : `/api/unit/createProdi`; // Jika tambah baru
-
-      const method = isEdit ? "PUT" : "POST";
-
-      // 3. Tembakkan ke server Backend
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          // TANPA Content-Type, biarkan browser yang mengatur otomatis
-        },
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        setOpenProdiForm(false);
-        triggerSuccess(
-          isEdit ? "Prodi berhasil diupdate!" : "Prodi berhasil ditambahkan!",
-        );
-        // UI akan ter-refresh otomatis ketika tombol "Selesai" diklik (karena fungsi handleSelesai)
+      if (isEdit) {
+        await updateProdi(prodiForm.id, formData);
       } else {
-        alert("Error Backend: " + (result.message || JSON.stringify(result)));
+        await createProdi(formData);
       }
-    } catch (err) {
-      console.error("Error save prodi:", err);
-      alert("Error Koneksi: Gagal menyimpan Prodi ke server.");
+
+      setOpenProdiForm(false);
+
+      await fetchUnitsData();
+
+      triggerSuccess(
+        isEdit ? "Prodi berhasil diupdate!" : "Prodi berhasil ditambahkan!",
+      );
+    } catch (error) {
+      console.error("Error save prodi:", error);
+
+      alert(
+        error?.message ||
+          error?.response?.message ||
+          "Gagal menyimpan data prodi.",
+      );
     }
   };
 
@@ -646,7 +500,10 @@ const DaftarUnit = () => {
                 const katu = isUni ? "TU Rektor" : "KATU Fakultas";
 
                 return (
-                  <div key={u.id} className="border border-gray-200 shadow-sm rounded-lg">
+                  <div
+                    key={u.id}
+                    className="border border-gray-200 shadow-sm rounded-lg"
+                  >
                     {/* HEADER UNIT */}
                     <div
                       onClick={() =>

@@ -1,21 +1,42 @@
-// services/inbound.api.js
+// src/services/inbound.api.js
 // Berisi semua fungsi yang berhubungan dengan upload/download data inbound mahasiswa
 
-import { getAuthToken } from "./auth.api";
+import { apiClient, apiJson } from "./apiClient";
 
-const API_BASE_URL = "/api";
+const buildQueryString = (params = {}) => {
+  const query = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      query.append(key, String(value));
+    }
+  });
+
+  const queryString = query.toString();
+
+  return queryString ? `?${queryString}` : "";
+};
+
+const downloadBlob = (blob, fileName) => {
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = fileName;
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  window.URL.revokeObjectURL(url);
+};
 
 export const downloadInboundTemplate = async () => {
-  const token = getAuthToken();
-
-  if (!token) {
-    throw new Error("Token tidak ditemukan. Silakan login ulang.");
-  }
-
-  const response = await fetch(`${API_BASE_URL}/inbound/template`, {
+  const response = await apiClient("/inbound/template", {
     method: "GET",
     headers: {
-      Authorization: `Bearer ${token}`,
+      Accept:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     },
   });
 
@@ -33,17 +54,8 @@ export const downloadInboundTemplate = async () => {
   }
 
   const blob = await response.blob();
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement("a");
 
-  link.href = url;
-  link.download = "template_data_mahasiswa.xlsx";
-
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-
-  window.URL.revokeObjectURL(url);
+  downloadBlob(blob, "template_data_mahasiswa.xlsx");
 };
 
 export const uploadInboundExcel = async ({
@@ -54,13 +66,12 @@ export const uploadInboundExcel = async ({
   limit = 10,
   id_template,
 }) => {
-  const token = getAuthToken();
-
-  if (!token) {
-    throw { message: "Token tidak ditemukan. Silakan login ulang." };
+  if (!file) {
+    throw { message: "File Excel wajib dipilih." };
   }
 
   const formData = new FormData();
+
   formData.append("file", file);
   formData.append("periode", periode);
   formData.append("tahun_lulus", tahun_lulus);
@@ -71,15 +82,12 @@ export const uploadInboundExcel = async ({
     formData.append("id_template", String(id_template));
   }
 
-  const response = await fetch(`${API_BASE_URL}/inbound/upload`, {
+  const response = await apiClient("/inbound/upload", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
     body: formData,
   });
 
-  const result = await response.json();
+  const result = await response.json().catch(() => ({}));
 
   if (!response.ok) {
     throw result;
@@ -96,39 +104,30 @@ export const getInboundMahasiswaByBatches = async ({
   fakultas = "",
   tahun_lulus = "",
 }) => {
-  const token = getAuthToken();
+  const params = {
+    page,
+    limit,
+  };
 
-  if (!token) {
-    throw { message: "Token tidak ditemukan. Silakan login ulang." };
+  if (Array.isArray(batch_ids)) {
+    params.batch_ids = batch_ids.join(",");
+  } else if (batch_ids) {
+    params.batch_ids = batch_ids;
   }
 
-  const params = new URLSearchParams();
+  if (search) params.search = search;
 
-  params.append(
-    "batch_ids",
-    Array.isArray(batch_ids) ? batch_ids.join(",") : batch_ids
-  );
-  params.append("page", String(page));
-  params.append("limit", String(limit));
-
-  if (search) params.append("search", search);
-  if (fakultas && fakultas !== "Semua Fakultas") params.append("fakultas", fakultas);
-  if (tahun_lulus && tahun_lulus !== "Semua Tahun") params.append("tahun_lulus", tahun_lulus);
-
-  const response = await fetch(
-    `${API_BASE_URL}/inbound/mahasiswa/by-batches?${params.toString()}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw result;
+  if (fakultas && fakultas !== "Semua Fakultas") {
+    params.fakultas = fakultas;
   }
 
-  return result;
+  if (tahun_lulus && tahun_lulus !== "Semua Tahun") {
+    params.tahun_lulus = tahun_lulus;
+  }
+
+  const query = buildQueryString(params);
+
+  return apiJson(`/inbound/mahasiswa/by-batches${query}`, {
+    method: "GET",
+  });
 };

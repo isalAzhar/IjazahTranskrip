@@ -1,14 +1,20 @@
-import axios from "axios";
+import { apiJson } from "./apiClient";
 
-// Sesuaikan BASE URL ini jika berbeda
-const BASE_URL = "/api/dashboard"; 
 
-const getAuthHeaders = () => {
-  const token = localStorage.getItem("authToken");
-  return {
-    "Content-Type": "application/json",
-    Authorization: token ? `Bearer ${token}` : "",
-  };
+const BASE_PATH = "/dashboard";
+
+const buildQueryString = (params = {}) => {
+  const query = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      query.append(key, String(value));
+    }
+  });
+
+  const queryString = query.toString();
+
+  return queryString ? `?${queryString}` : "";
 };
 
 const formatNamaBatch = (kode) => {
@@ -21,23 +27,25 @@ const formatPeriode = (periode) => {
     semester_genap: "Semester Genap",
     semester_pendek: "Semester Pendek",
   };
-  return map[periode?.toLowerCase()] || periode?.replace(/_/g, ' ') || "-";
+
+  return map[periode?.toLowerCase()] || periode?.replace(/_/g, " ") || "-";
 };
 
 /**
- * GET /batch
+ * GET /dashboard/batch
  * Mengambil daftar semua batch.
  */
 export const getBatches = async (params = {}) => {
   try {
-    const response = await axios.get(`${BASE_URL}/batch`, {
-      headers: getAuthHeaders(),
-      params,
+    const query = buildQueryString(params);
+
+    const result = await apiJson(`${BASE_PATH}/batch${query}`, {
+      method: "GET",
     });
 
     return {
-      data: Array.isArray(response.data?.data) ? response.data.data : [],
-      pagination: response.data?.pagination || {
+      data: Array.isArray(result?.data) ? result.data : [],
+      pagination: result?.pagination || {
         page: 1,
         limit: 10,
         total_data: 0,
@@ -45,70 +53,82 @@ export const getBatches = async (params = {}) => {
       },
     };
   } catch (error) {
-    console.error("API Error - getBatches:", error.response?.data || error.message);
+    console.error("API Error - getBatches:", error?.response || error);
     throw error;
   }
 };
 
 /**
- * GET /batch/:id
- * Mengambil detail spesifik satu batch & di-filter berdasarkan status via QUERY PARAMS.
+ * GET /dashboard/batch/:id
+ * Mengambil detail spesifik satu batch & di-filter berdasarkan status via query params.
  */
 export const getDetailBatch = async (id, statusFilter = "") => {
-  if (!id) throw new Error("ID Batch diperlukan untuk melihat detail.");
+  if (!id) {
+    throw new Error("ID Batch diperlukan untuk melihat detail.");
+  }
 
   try {
-    // 🔥 1. SETUP PARAMS SESUAI ARAHAN BACKEND
     const queryParams = {};
+
     if (statusFilter) {
-      // Pastikan status diformat huruf kecil agar konsisten (misal: "terbit", "proses", dll)
-      queryParams.status = statusFilter.toLowerCase(); 
+      queryParams.status = statusFilter.toLowerCase();
     }
 
-    // Axios akan otomatis menerjemahkan queryParams menjadi URL seperti:
-    // /api/dashboard/batch/ID_NYA?status=terbit
-    const response = await axios.get(`${BASE_URL}/batch/${id}`, {
-      headers: getAuthHeaders(),
-      params: queryParams, // Tembak params ke backend di sini
-    });
+    const query = buildQueryString(queryParams);
 
-    const resData = response.data;
+    const result = await apiJson(
+      `${BASE_PATH}/batch/${encodeURIComponent(id)}${query}`,
+      {
+        method: "GET",
+      },
+    );
 
-    // 🔥 2. EKSTRAKSI SUPER AMAN UNTUK BATCH & MAHASISWA
+    const resData = result;
+
     let bData = resData?.batch || resData?.data?.batch || {};
     let mList = [];
 
-    // Cek semua kemungkinan tempat array mahasiswa disembunyikan oleh backend
-    if (Array.isArray(resData?.mahasiswa)) mList = resData.mahasiswa;
-    else if (Array.isArray(resData?.data?.mahasiswa)) mList = resData.data.mahasiswa;
-    else if (Array.isArray(resData?.mahasiswaList)) mList = resData.mahasiswaList;
-    else if (Array.isArray(resData?.data?.mahasiswaList)) mList = resData.data.mahasiswaList;
-    else if (Array.isArray(resData?.data)) mList = resData.data;
-    else if (Array.isArray(resData)) mList = resData;
+    if (Array.isArray(resData?.mahasiswa)) {
+      mList = resData.mahasiswa;
+    } else if (Array.isArray(resData?.data?.mahasiswa)) {
+      mList = resData.data.mahasiswa;
+    } else if (Array.isArray(resData?.mahasiswaList)) {
+      mList = resData.mahasiswaList;
+    } else if (Array.isArray(resData?.data?.mahasiswaList)) {
+      mList = resData.data.mahasiswaList;
+    } else if (Array.isArray(resData?.data)) {
+      mList = resData.data;
+    } else if (Array.isArray(resData)) {
+      mList = resData;
+    }
 
-    // (Logika filter manual frontend DIHAPUS karena backend sudah mengirimkan data yang disaring)
-
-    // 🔥 3. SINKRONISASI DATA HEADER
     const firstItem = mList[0] || {};
-    const rawBatchName = bData.nama_batch || bData.nomor_batch_upload || firstItem.nomor_batch_upload || firstItem.batch || id;
+
+    const rawBatchName =
+      bData.nama_batch ||
+      bData.nomor_batch_upload ||
+      firstItem.nomor_batch_upload ||
+      firstItem.batch ||
+      id;
 
     const batchInfo = {
-        nama_batch: formatNamaBatch(rawBatchName),
-        fakultas: bData.fakultas || firstItem.fakultas || "-",
-        tahun_lulus: bData.tahun_lulus || firstItem.tahun_lulus || firstItem.tahun || "-",
-        periode_label: bData.periode_label || formatPeriode(bData.periode || firstItem.periode),
-        // Jumlah record sekarang 100% akurat dari jumlah array yang diberikan backend
-        total_record_label: `${mList.length} Mahasiswa`,
-        total_record: mList.length,
+      nama_batch: formatNamaBatch(rawBatchName),
+      fakultas: bData.fakultas || firstItem.fakultas || "-",
+      tahun_lulus:
+        bData.tahun_lulus || firstItem.tahun_lulus || firstItem.tahun || "-",
+      periode_label:
+        bData.periode_label ||
+        formatPeriode(bData.periode || firstItem.periode),
+      total_record_label: `${mList.length} Mahasiswa`,
+      total_record: mList.length,
     };
 
     return {
-        batch: batchInfo,
-        mahasiswa: mList
+      batch: batchInfo,
+      mahasiswa: mList,
     };
-
   } catch (error) {
-    console.error(`API Error - getDetailBatch (${id}):`, error);
+    console.error(`API Error - getDetailBatch (${id}):`, error?.response || error);
     throw error;
   }
 };

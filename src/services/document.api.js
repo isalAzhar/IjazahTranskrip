@@ -1,36 +1,19 @@
-// const API_BASE_URL = import.meta.env.VITE_API_URL || "http://103.158.196.32:8010"; 
-const API_BASE_URL = import.meta.env.VITE_API_URL || ""; //server
+// src/services/document.api.js
 
-
-const getAuthToken = () => {
-  return (
-    localStorage.getItem("authToken") ||
-    localStorage.getItem("access_token") ||
-    localStorage.getItem("token")
-  );
-};
+import { apiClient, apiJson } from "./apiClient";
 
 const buildQueryString = (params = {}) => {
   const searchParams = new URLSearchParams();
 
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== "") {
-      searchParams.append(key, value);
+      searchParams.append(key, String(value));
     }
   });
 
   const queryString = searchParams.toString();
+
   return queryString ? `?${queryString}` : "";
-};
-
-const handleResponse = async (response, fallbackMessage) => {
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(result?.message || fallbackMessage);
-  }
-
-  return result;
 };
 
 export const getValidDocumentBatches = async ({
@@ -41,102 +24,95 @@ export const getValidDocumentBatches = async ({
   tahun = "",
   status_email = "",
 } = {}) => {
-  const token = getAuthToken();
-
-  if (!token) {
-    throw new Error("Token tidak ditemukan.");
-  }
-
-  // Buat params object
   const params = {
     page,
     limit,
   };
-  
-  // Tambahkan hanya jika ada nilai
+
   if (search) params.search = search;
   if (fakultas) params.fakultas = fakultas;
   if (tahun) params.tahun = tahun;
   if (status_email) params.status_email = status_email;
 
   const query = buildQueryString(params);
-  
-  console.log("🚀 Request URL:", `/api/document/valid-batches${query}`);
-  console.log("📦 Request params:", params);
 
-  const response = await fetch(`/api/document/valid-batches${query}`, {
+  return apiJson(`/document/valid-batches${query}`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-    },
   });
-
-  return handleResponse(
-    response,
-    "Gagal mengambil daftar batch dokumen valid.",
-  );
 };
 
 export const getValidDocumentBatchDetail = async (
   batchCode,
   { search = "" } = {},
 ) => {
-  const token = getAuthToken();
-
-  if (!token) {
-    throw new Error("Token tidak ditemukan.");
+  if (!batchCode) {
+    throw new Error("Kode batch tidak ditemukan.");
   }
 
   const query = buildQueryString({ search });
 
-  if (!batchCode) {
-    throw new Error("Kode batch tidak ditemukan.");
-  }
-
-  const response = await fetch(
-    `/api/document/valid-batches/${encodeURIComponent(batchCode)}/mahasiswa${query}`,
+  return apiJson(
+    `/document/valid-batches/${encodeURIComponent(batchCode)}/mahasiswa${query}`,
     {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json",
-      },
     },
-  );
-
-  return handleResponse(
-    response,
-    "Gagal mengambil detail batch dokumen valid.",
   );
 };
 
 export const sendBatchDocumentEmail = async (batchCode) => {
-  const token = getAuthToken();
-
-  if (!token) {
-    throw new Error("Token tidak ditemukan.");
-  }
-
   if (!batchCode) {
     throw new Error("Kode batch tidak ditemukan.");
   }
 
-  const response = await fetch(
-    `/api/document/send-email/batch/${encodeURIComponent(batchCode)}`,
+  return apiJson(`/document/send-email/batch/${encodeURIComponent(batchCode)}`, {
+    method: "POST",
+  });
+};
+
+export const previewDocumentByQr = async (kodeQr) => {
+  if (!kodeQr) {
+    throw new Error("Kode QR tidak ditemukan.");
+  }
+
+  const response = await apiClient(
+    `/document/preview/${encodeURIComponent(kodeQr)}`,
     {
-      method: "POST",
+      method: "GET",
       headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json",
+        Accept: "application/pdf",
       },
     },
   );
 
-  return handleResponse(
-    response,
-    "Gagal mengirim email dokumen batch.",
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    throw new Error(result?.message || "Gagal membuka preview dokumen.");
+  }
+
+  return response.blob();
+};
+
+export const downloadDocumentByQr = async (kodeQr) => {
+  if (!kodeQr) {
+    throw new Error("Kode QR tidak ditemukan.");
+  }
+
+  const response = await apiClient(
+    `/document/download/${encodeURIComponent(kodeQr)}`,
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/pdf",
+      },
+    },
   );
+
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    throw new Error(result?.message || "Gagal download dokumen.");
+  }
+
+  return response.blob();
 };
 
 export const verifyDocumentByQr = async (kodeQr) => {
@@ -154,6 +130,11 @@ export const verifyDocumentByQr = async (kodeQr) => {
     },
   );
 
-  const result = await response.json();
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(result?.message || "Gagal verifikasi dokumen.");
+  }
+
   return result;
 };
