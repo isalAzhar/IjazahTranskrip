@@ -471,7 +471,7 @@ const fotoUrl = mahasiswa.foto
                         margin: 0,
                       }}
                     >
-                      {data.nomor_dokumen || "-"}
+                     {mahasiswa.nomor_seri_ijazah || data.nomor_seri_ijazah || "-"}
                     </p>
                   </div>
                 </div>
