@@ -45,10 +45,6 @@ const IssuanceChart = () => {
       setLoading(true);
       const result = await getMonthlyIssuance();
 
-console.log("HASIL API:", result);
-console.log("RAW:", result.raw);
-console.log("DATA RAW:", result.data?.raw);
-
       const rows = result.raw || [];
       const chartData = getEmptyChartData(displayYears);
 
