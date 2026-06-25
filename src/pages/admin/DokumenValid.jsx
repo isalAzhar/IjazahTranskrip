@@ -26,7 +26,7 @@ const formatStatusEmail = (statusKirimRaw) => {
   return "Belum Terkirim";
 };
 
-const OperatorDokumenValid = () => {
+const AdminDokumenValid = () => {
   const navigate = useNavigate();
 
   const [search, setSearch] = useState("");
@@ -254,7 +254,7 @@ const OperatorDokumenValid = () => {
       return;
     }
     navigate(
-      `/operator/detail-dokumen-valid/${encodeURIComponent(batchCode)}`,
+      `/admin/detail-dokumen-valid-admin/${encodeURIComponent(batchCode)}`,
       { state: { batch: item } },
     );
   };
@@ -467,7 +467,7 @@ const OperatorDokumenValid = () => {
                     }
 
                     navigate(
-                      `/operator/detail-mahasiswa-valid/${encodeURIComponent(mahasiswaCode)}`,
+                      `/admin/detail-pelaporan/${encodeURIComponent(mahasiswaCode)}`,
                       {
                         state: {
                           mahasiswa: student.mahasiswaData,
@@ -777,4 +777,4 @@ const OperatorDokumenValid = () => {
   );
 };
 
-export default OperatorDokumenValid;
+export default AdminDokumenValid;

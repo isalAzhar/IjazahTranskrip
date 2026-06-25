@@ -59,7 +59,7 @@ const formatNamaBatch = (kode) => {
   return `Batch ${parseInt(day)} ${bulan[parseInt(month)] || ""} ${year}`;
 };
 
-const DetailDokumenValid = () => {
+const DetailDokumenValidAdmin = () => {
   const navigate = useNavigate();
   const { batchCode, batchId, id } = useParams();
   const location = useLocation();
@@ -160,7 +160,7 @@ const DetailDokumenValid = () => {
       return;
     }
 
-    navigate(`/operator/detail-mahasiswa-valid/${encodeURIComponent(mahasiswaCode)}`, {
+    navigate(`/admin/detail-mahasiswa-valid/${encodeURIComponent(mahasiswaCode)}`, {
       state: {
         mahasiswa: student,
       },
@@ -318,5 +318,4 @@ const DetailDokumenValid = () => {
     </DashboardLayout>
   );
 };
-
-export default DetailDokumenValid;
+export default DetailDokumenValidAdmin;

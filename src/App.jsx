@@ -11,9 +11,12 @@ import Login from "./pages/context/login";
 import Template from "./pages/admin/Template";
 import DataMahasiswa from "./pages/admin/DataMahasiswa";
 import DetailBatch from "./pages/admin/DetailBatch";
+import DokumenValidAdmin from "./pages/admin/DokumenValid";
 import DaftarUnit from "./pages/admin/DaftarUnit";
 import DaftarPengguna from "./pages/admin/DaftarPengguna";
 import Profile from "./pages/admin/Profile";
+import DetailDokumenValidAdmin from "./pages/admin/DetailDokumenValid";
+import DetailMahasiswaValidAdmin from "./pages/admin/DetailMahasiswaValid.jsx";
 
 // NEW: Ijazah & Batch Components
 import StatusIjazah from "./pages/admin/StatusIjazah";
@@ -30,7 +33,7 @@ import OperatorProfile from "./pages/operator/OperatorProfile";
 import DokumenValid from "./pages/operator/DokumenValid";
 import DetailMahasiswa from "@/pages/admin/DetailMahasiswa";
 import IjazahDigital from "./pages/operator/IjazahDigital";
-import DetailPelaporan from "./pages/operator/DetailPelaporan";
+import DetailMahasiswaValid from "./pages/operator/DetailMahasiswaValid.jsx";
 import DetailDokumenValid from "./pages/operator/DetailDokumenValid";
 import ScanQRResult from "./pages/operator/ScanQRResult";
 
@@ -81,6 +84,9 @@ const router = createHashRouter([
   { path: "/admin/profile", element: <ProtectedRoute allowedGroup="ADMIN"><Profile /></ProtectedRoute> },
   { path: "/admin/template", element: <ProtectedRoute allowedGroup="ADMIN"><Template /></ProtectedRoute> },
   { path: "/admin/data-mahasiswa", element: <ProtectedRoute allowedGroup="ADMIN"><DataMahasiswa /></ProtectedRoute> },
+  { path: "/admin/dokumen-valid-admin", element: <ProtectedRoute allowedGroup="ADMIN"><DokumenValidAdmin /></ProtectedRoute> },
+  { path: "/admin/detail-dokumen-valid-admin/:batchCode", element: <ProtectedRoute allowedGroup="ADMIN"><DetailDokumenValidAdmin /></ProtectedRoute> },
+  { path: "/admin/detail-mahasiswa-valid/:mahasiswaCode", element: <ProtectedRoute allowedGroup="ADMIN"><DetailMahasiswaValid /></ProtectedRoute> },
   { path: "/admin/daftar-unit", element: <ProtectedRoute allowedGroup="ADMIN"><DaftarUnit /></ProtectedRoute> },
   { path: "/admin/daftar-pengguna", element: <ProtectedRoute allowedGroup="ADMIN"><DaftarPengguna /></ProtectedRoute> },
   { path: "/admin/detail-batch/:batchCode", element: <ProtectedRoute allowedGroup="ADMIN"><DetailBatch /></ProtectedRoute> },
@@ -91,7 +97,7 @@ const router = createHashRouter([
   { path: "/operator/profile", element: <ProtectedRoute allowedGroup="OPERATOR"><OperatorProfile /></ProtectedRoute> },
   { path: "/operator/upload-data", element: <ProtectedRoute allowedGroup="OPERATOR"><ManajemenData /></ProtectedRoute> },
   { path: "/operator/pelaporan", element: <ProtectedRoute allowedGroup="OPERATOR"><Pelaporan /></ProtectedRoute> },
-  { path: "/operator/detail-pelaporan/:mahasiswaCode", element: <ProtectedRoute allowedGroup="OPERATOR"><DetailPelaporan /></ProtectedRoute> },
+  { path: "/operator/detail-mahasiswa-valid/:mahasiswaCode", element: <ProtectedRoute allowedGroup="OPERATOR"><DetailMahasiswaValid /></ProtectedRoute> },
   { path: "/operator/dokumen-valid", element: <ProtectedRoute allowedGroup="OPERATOR"><DokumenValid /></ProtectedRoute> },
   { path: "/operator/detail-dokumen-valid/:batchCode", element: <ProtectedRoute allowedGroup="OPERATOR"><DetailDokumenValid /></ProtectedRoute> },
   { path: "/operator/ijazah-digital/:nim", element: <ProtectedRoute allowedGroup="OPERATOR"><IjazahDigital /></ProtectedRoute> },

@@ -198,6 +198,7 @@ const showNotifIcon = ROLES_WITH_NOTIF.includes(userRole);
     { name: "Dashboard",       path: "/admin/dashboard" },
     { name: "Template",        path: "/admin/template" },
     { name: "Daftar Batch",    path: "/admin/data-mahasiswa" },
+    { name: "Dokumen Valid",    path: "/admin/dokumen-valid-admin" },
     { name: "Daftar Unit",     path: "/admin/daftar-unit" },
     { name: "Daftar Pengguna", path: "/admin/daftar-pengguna" },
   ];

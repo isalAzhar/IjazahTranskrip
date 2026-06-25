@@ -1,4 +1,4 @@
-// src/pages/operator/DetailPelaporan.jsx
+// src/pages/operator/DetailMahasiswaValid.jsx
 
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
