@@ -17,7 +17,7 @@ import DaftarUnit from "./pages/admin/DaftarUnit";
 import DaftarPengguna from "./pages/admin/DaftarPengguna";
 import Profile from "./pages/admin/Profile";
 import DetailDokumenValidAdmin from "./pages/admin/DetailDokumenValid";
-import DetailMahasiswaValidAdmin from "./pages/admin/DetailMahasiswaValid.jsx";
+
 
 // NEW: Ijazah & Batch Components
 import StatusIjazah from "./pages/admin/StatusIjazah";
@@ -52,7 +52,7 @@ import RektorDaftarBatch from "./pages/verifikator/DaftarBatch";
 import RektorPelaporan from "./pages/verifikator/PelaporanVerifikator";
 import RektorDokumenValid from "./pages/rektor/DokumenValid";
 import RektorDetailDokumenValid from "./pages/rektor/DetailDokumenValid";
-import DetailMahasiswaValidRektor from "./pages/rektor/DetailMahasiswaValid.jsx";
+
 
 const RoleBasedRedirect = () => {
   const { user, loading } = useAuth();

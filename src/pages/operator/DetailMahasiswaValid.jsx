@@ -124,7 +124,9 @@ const formatTanggal = (value) => {
 };
 
 const normalizeRole = (role) => {
-  return String(role || "").toLowerCase().trim();
+  return String(role || "")
+    .toLowerCase()
+    .trim();
 };
 
 const isDownloaderRole = (role) => {
@@ -140,13 +142,53 @@ const getDocumentPreviewUrl = (kodeQr) => {
 const getDocumentDownloadUrl = (kodeQr) => {
   return getApiUrl(`/api/document/download/${encodeURIComponent(kodeQr)}`);
 };
+const getFileNameFromContentDisposition = (disposition, fallbackName) => {
+  if (!disposition) return fallbackName;
 
+  const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1].replace(/["']/g, "").trim());
+    } catch {
+      return utf8Match[1].replace(/["']/g, "").trim();
+    }
+  }
+
+  const fileNameMatch = disposition.match(/filename="?([^";]+)"?/i);
+
+  if (fileNameMatch?.[1]) {
+    try {
+      return decodeURIComponent(fileNameMatch[1].replace(/["']/g, "").trim());
+    } catch {
+      return fileNameMatch[1].replace(/["']/g, "").trim();
+    }
+  }
+
+  return fallbackName;
+};
 const getSafeFileName = (title) => {
   return `${String(title || "dokumen")
     .toLowerCase()
     .replace(/\s+/g, "-")}.pdf`;
 };
+const getDocumentFileName = ({ title, nim }) => {
+  const normalizedTitle = String(title || "dokumen").toLowerCase();
 
+  let jenis = "dokumen";
+
+  if (normalizedTitle.includes("ijazah")) {
+    jenis = "ijazah";
+  } else if (normalizedTitle.includes("transkrip")) {
+    jenis = "transkrip";
+  }
+
+  const cleanNim = String(nim || "mahasiswa")
+    .trim()
+    .replace(/\s+/g, "-");
+
+  return `${jenis}-${cleanNim}.pdf`;
+};
 const DetailMahasiswaValid = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -371,9 +413,25 @@ const DetailMahasiswaValid = () => {
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
 
+        const disposition = response.headers.get("content-disposition") || "";
+
+        const fallbackFileName = getDocumentFileName({
+          title,
+          nim: mahasiswa?.nim || mahasiswaFromState?.nim,
+        });
+
+        const fileName = getFileNameFromContentDisposition(
+          disposition,
+          fallbackFileName,
+        );
+
+        console.log("Content-Disposition:", disposition);
+        console.log("Fallback file name:", fallbackFileName);
+        console.log("File name download:", fileName);
         const link = document.createElement("a");
         link.href = blobUrl;
-        link.download = getSafeFileName(title);
+        link.download = fileName;
+
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -600,9 +658,7 @@ const DetailMahasiswaValid = () => {
 
               <div className="flex-1 bg-gray-100">
                 <iframe
-                  src={`${pdfViewer.url}#toolbar=${
-                    canDownloadDocument ? "1" : "0"
-                  }&navpanes=0&scrollbar=1`}
+                  src={`${pdfViewer.url}#toolbar=0&navpanes=0&scrollbar=1`}
                   title={`Preview ${pdfViewer.title}`}
                   className="w-full h-full border-0"
                 />

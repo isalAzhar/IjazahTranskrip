@@ -467,7 +467,7 @@ const AdminDokumenValid = () => {
                     }
 
                     navigate(
-                      `/admin/detail-pelaporan/${encodeURIComponent(mahasiswaCode)}`,
+                      `/admin/detail-mahasiswa-valid${encodeURIComponent(mahasiswaCode)}`,
                       {
                         state: {
                           mahasiswa: student.mahasiswaData,

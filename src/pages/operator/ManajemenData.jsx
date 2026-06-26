@@ -156,7 +156,7 @@ if (!mahasiswaCode) {
   return;
 }
 
-navigate(`/operator/detail-pelaporan/${encodeURIComponent(mahasiswaCode)}`, {
+navigate(`/operator/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`, {
   state: {
     mahasiswa: item,
   },

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 
 const getFriendlyMessage = (message = "") => {
@@ -47,93 +47,38 @@ const getFriendlyMessage = (message = "") => {
 const StudentDownloadPage = () => {
   const { token } = useParams();
 
-  // ✅ Tambahan: mencegah request download dobel di React StrictMode
-  const hasStartedDownload = useRef(false);
-
-  const [status, setStatus] = useState("loading");
+  const [status, setStatus] = useState("ready");
   const [info, setInfo] = useState({
-    title: "Menyiapkan Download",
-    description: "Mohon tunggu, dokumen Anda sedang disiapkan.",
-    suggestion: "",
+    title: "Download Dokumen Digital",
+    description:
+      "Klik tombol di bawah ini untuk mengunduh dokumen akademik digital Anda.",
+    suggestion:
+      "Link download hanya dapat digunakan satu kali. Pastikan koneksi internet stabil sebelum menekan tombol download.",
   });
 
-  useEffect(() => {
-    if (!token) return;
+  const downloadUrl = token
+    ? `/api/document/public/download/${encodeURIComponent(token)}`
+    : "";
 
-    // ✅ Tambahan: kalau sudah pernah jalan, jangan jalan lagi
-    if (hasStartedDownload.current) return;
-    hasStartedDownload.current = true;
+  const handleDownload = () => {
+    if (!token) {
+      setInfo(getFriendlyMessage("token tidak valid"));
+      setStatus("error");
+      return;
+    }
 
-    const downloadDocument = async () => {
-      try {
-        const response = await fetch(
-          `/api/document/public/download/${encodeURIComponent(token)}`,
-          {
-            method: "GET",
-          },
-        );
+    setStatus("opening");
 
-        const contentType = response.headers.get("content-type") || "";
+    /*
+      Jangan pakai fetch + blob untuk download dari email.
+      Di HP/in-app browser, cara itu sering gagal.
+      Ini langsung membuka endpoint public backend.
+    */
+    window.location.href = downloadUrl;
+  };
 
-        if (!response.ok) {
-          let errorMessage = "Gagal download dokumen.";
-
-          if (contentType.includes("application/json")) {
-            const result = await response.json();
-            errorMessage = result?.message || errorMessage;
-          }
-
-          setInfo(getFriendlyMessage(errorMessage));
-          setStatus("error");
-          return;
-        }
-
-        const blob = await response.blob();
-
-        const disposition = response.headers.get("content-disposition") || "";
-        const match = disposition.match(/filename="?([^"]+)"?/);
-
-        const fileName = match?.[1] || "dokumen-digital.pdf";
-
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-
-        link.remove();
-        window.URL.revokeObjectURL(url);
-
-        // ✅ Ubah: setelah download berhasil, jangan tampilkan informasi
-        setStatus("downloaded");
-
-        // ✅ Opsional: coba tutup tab otomatis kalau browser mengizinkan
-        setTimeout(() => {
-          window.close();
-        }, 500);
-      } catch (error) {
-        setInfo({
-          title: "Koneksi Gagal",
-          description:
-            "Sistem tidak dapat menghubungi server download dokumen.",
-          suggestion:
-            "Periksa koneksi internet Anda atau coba beberapa saat lagi.",
-        });
-        setStatus("error");
-      }
-    };
-
-    downloadDocument();
-  }, [token]);
-
-  const isLoading = status === "loading";
-
-  // ✅ Tambahan: kalau download pertama berhasil, tampilkan halaman kosong saja
-  if (status === "downloaded") {
-    return <div className="min-h-screen bg-gray-100" />;
-  }
+  const isError = status === "error";
+  const isOpening = status === "opening";
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 py-10">
@@ -148,12 +93,12 @@ const StudentDownloadPage = () => {
         <div className="px-7 py-8">
           <div
             className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl font-bold mb-5 ${
-              isLoading
-                ? "bg-blue-50 text-blue-600"
-                : "bg-orange-50 text-orange-600"
+              isError
+                ? "bg-orange-50 text-orange-600"
+                : "bg-blue-50 text-blue-600"
             }`}
           >
-            {isLoading ? "…" : "!"}
+            {isError ? "!" : "↓"}
           </div>
 
           <h2 className="text-2xl font-bold text-gray-900 mb-3">
@@ -165,14 +110,30 @@ const StudentDownloadPage = () => {
           </p>
 
           {info.suggestion && (
-            <div className="bg-gray-50 border-l-4 border-[#117065] rounded-lg p-4 text-sm text-gray-700 leading-6">
+            <div className="bg-gray-50 border-l-4 border-[#117065] rounded-lg p-4 text-sm text-gray-700 leading-6 mb-6">
               {info.suggestion}
             </div>
           )}
 
-          {isLoading && (
-            <div className="mt-6 text-sm text-gray-400">
-              Jangan tutup halaman ini selama proses download berlangsung.
+          {!isError && (
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={isOpening}
+              className={`w-full py-3 rounded-xl text-white font-semibold transition ${
+                isOpening
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-[#117065] hover:bg-[#0d5a51]"
+              }`}
+            >
+              {isOpening ? "Membuka dokumen..." : "Download Dokumen"}
+            </button>
+          )}
+
+          {isOpening && (
+            <div className="mt-6 text-sm text-gray-400 leading-6">
+              Jika muncul konfirmasi download di HP, pilih lanjutkan/download.
+              Jangan menekan tombol download berulang kali.
             </div>
           )}
         </div>
