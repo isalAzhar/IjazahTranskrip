@@ -35,24 +35,6 @@ const resolveApiUrl = (path) => {
   return `${API_BASE_URL}${cleanPath}`;
 };
 
-const resolveApiUrl = (path) => {
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
-
-  if (cleanPath.startsWith("/api")) {
-    if (API_BASE_URL === "/api") {
-      return cleanPath;
-    }
-
-    return `${API_BASE_URL}${cleanPath.replace(/^\/api/, "")}`;
-  }
-
-  return `${API_BASE_URL}${cleanPath}`;
-};
-
 const redirectToLogin = () => {
   clearAuthSession();
 
@@ -72,7 +54,9 @@ const refreshTokenOnce = async () => {
     refreshPromise = refreshAccessToken()
       .then((result) => {
         const newAccessToken =
-          result?.access_token || result?.data?.access_token || result?.token;
+          result?.access_token ||
+          result?.data?.access_token ||
+          result?.token;
 
         if (!newAccessToken) {
           throw new Error("Access token baru tidak dikirim auth-service.");
