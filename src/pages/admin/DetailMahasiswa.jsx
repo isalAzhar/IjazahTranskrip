@@ -74,40 +74,51 @@ const formatStatusLabel = (status) => {
   return status || "-";
 };
 
+const getPublicApiBaseUrl = () => {
+  const rawBaseUrl =
+    import.meta.env.VITE_API_PUBLIC_URL ||
+    import.meta.env.VITE_API_BASE_URL ||
+    "";
+
+  if (!rawBaseUrl || rawBaseUrl === "/api") {
+    return window.location.origin;
+  }
+
+  return rawBaseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
+};
+
+const buildPublicUrl = (path) => {
+  if (!path) return null;
+
+  const cleanPath = String(path).trim();
+
+  if (!cleanPath) return null;
+
+  if (cleanPath.startsWith("http://") || cleanPath.startsWith("https://")) {
+    return cleanPath;
+  }
+
+  const baseUrl = getPublicApiBaseUrl();
+  const normalizedPath = cleanPath.startsWith("/") ? cleanPath : `/${cleanPath}`;
+
+  return `${baseUrl}${normalizedPath}`;
+};
+
 const getImageUrl = (imagePath) => {
   if (!imagePath) return null;
 
-  if (imagePath.includes("drive.google.com")) {
-    return getGoogleDriveImageUrl(imagePath, 500);
+  const cleanPath = String(imagePath).trim();
+
+  if (!cleanPath) return null;
+
+  if (cleanPath.includes("drive.google.com")) {
+    return getGoogleDriveImageUrl(cleanPath, 500);
   }
 
-  if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-    return imagePath;
-  }
-
-  const baseUrl =
-    import.meta.env.VITE_API_PUBLIC_URL || "http://103.158.196.32:8010"; 
-  if (imagePath.startsWith("/")) return `${baseUrl}${imagePath}`;
-
-  return `${baseUrl}/${imagePath}`;
+  return buildPublicUrl(cleanPath);
 };
 
-const getFileUrl = (filePath) => {
-  if (!filePath) return null;
-
-  if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
-    return filePath;
-  }
-
-  const baseUrl =
-    import.meta.env.VITE_API_PUBLIC_URL || "http://localhost:3000";
-
-  if (filePath.startsWith("/")) {
-    return `${baseUrl}${filePath}`;
-  }
-
-  return `${baseUrl}/${filePath}`;
-};
+const getFileUrl = (filePath) => buildPublicUrl(filePath);
 
 const formatTanggal = (value) => {
   if (!value) return "-";
@@ -594,7 +605,7 @@ const DetailMahasiswa = () => {
   );
 };
 
-// Modifikasi sedikit pada InfoItem agar kata panjang seperti email tidak tumpah
+
 const InfoItem = ({ label, value, className = "" }) => {
   return (
     <div className={className}>

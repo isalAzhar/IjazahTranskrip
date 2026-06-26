@@ -8,7 +8,34 @@ import { FiCheckCircle, FiAlertCircle } from "react-icons/fi";
 import Logo from "../../assets/img/Logo.jpg";
 import { verifyDocumentByQr } from "../../services/document.api";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+const getPublicApiBaseUrl = () => {
+  const rawBaseUrl =
+    import.meta.env.VITE_API_PUBLIC_URL ||
+    import.meta.env.VITE_API_BASE_URL ||
+    "";
+
+  if (!rawBaseUrl || rawBaseUrl === "/api") {
+    return window.location.origin;
+  }
+
+  return rawBaseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
+};
+
+const getPublicFileUrl = (path) => {
+  if (!path) return null;
+
+  const cleanPath = String(path).trim();
+
+  if (!cleanPath) return null;
+
+  if (cleanPath.startsWith("http://") || cleanPath.startsWith("https://")) {
+    return cleanPath;
+  }
+
+  const normalizedPath = cleanPath.startsWith("/") ? cleanPath : `/${cleanPath}`;
+
+  return `${getPublicApiBaseUrl()}${normalizedPath}`;
+};
 
 const getGoogleDriveFileId = (url) => {
   if (!url) return null;
@@ -197,9 +224,7 @@ const ScanQRResult = () => {
 const fotoUrl = mahasiswa.foto
   ? mahasiswa.foto.startsWith("http")
     ? getGoogleDriveImageUrl(mahasiswa.foto, 800)
-    : `${API_BASE_URL}${
-        mahasiswa.foto.startsWith("/") ? mahasiswa.foto : `/${mahasiswa.foto}`
-      }`
+    : getPublicFileUrl(mahasiswa.foto)
   : null;
 
   const tanggalTerbit = formatTanggalIndonesia(data.tanggal_terbit);

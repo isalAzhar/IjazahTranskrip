@@ -3,6 +3,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://103.158.196.32:8010
+        VITE_API_PUBLIC_URL: http://103.158.196.32:8010
     container_name: ijazah-frontend
     restart: unless-stopped
     ports:

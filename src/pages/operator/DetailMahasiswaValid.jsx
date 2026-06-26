@@ -53,9 +53,16 @@ const badgeClass = (status) => {
 };
 
 const getBaseUrl = () => {
-  return (
-    import.meta.env.VITE_API_PUBLIC_URL || "http://103.158.196.32:8010"
-  ).replace(/\/$/, "");
+  const rawBaseUrl =
+    import.meta.env.VITE_API_PUBLIC_URL ||
+    import.meta.env.VITE_API_BASE_URL ||
+    "";
+
+  if (!rawBaseUrl || rawBaseUrl === "/api") {
+    return window.location.origin;
+  }
+
+  return rawBaseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
 };
 
 const getApiUrl = (path) => {
