@@ -48,8 +48,8 @@ const ImportDataModal = ({ onClose, onSuccess }) => {
   const currentYear = new Date().getFullYear();
 
 const tahunLulusOptions = Array.from(
-  { length: 3 },
-  (_, index) => currentYear - 2 + index,
+  { length: 6 },
+  (_, index) => currentYear - 5 + index,
 );
 
   // Download data gagal dari response upload sebagai Excel
