@@ -38,8 +38,14 @@ const resolveApiUrl = (path) => {
 const redirectToLogin = () => {
   clearAuthSession();
 
-  if (!window.location.pathname.includes("/login")) {
-    window.location.replace("/login");
+  const baseUrl = import.meta.env.BASE_URL || "/";
+  const loginUrl = `${window.location.origin}${baseUrl}#/login`;
+
+  if (
+    !window.location.hash.includes("/login") &&
+    !window.location.pathname.includes("/login")
+  ) {
+    window.location.replace(loginUrl);
   }
 };
 
@@ -48,9 +54,7 @@ const refreshTokenOnce = async () => {
     refreshPromise = refreshAccessToken()
       .then((result) => {
         const newAccessToken =
-          result?.access_token ||
-          result?.data?.access_token ||
-          result?.token;
+          result?.access_token || result?.data?.access_token || result?.token;
 
         if (!newAccessToken) {
           throw new Error("Access token baru tidak dikirim auth-service.");

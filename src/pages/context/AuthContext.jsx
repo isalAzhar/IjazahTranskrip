@@ -94,7 +94,8 @@ export const AuthProvider = ({ children }) => {
     }
 
     const result = await refreshAccessToken(currentRefreshToken);
-    const newAccessToken = result.access_token;
+    const newAccessToken =
+      result?.access_token || result?.data?.access_token || result?.token;
 
     if (!newAccessToken) {
       throw new Error("Access token baru tidak dikirim auth-service.");
@@ -115,7 +116,10 @@ export const AuthProvider = ({ children }) => {
     try {
       await logoutRequest();
     } catch (error) {
-      console.warn("Logout auth-service gagal, sesi lokal tetap dihapus:", error);
+      console.warn(
+        "Logout auth-service gagal, sesi lokal tetap dihapus:",
+        error,
+      );
       clearAuthSession();
     } finally {
       setUser(null);

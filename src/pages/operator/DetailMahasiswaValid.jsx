@@ -14,7 +14,7 @@ import {
 import DashboardLayout from "../../components/ui/DashboardLayout";
 import { getAkademikProfile } from "@/services/api";
 import { useAuth } from "../../pages/context/AuthContext";
-import { getAuthToken } from "../../services/auth.api";
+import { apiClient } from "../../services/apiClient";
 
 const getGoogleDriveFileId = (url) => {
   if (!url) return null;
@@ -337,16 +337,16 @@ const DetailMahasiswaValid = () => {
         URL.revokeObjectURL(pdfViewer.url);
       }
 
-      const token = getAuthToken();
-
-      if (kodeQr && token) {
-        const response = await fetch(getDocumentPreviewUrl(kodeQr), {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/pdf",
+      if (kodeQr) {
+        const response = await apiClient(
+          `/document/preview/${encodeURIComponent(kodeQr)}`,
+          {
+            method: "GET",
+            headers: {
+              Accept: "application/pdf",
+            },
           },
-        });
+        );
 
         if (!response.ok) {
           const result = await response.json().catch(() => ({}));
@@ -396,16 +396,16 @@ const DetailMahasiswaValid = () => {
     try {
       setLoadingPdf(true);
 
-      const token = getAuthToken();
-
-      if (kodeQr && token) {
-        const response = await fetch(getDocumentDownloadUrl(kodeQr), {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/pdf",
+      if (kodeQr) {
+        const response = await apiClient(
+          `/document/download/${encodeURIComponent(kodeQr)}`,
+          {
+            method: "GET",
+            headers: {
+              Accept: "application/pdf",
+            },
           },
-        });
+        );
 
         if (!response.ok) {
           const result = await response.json().catch(() => ({}));

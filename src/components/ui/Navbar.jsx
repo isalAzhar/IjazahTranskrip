@@ -5,6 +5,8 @@ import { useAuth } from "../../pages/context/AuthContext";
 import logo from "../../assets/img/Logo.jpg";
 import { getRejectRevokeNotifications } from "../../services/dashboard.api";
 import { getAuthToken } from "../../services/auth.api";
+import { apiJson } from "../../services/apiClient";
+
 const ROLES_WITH_NOTIF = [
   "operator",
   "operator_data",
@@ -83,16 +85,11 @@ const Navbar = () => {
 
     const loadProfile = async () => {
       try {
-        const response = await fetch("/api/profile/me", {
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+        const result = await apiJson("/profile/me", {
+          method: "GET",
         });
 
-        const result = await response.json().catch(() => ({}));
-
-        if (isMounted && response.ok && result?.data) {
+        if (isMounted && result?.data) {
           setProfileUser(result.data);
           saveCachedProfileUser(profileCacheKey, result.data);
         }
