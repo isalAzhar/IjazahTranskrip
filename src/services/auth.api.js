@@ -1,6 +1,6 @@
 // src/services/auth.api.js
 
-const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || "";
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
 
 const API_BASE_URL = rawBaseUrl
   ? rawBaseUrl.replace(/\/$/, "").endsWith("/api")
@@ -8,6 +8,16 @@ const API_BASE_URL = rawBaseUrl
     : `${rawBaseUrl.replace(/\/$/, "")}/api`
   : "/api";
 
+const resolveApiUrl = (path) => {
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+  if (cleanPath.startsWith("/api")) {
+    if (API_BASE_URL === "/api") return cleanPath;
+    return `${API_BASE_URL}${cleanPath.replace(/^\/api/, "")}`;
+  }
+
+  return `${API_BASE_URL}${cleanPath}`;
+};
 const AUTH_STORAGE_KEYS = {
   accessToken: "access_token",
   refreshToken: "refresh_token",
@@ -78,7 +88,7 @@ export const clearAuthSession = () => {
 };
 
 export const login = async ({ email, password }) => {
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+  const response = await fetch(resolveApiUrl("/auth/login"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -109,7 +119,7 @@ export const refreshAccessToken = async (
     };
   }
 
-  const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+  const response = await fetch(resolveApiUrl("/auth/refresh"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -141,7 +151,7 @@ export const logout = async () => {
     };
   }
 
-  const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+  const response = await fetch(resolveApiUrl("/auth/logout"), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,

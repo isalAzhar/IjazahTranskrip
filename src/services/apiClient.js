@@ -9,13 +9,31 @@ import {
 
 let refreshPromise = null;
 
-const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || "";
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
 
 const API_BASE_URL = rawBaseUrl
   ? rawBaseUrl.replace(/\/$/, "").endsWith("/api")
     ? rawBaseUrl.replace(/\/$/, "")
     : `${rawBaseUrl.replace(/\/$/, "")}/api`
   : "/api";
+
+const resolveApiUrl = (path) => {
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
+
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+  if (cleanPath.startsWith("/api")) {
+    if (API_BASE_URL === "/api") {
+      return cleanPath;
+    }
+
+    return `${API_BASE_URL}${cleanPath.replace(/^\/api/, "")}`;
+  }
+
+  return `${API_BASE_URL}${cleanPath}`;
+};
 
 const resolveApiUrl = (path) => {
   if (path.startsWith("http://") || path.startsWith("https://")) {
