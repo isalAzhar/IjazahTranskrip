@@ -366,7 +366,7 @@ const RektorDokumenValid = () => {
                     }
 
                     navigate(
-                      `/rektor/detail-mahasiswa/${encodeURIComponent(mahasiswaCode)}`,
+                      `/rektor/detail-mahasiswa-valid/${encodeURIComponent(mahasiswaCode)}`,
                       {
                         state: {
                           mahasiswa: student.mahasiswaData, // Mengirim data mentah asli mahasiswa

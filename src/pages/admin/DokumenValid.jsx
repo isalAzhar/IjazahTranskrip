@@ -1,32 +1,28 @@
 import React, { useState, useRef, useEffect } from "react";
-import {
-  FiSearch,
-  FiChevronDown,
-  FiSend,
-  FiCheckCircle,
-  FiAlertTriangle,
-} from "react-icons/fi";
+import { FiSearch, FiChevronDown } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/ui/DashboardLayout";
-import {
-  getValidDocumentBatches,
-  sendBatchDocumentEmail,
-} from "../../services/document.api";
+import { getValidDocumentBatches } from "../../services/document.api";
 
 const ITEMS_PER_PAGE = 10;
 
-const formatStatusEmail = (statusKirimRaw) => {
-  const raw = String(statusKirimRaw || "").toLowerCase();
-  if (
-    raw.includes("sudah") ||
-    (raw.includes("terkirim") && !raw.includes("belum"))
-  ) {
+const normalizeStatusEmail = (statusRaw) => {
+  const raw = String(statusRaw || "").toLowerCase();
+  if (raw.includes("terkirim") && !raw.includes("belum")) {
     return "Terkirim";
   }
   return "Belum Terkirim";
 };
 
-const AdminDokumenValid = () => {
+const getStatusBadgeClass = (status) => {
+  const normalized = normalizeStatusEmail(status);
+  if (normalized === "Terkirim") {
+    return "bg-green-100 text-green-700";
+  }
+  return "bg-orange-100 text-orange-700";
+};
+
+const RektorDokumenValid = () => {
   const navigate = useNavigate();
 
   const [search, setSearch] = useState("");
@@ -34,8 +30,8 @@ const AdminDokumenValid = () => {
   const [selectedFakultas, setSelectedFakultas] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
   const [statusEmail, setStatusEmail] = useState("");
-
   const [currentPage, setCurrentPage] = useState(1);
+
   const [showSuggestions, setShowSuggestions] = useState(false);
   const filterBarRef = useRef(null);
 
@@ -53,63 +49,36 @@ const AdminDokumenValid = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [emailModal, setEmailModal] = useState({
-    show: false,
-    type: "",
-    data: null,
-    message: "",
-  });
 
   const totalPages = pagination.total_page || 1;
   const currentData = batches;
 
-  // 🔥 PERBAIKAN TRACKING JALUR DATA MAHASISWA (SAMA SEPERTI REKTOR)
+  // 🔥 PERBAIKAN TRACKING JALUR DATA MAHASISWA
   const searchSuggestions = (() => {
     if (!search.trim()) return [];
     const q = search.toLowerCase();
     let suggestions = [];
 
     batches.forEach((batch) => {
-      const mhsList =
-        Array.isArray(batch.mahasiswa_match) && batch.mahasiswa_match.length > 0
-          ? batch.mahasiswa_match
-          : Array.isArray(batch.mahasiswa)
-            ? batch.mahasiswa
-            : [];
+      const mhsList = Array.isArray(batch.mahasiswa_match) && batch.mahasiswa_match.length > 0
+        ? batch.mahasiswa_match
+        : (Array.isArray(batch.mahasiswa) ? batch.mahasiswa : []);
 
       mhsList.forEach((mhs) => {
         const nama = String(mhs.nama_mahasiswa || mhs.nama || "").toLowerCase();
         const nim = String(mhs.nim || "").toLowerCase();
-        const prodi = String(
-          mhs.program_studi ||
-            mhs.programStudi ||
-            mhs.prodi ||
-            mhs.nama_prodi ||
-            "",
-        ).toLowerCase();
+        const prodi = String(mhs.program_studi || mhs.programStudi || mhs.prodi || mhs.nama_prodi || "").toLowerCase();
 
         if (nama.includes(q) || nim.includes(q) || prodi.includes(q)) {
           // Ambil kode identitas mahasiswa se-aman mungkin
-          const code =
-            mhs.mahasiswa_code ||
-            mhs.mahasiswaCode ||
-            mhs.uuid ||
-            mhs.mahasiswa_uuid ||
-            mhs.raw?.mahasiswa_code ||
-            mhs.raw?.uuid ||
-            null;
-
+          const code = mhs.mahasiswa_code || mhs.mahasiswaCode || mhs.uuid || mhs.mahasiswa_uuid || mhs.id;
+          
           suggestions.push({
             id: mhs.nim || Math.random().toString(),
             mahasiswa_code: code, // Di-inject langsung di luar agar gampang diakses onClick
             nama: mhs.nama_mahasiswa || mhs.nama || "-",
             nim: mhs.nim || "-",
-            prodi:
-              mhs.program_studi ||
-              mhs.programStudi ||
-              mhs.prodi ||
-              mhs.nama_prodi ||
-              "Program Studi",
+            prodi: mhs.program_studi || mhs.programStudi || mhs.prodi || mhs.nama_prodi || "Program Studi",
             fakultas: mhs.fakultas || batch.fakultas || "-",
             batchName: batch.nomor_batch_upload || batch.batch || "-",
             batchData: batch,
@@ -119,9 +88,7 @@ const AdminDokumenValid = () => {
       });
     });
 
-    return suggestions.filter(
-      (v, i, a) => a.findIndex((t) => t.nim === v.nim) === i,
-    );
+    return suggestions.filter((v, i, a) => a.findIndex((t) => t.nim === v.nim) === i);
   })();
 
   const fetchValidBatches = async () => {
@@ -149,6 +116,18 @@ const AdminDokumenValid = () => {
           item.raw?.batch_code ||
           item.raw?.uuid ||
           null;
+
+        const resolvedStatus =
+          item.status_email ||
+          item.status_kirim ||
+          item.statusEmail ||
+          item.statusKirim ||
+          item.raw?.status_email ||
+          item.raw?.status_kirim ||
+          item.raw?.statusEmail ||
+          item.raw?.statusKirim ||
+          "";
+
         return {
           ...item,
           id: batchCode || item.id || item.id_batch_upload,
@@ -157,13 +136,7 @@ const AdminDokumenValid = () => {
           mahasiswa_match: Array.isArray(item.mahasiswa_match)
             ? item.mahasiswa_match
             : [],
-          status_email: formatStatusEmail(
-            item.status_kirim ||
-              item.statusKirim ||
-              item.status_email ||
-              item.raw?.status_kirim ||
-              item.raw?.statusKirim,
-          ),
+          status_email: normalizeStatusEmail(resolvedStatus),
         };
       });
 
@@ -205,26 +178,16 @@ const AdminDokumenValid = () => {
   };
 
   useEffect(() => {
-    fetchValidBatches();
-  }, [
-    currentPage,
-    debouncedSearch,
-    selectedFakultas,
-    selectedYear,
-    statusEmail,
-  ]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [statusEmail]);
-
-  useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search.trim());
       setCurrentPage(1);
     }, 500);
     return () => clearTimeout(timer);
   }, [search]);
+
+  useEffect(() => {
+    fetchValidBatches();
+  }, [currentPage, debouncedSearch, selectedFakultas, selectedYear, statusEmail]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -249,73 +212,15 @@ const AdminDokumenValid = () => {
       item.raw?.batch_code ||
       item.raw?.uuid ||
       item.id;
+
     if (!batchCode) {
       alert("Kode batch tidak ditemukan.");
       return;
     }
-    navigate(
-      `/admin/detail-dokumen-valid-admin/${encodeURIComponent(batchCode)}`,
-      { state: { batch: item } },
-    );
-  };
 
-  const handleKirimBatch = (item) => {
-    setEmailModal({ show: true, type: "confirm", data: item, message: "" });
-  };
-
-  const confirmKirimEmail = async () => {
-    const item = emailModal.data;
-    const batchCode =
-      item.batch_code ||
-      item.batchCode ||
-      item.uuid ||
-      item.batch_uuid ||
-      item.raw?.batch_code ||
-      item.raw?.uuid ||
-      item.id;
-    if (!batchCode) return;
-
-    setEmailModal({ show: true, type: "loading", data: item, message: "" });
-
-    try {
-      const result = await sendBatchDocumentEmail(batchCode);
-      const data = result.data || {};
-
-      setBatches((prev) =>
-        prev.map((batch) => {
-          const currentBatchCode =
-            batch.batch_code ||
-            batch.batchCode ||
-            batch.uuid ||
-            batch.batch_uuid ||
-            batch.raw?.batch_code ||
-            batch.raw?.uuid ||
-            batch.id;
-          return currentBatchCode === batchCode
-            ? { ...batch, status_email: "Terkirim" }
-            : batch;
-        }),
-      );
-
-      setEmailModal({
-        show: true,
-        type: "success",
-        data: item,
-        message: `Berhasil terkirim: ${data.berhasil || 0} Mahasiswa\nGagal terkirim: ${data.gagal || 0} Mahasiswa`,
-      });
-      fetchValidBatches();
-    } catch (error) {
-      console.error("Gagal mengirim email batch:", error);
-      setEmailModal({
-        show: true,
-        type: "error",
-        data: item,
-        message:
-          error instanceof Error
-            ? error.message
-            : "Gagal mengirim email batch.",
-      });
-    }
+    navigate(`/admin/detail-dokumen-valid-admin/${encodeURIComponent(batchCode)}`, {
+      state: { batch: item },
+    });
   };
 
   const renderPages = () => {
@@ -364,9 +269,7 @@ const AdminDokumenValid = () => {
 
         {/* FILTER BAR */}
         <div ref={filterBarRef} className="relative z-20 mb-6">
-          <div
-            className={`bg-white p-4 shadow-sm border border-gray-100 ${showSuggestions && searchSuggestions.length > 0 ? "rounded-t-xl" : "rounded-xl"}`}
-          >
+          <div className={`bg-white p-4 shadow-sm border border-gray-100 ${showSuggestions && searchSuggestions.length > 0 ? "rounded-t-xl" : "rounded-xl"}`}>
             <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
               <div className="w-full lg:max-w-md">
                 <div className="flex items-center bg-white border border-gray-300 focus-within:border-[#117065] focus-within:ring-1 focus-within:ring-[#117065] rounded-lg px-4 h-11 transition-all shadow-sm">
@@ -434,7 +337,7 @@ const AdminDokumenValid = () => {
                     }}
                     className="appearance-none bg-white border border-gray-300 focus:border-[#117065] focus:ring-1 focus:ring-[#117065] text-sm text-gray-800 px-4 h-11 rounded-lg w-full outline-none cursor-pointer transition-all shadow-sm"
                   >
-                    <option value="">Semua Status</option>
+                    <option value="">Semua Status Email</option>
                     <option value="Terkirim">Terkirim</option>
                     <option value="Belum Terkirim">Belum Terkirim</option>
                   </select>
@@ -444,11 +347,9 @@ const AdminDokumenValid = () => {
             </div>
           </div>
 
+          {/* 🔥 SUGGESTION LIST YANG SUDAH DIPERBAIKI JALURNYA */}
           {showSuggestions && searchSuggestions.length > 0 && (
-            <div
-              className="absolute left-0 right-0 top-full bg-white border-x border-b border-gray-100 shadow-lg rounded-b-xl overflow-y-auto"
-              style={{ maxHeight: "260px", marginTop: "-1px" }}
-            >
+            <div className="absolute left-0 right-0 top-full bg-white border-x border-b border-gray-100 shadow-lg rounded-b-xl overflow-y-auto" style={{ maxHeight: "260px", marginTop: "-1px" }}>
               {searchSuggestions.map((student, idx) => (
                 <div
                   key={idx}
@@ -456,25 +357,23 @@ const AdminDokumenValid = () => {
                     setShowSuggestions(false);
                     setSearch("");
 
+                    // Ambil dari variabel mahasiswa_code yang sudah kita petakan dengan aman
                     const mahasiswaCode = student.mahasiswa_code;
 
                     if (!mahasiswaCode) {
-                      console.error("Kode mahasiswa tidak ditemukan:", student);
-                      alert(
-                        "Kode mahasiswa tidak ditemukan pada data pencarian ini.",
-                      );
+                      alert("Kode mahasiswa tidak ditemukan pada data pencarian ini.");
                       return;
                     }
 
                     navigate(
-                      `/admin/detail-mahasiswa-valid${encodeURIComponent(mahasiswaCode)}`,
+                      `/admin/detail-mahasiswa-valid/${encodeURIComponent(mahasiswaCode)}`,
                       {
                         state: {
-                          mahasiswa: student.mahasiswaData,
-                          batch: student.batchData,
-                          source: "dokumen_valid_search",
+                          mahasiswa: student.mahasiswaData, // Mengirim data mentah asli mahasiswa
+                          batch: student.batchData,         // Mengirim info batch pendukung
+                          source: "dokumen_valid",
                         },
-                      },
+                      }
                     );
                   }}
                   className="px-6 py-4 border-b border-gray-50 hover:bg-teal-50 cursor-pointer flex justify-between items-center transition-colors last:border-b-0"
@@ -518,106 +417,64 @@ const AdminDokumenValid = () => {
                   <th className="py-4 px-6 text-center">Periode</th>
                   <th className="py-4 px-6 text-center">Total Data</th>
                   <th className="py-4 px-6 text-center">Status Email</th>
-                  <th className="py-4 px-6 text-center w-28">Detail / Kirim</th>
+                  <th className="py-4 px-6 text-center w-24">Detail</th>
                 </tr>
               </thead>
 
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td
-                      colSpan="8"
-                      className="py-12 text-center text-gray-400 font-medium"
-                    >
+                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
                       Memuat data dokumen valid...
                     </td>
                   </tr>
                 ) : currentData.length > 0 ? (
-                  currentData.map((item, i) => {
-                    const isTerkirim = item.status_email === "Terkirim";
-                    return (
-                      <tr
-                        key={
-                          item.batch_code ||
-                          item.batchCode ||
-                          item.raw?.batch_code ||
-                          item.id ||
-                          i
-                        }
-                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="py-4 px-6 text-center font-semibold text-gray-800">
-                          {(currentPage - 1) * ITEMS_PER_PAGE + i + 1}.
-                        </td>
-                        <td className="py-4 px-6 text-center font-semibold text-gray-900">
-                          {item.batch || item.nomor_batch_upload || "-"}
-                        </td>
-                        <td className="py-4 px-6 text-center font-normal text-gray-700">
-                          {item.fakultas || "-"}
-                        </td>
-                        <td className="py-4 px-6 text-center font-normal text-gray-700">
-                          {item.tahun || "-"}
-                        </td>
-                        <td className="py-4 px-6 text-center font-normal text-gray-700">
-                          {item.periode || "-"}
-                        </td>
-                        <td className="py-4 px-6 text-center font-normal text-gray-700">
-                          {item.total || 0}
-                        </td>
-                        <td className="py-4 px-6 text-center align-middle">
-                          <div className="flex justify-center">
-                            {/* 🔥 WHITESPACE NOWRAP AGAR TIDAK TURUN BARIS */}
-                            <span
-                              className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-md text-xs font-bold ${
-                                isTerkirim
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-orange-100 text-orange-700"
-                              }`}
-                            >
-                              {item.status_email || "Belum Terkirim"}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 align-middle">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => handleGoDetail(item)}
-                              className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
-                              title="Lihat Detail Batch"
-                            >
-                              <DetailIcon />
-                            </button>
-                            {/* 🔥 TOMBOL KIRIM EMAIL (DISABLED JIKA SUDAH TERKIRIM) */}
-                            <button
-                              type="button"
-                              onClick={() =>
-                                !isTerkirim && handleKirimBatch(item)
-                              }
-                              disabled={isTerkirim}
-                              className={`w-7 h-7 rounded-md flex items-center justify-center transition-all shadow-sm ${
-                                isTerkirim
-                                  ? "bg-gray-300 text-gray-100 cursor-not-allowed"
-                                  : "bg-[#117065] text-white hover:bg-[#0c5249] cursor-pointer"
-                              }`}
-                              title={
-                                isTerkirim
-                                  ? "Email Sudah Terkirim"
-                                  : "Kirim Email"
-                              }
-                            >
-                              <FiSend size={12} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
+                  currentData.map((item, i) => (
+                    <tr
+                      key={item.batch_code || item.batchCode || item.raw?.batch_code || item.id || i}
+                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="py-4 px-6 text-center font-semibold text-gray-800">
+                        {(currentPage - 1) * ITEMS_PER_PAGE + i + 1}.
+                      </td>
+                      <td className="py-4 px-6 text-center font-semibold text-gray-900">
+                        {item.batch || item.nomor_batch_upload || "-"}
+                      </td>
+                      <td className="py-4 px-6 text-center font-normal text-gray-700">
+                        {item.fakultas || "-"}
+                      </td>
+                      <td className="py-4 px-6 text-center font-normal text-gray-700">
+                        {item.tahun || "-"}
+                      </td>
+                      <td className="py-4 px-6 text-center font-normal text-gray-700">
+                        {item.periode || "-"}
+                      </td>
+                      <td className="py-4 px-6 text-center font-normal text-gray-700">
+                        {item.total || 0}
+                      </td>
+                      <td className="py-4 px-6 text-center align-middle">
+                        <div className="flex justify-center">
+                          <span
+                            className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-md text-xs font-bold ${getStatusBadgeClass(item.status_email)}`}
+                          >
+                            {item.status_email || "Belum Terkirim"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6 text-center">
+                        <button
+                          onClick={() => handleGoDetail(item)}
+                          className="w-7 h-7 border border-gray-300 rounded-md flex items-center justify-center mx-auto cursor-pointer hover:bg-gray-200 transition flex-shrink-0"
+                          title="Lihat Detail Batch"
+                        >
+                          <DetailIcon />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
                 ) : (
                   <tr>
-                    <td
-                      colSpan="8"
-                      className="py-12 text-center text-gray-400 font-medium"
-                    >
+                    <td colSpan="8" className="py-12 text-center text-gray-400 font-medium">
                       <div className="flex flex-col items-center justify-center">
                         <FiSearch className="text-4xl mb-3 text-gray-300" />
                         <p>Data dokumen tidak ditemukan.</p>
@@ -631,8 +488,7 @@ const AdminDokumenValid = () => {
 
           <div className="px-6 py-5 border-t border-gray-100 bg-white flex justify-between items-center">
             <p className="text-sm text-gray-400 font-medium">
-              Menampilkan {currentData.length} dari {pagination.total_data || 0}{" "}
-              data
+              Menampilkan {currentData.length} dari {pagination.total_data || 0} data
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -654,127 +510,8 @@ const AdminDokumenValid = () => {
           </div>
         </div>
       </div>
-
-      {/* EMAIL MODAL */}
-      {emailModal.show && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl p-7 w-full max-w-sm mx-4">
-            {emailModal.type === "confirm" && (
-              <>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center">
-                    <FiSend className="text-[#117065]" size={20} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 text-[16px]">
-                      Kirim Email
-                    </h3>
-                    <p className="text-gray-500 text-[13px]">
-                      Konfirmasi pengiriman
-                    </p>
-                  </div>
-                </div>
-                <p className="text-[13px] text-gray-700 mb-6 leading-relaxed">
-                  Apakah Anda yakin ingin mengirimkan email dokumen untuk{" "}
-                  <span className="font-bold text-gray-900">
-                    {emailModal.data?.batch ||
-                      emailModal.data?.nomor_batch_upload ||
-                      "batch ini"}
-                  </span>
-                  ? Tindakan ini tidak dapat dibatalkan.
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() =>
-                      setEmailModal({
-                        show: false,
-                        type: "",
-                        data: null,
-                        message: "",
-                      })
-                    }
-                    className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-colors"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    onClick={confirmKirimEmail}
-                    className="flex-1 py-2.5 rounded-xl bg-[#117065] text-white font-bold text-sm hover:bg-teal-800 transition-colors flex items-center justify-center gap-2"
-                  >
-                    Ya, Kirim
-                  </button>
-                </div>
-              </>
-            )}
-            {emailModal.type === "loading" && (
-              <div className="flex flex-col items-center justify-center py-6 text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-t-2 border-[#117065] mb-4"></div>
-                <h3 className="font-bold text-gray-900 text-[16px] mb-1">
-                  Mengirim Email...
-                </h3>
-                <p className="text-gray-500 text-[13px]">
-                  Mohon tunggu sebentar, proses ini memakan waktu dan jangan
-                  tutup halaman ini.
-                </p>
-              </div>
-            )}
-            {emailModal.type === "success" && (
-              <div className="text-center py-2">
-                <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                  <FiCheckCircle className="text-green-500" size={28} />
-                </div>
-                <h3 className="font-bold text-gray-900 text-[17px] mb-2">
-                  Proses Selesai
-                </h3>
-                <p className="text-gray-500 text-[13px] mb-6 whitespace-pre-line leading-relaxed">
-                  {emailModal.message}
-                </p>
-                <button
-                  onClick={() =>
-                    setEmailModal({
-                      show: false,
-                      type: "",
-                      data: null,
-                      message: "",
-                    })
-                  }
-                  className="w-full py-2.5 rounded-xl bg-[#117065] text-white font-bold text-sm hover:bg-teal-800 transition-colors"
-                >
-                  Tutup
-                </button>
-              </div>
-            )}
-            {emailModal.type === "error" && (
-              <div className="text-center py-2">
-                <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                  <FiAlertTriangle className="text-red-500" size={28} />
-                </div>
-                <h3 className="font-bold text-gray-900 text-[17px] mb-2">
-                  Pengiriman Gagal
-                </h3>
-                <p className="text-gray-500 text-[13px] mb-6 whitespace-pre-line leading-relaxed">
-                  {emailModal.message}
-                </p>
-                <button
-                  onClick={() =>
-                    setEmailModal({
-                      show: false,
-                      type: "",
-                      data: null,
-                      message: "",
-                    })
-                  }
-                  className="w-full py-2.5 rounded-xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 transition-colors"
-                >
-                  Kembali
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </DashboardLayout>
   );
 };
 
-export default AdminDokumenValid;
+export default RektorDokumenValid;
