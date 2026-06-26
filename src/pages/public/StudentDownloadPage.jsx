@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 
 const getFriendlyMessage = (message = "") => {
   const lower = message.toLowerCase();
@@ -46,6 +46,12 @@ const getFriendlyMessage = (message = "") => {
 
 const StudentDownloadPage = () => {
   const { token } = useParams();
+  const [searchParams] = useSearchParams();
+  const errorMessage =
+    searchParams.get("message") ||
+    searchParams.get("error") ||
+    "";
+
 
   const [status, setStatus] = useState("ready");
   const [info, setInfo] = useState({
@@ -55,6 +61,19 @@ const StudentDownloadPage = () => {
     suggestion:
       "Link download hanya dapat digunakan satu kali. Pastikan koneksi internet stabil sebelum menekan tombol download.",
   });
+
+  useEffect(() => {
+  if (!token) {
+    setInfo(getFriendlyMessage("token tidak valid"));
+    setStatus("error");
+    return;
+  }
+
+  if (errorMessage) {
+    setInfo(getFriendlyMessage(errorMessage));
+    setStatus("error");
+  }
+}, [token, errorMessage]);
 
   const downloadUrl = token
     ? `/api/document/public/download/${encodeURIComponent(token)}`

@@ -66,14 +66,9 @@ const getBaseUrl = () => {
 };
 
 const getApiUrl = (path) => {
-  const baseUrl = getBaseUrl();
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  if (!path) return "";
 
-  if (baseUrl.endsWith("/api")) {
-    return `${baseUrl}${cleanPath.replace(/^\/api/, "")}`;
-  }
-
-  return `${baseUrl}${cleanPath}`;
+  return path.startsWith("/") ? path : `/${path}`;
 };
 
 const getImageUrl = (imagePath) => {
