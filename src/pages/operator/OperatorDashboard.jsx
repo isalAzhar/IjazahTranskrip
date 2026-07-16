@@ -417,7 +417,7 @@ console.log("SUMMARY MAPPED:", mapSummaryStats(summary));
           title="Jumlah Ijazah di Revoke"
           value={summaryStats.dataRevoke}
           sub={
-          summaryStats.revokeMingguIni > 0 ? `${summaryStats.revokeMingguIni} di Revoke Minggu ini`  : "di Revoke Minggu ini" }
+          summaryStats.revokeMingguIni > 0 ? `${summaryStats.revokeMingguIni} di Revoke Minggu ini`  : "0 di Revoke Minggu ini" }
           subColor="text-[#F59E0B]"
           icon={Icons.List}
           onClick={() => navigate("/ijazah/revoke")}
